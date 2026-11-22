@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+
+<defs>
+  <linearGradient id="gBodyW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e7e5e4"/></linearGradient>
+  <linearGradient id="gBodyWH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e7e5e4"/><stop offset=".45" stop-color="#ffffff"/><stop offset="1" stop-color="#d6d3d1"/></linearGradient>
+  <linearGradient id="gSilver" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5f5f4"/><stop offset="1" stop-color="#a8a29e"/></linearGradient>
+  <linearGradient id="gSilverH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a8a29e"/><stop offset=".5" stop-color="#f5f5f4"/><stop offset="1" stop-color="#a8a29e"/></linearGradient>
+  <linearGradient id="gDark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#57534e"/><stop offset="1" stop-color="#1c1917"/></linearGradient>
+  <linearGradient id="gDarkH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#292524"/><stop offset=".4" stop-color="#57534e"/><stop offset="1" stop-color="#1c1917"/></linearGradient>
+  <linearGradient id="gDarker" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#292524"/><stop offset="1" stop-color="#0c0a09"/></linearGradient>
+  <radialGradient id="gGlassTeal" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#14b8a6" stop-opacity=".9"/><stop offset=".45" stop-color="#115e59"/><stop offset="1" stop-color="#042f2e"/></radialGradient>
+  <radialGradient id="gGlassWarm" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#fdba74" stop-opacity=".8"/><stop offset=".5" stop-color="#7c2d12"/><stop offset="1" stop-color="#1c1917"/></radialGradient>
+  <linearGradient id="gRingSilver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5f5f4"/><stop offset="1" stop-color="#78716c"/></linearGradient>
+  <linearGradient id="gRingOrange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#c2410c"/></linearGradient>
+  <radialGradient id="gKnob" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#a8a29e"/><stop offset="1" stop-color="#292524"/></radialGradient>
+  <radialGradient id="gShadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#1c1917" stop-opacity=".38"/><stop offset="1" stop-color="#1c1917" stop-opacity="0"/></radialGradient>
+  <radialGradient id="gGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#f97316" stop-opacity=".55"/><stop offset=".6" stop-color="#f97316" stop-opacity=".12"/><stop offset="1" stop-color="#f97316" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gWallW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#ffedd5"/></linearGradient>
+</defs>
+
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#fed7aa"/></linearGradient></defs>
+<rect width="800" height="600" fill="url(#bg)"/>
+<circle cx="400" cy="300" r="250" fill="#ffffff" opacity=".55"/>
+<circle cx="400" cy="300" r="175" fill="#ffffff" opacity=".5"/>
+<circle cx="86" cy="86" r="46" fill="#ea580c" opacity=".12"/>
+<circle cx="724" cy="520" r="64" fill="#ea580c" opacity=".10"/>
+<path transform="translate(34 36) scale(0.6)" d="M20 0 L0 44 H18 L12 80 L40 32 H22 Z" fill="#ea580c" opacity="0.8"/>
+
+<rect x="40" y="516" width="720" height="28" rx="14" fill="#fdba74"/><rect x="40" y="516" width="720" height="8" rx="4" fill="#fed7aa"/><ellipse cx="290" cy="516" rx="150" ry="14" fill="url(#gShadow)"/><g transform="translate(290 516) scale(0.9)">
+    <rect x="-118" y="-12" width="30" height="12" rx="5" fill="#0c0a09"/><rect x="88" y="-12" width="30" height="12" rx="5" fill="#0c0a09"/>
+    <rect x="-130" y="-340" width="260" height="334" rx="50" fill="url(#gDark)"/>
+    <path d="M-130 -290 Q-130 -340 -80 -340 L-52 -340 Q-96 -300 -96 -230 L-96 -40 Q-130 -40 -130 -80 Z" fill="#fff" opacity=".07"/>
+    <rect x="-104" y="-318" width="208" height="70" rx="22" fill="#0c0a09" stroke="#57534e" stroke-width="2"/>
+    <rect x="-92" y="-306" width="92" height="46" rx="10" fill="#1c1917"/>
+    <text x="-46" y="-274" text-anchor="middle" fill="#fb923c" font-size="24" font-weight="700" font-family="'Segoe UI',Arial,sans-serif">180°</text>
+    <circle cx="38" cy="-283" r="17" fill="url(#gKnob)"/><rect x="36" y="-297" width="4" height="12" rx="2" fill="#fb923c"/>
+    <circle cx="80" cy="-283" r="13" fill="url(#gKnob)"/><rect x="78.5" y="-294" width="3" height="9" rx="1.5" fill="#fb923c"/>
+    <rect x="-112" y="-226" width="224" height="178" rx="26" fill="url(#gDarker)" stroke="#57534e" stroke-width="2"/>
+    <rect x="-72" y="-206" width="144" height="28" rx="14" fill="url(#gSilverH)"/>
+    <rect x="-72" y="-178" width="144" height="5" rx="2.5" fill="#0c0a09" opacity=".35"/>
+    <rect x="-112" y="-70" width="224" height="9" rx="4.5" fill="#ea580c"/>
+    <g stroke="#57534e" stroke-width="4" stroke-linecap="round"><path d="M-48 -150 H48"/><path d="M-48 -134 H48"/><path d="M-48 -118 H48"/></g>
+    </g><ellipse cx="555" cy="516" rx="190" ry="14" fill="url(#gShadow)"/><g transform="translate(555 516) scale(0.78)">
+    <rect x="-190" y="-12" width="36" height="12" rx="5" fill="#0c0a09"/><rect x="154" y="-12" width="36" height="12" rx="5" fill="#0c0a09"/>
+    <rect x="-210" y="-268" width="420" height="260" rx="26" fill="url(#gSilver)"/>
+    <rect x="-210" y="-268" width="420" height="260" rx="26" fill="none" stroke="#a8a29e" stroke-width="2"/>
+    <rect x="-192" y="-246" width="268" height="216" rx="18" fill="#1c1917"/>
+    <rect x="-180" y="-234" width="244" height="192" rx="12" fill="url(#gDarker)"/>
+    <path d="M-176 -230 L-90 -230 L-176 -110 Z" fill="#fff" opacity=".10"/>
+    <path d="M-60 -230 L-10 -230 L-110 -70 L-160 -70 Z" fill="#fff" opacity=".06"/>
+    <ellipse cx="-58" cy="-62" rx="78" ry="11" fill="#57534e"/>
+    <ellipse cx="-58" cy="-70" rx="52" ry="22" fill="#292524"/>
+    <rect x="58" y="-196" width="11" height="124" rx="5.5" fill="url(#gSilverH)"/>
+    <rect x="96" y="-246" width="98" height="216" rx="14" fill="#292524"/>
+    <rect x="106" y="-234" width="78" height="40" rx="8" fill="#0c0a09"/>
+    <text x="145" y="-206" text-anchor="middle" fill="#fb923c" font-size="22" font-weight="700" font-family="'Segoe UI',Arial,sans-serif">12:30</text>
+    <g fill="#57534e">
+      <rect x="106" y="-180" width="36" height="18" rx="5"/><rect x="148" y="-180" width="36" height="18" rx="5"/>
+      <rect x="106" y="-154" width="36" height="18" rx="5"/><rect x="148" y="-154" width="36" height="18" rx="5"/>
+      <rect x="106" y="-128" width="36" height="18" rx="5"/><rect x="148" y="-128" width="36" height="18" rx="5"/>
+    </g>
+    <circle cx="145" cy="-66" r="20" fill="url(#gRingOrange)"/><path d="M139 -74 L153 -66 L139 -58 Z" fill="#fff"/>
+    </g>
+</svg>
