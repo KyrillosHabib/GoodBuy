@@ -1,0 +1,602 @@
+@if (!onlyTab) {
+  <div class="page-head"><h1>{{ (only ? 'acc.nav.cashSetup' : 'acc.nav.treasury') | t }}</h1></div>
+  <app-intro [text]="(only ? 'acc.tr.setupIntro' : 'acc.tr.intro') | t" />
+}
+
+@if (!only && !onlyTab) {
+  <div class="stat-grid">
+    <div class="card stat"><span class="muted">{{ 'acc.dash.cash' | t }}</span><strong dir="ltr">{{ cashTotal() | number: '1.2-2' }}</strong></div>
+    <div class="card stat"><span class="muted">{{ 'acc.dash.dueFromCarriers' | t }}</span><strong dir="ltr">{{ custodyTotal() | number: '1.2-2' }}</strong></div>
+    <div class="card stat"><span class="muted">{{ 'acc.dash.dueFromGateways' | t }}</span><strong dir="ltr">{{ gatewayTotal() | number: '1.2-2' }}</strong></div>
+  </div>
+  <div class="tabs">
+    <button type="button" class="tab" [class.on]="tab() === 'vouchers'" (click)="tab.set('vouchers')">{{ 'acc.tr.vouchers' | t }}</button>
+    <button type="button" class="tab" [class.on]="tab() === 'carriers'" (click)="tab.set('carriers')">{{ 'acc.tr.carriers' | t }}</button>
+    <button type="button" class="tab" [class.on]="tab() === 'gateways'" (click)="tab.set('gateways')">{{ 'acc.tr.gateways' | t }}</button>
+    <button type="button" class="tab" [class.on]="tab() === 'transfers'" (click)="tab.set('transfers')">{{ 'acc.tr.transfers' | t }}</button>
+  </div>
+}
+
+<!-- ================= vouchers ================= -->
+@if (tab() === 'vouchers') {
+  <div class="toolbar">
+    @if (canPrepare) {
+      <button type="button" class="btn btn-primary" (click)="startVoucher('Receipt', null)">+ {{ 'acc.voucher.Receipt' | t }}</button>
+      <button type="button" class="btn btn-primary" (click)="startVoucher('Payment', null)">+ {{ 'acc.voucher.Payment' | t }}</button>
+      <button type="button" class="btn btn-light" (click)="startVoucher('Payment', null, true)">+ {{ 'acc.tr.newExpense' | t }}</button>
+    }
+    <select [ngModel]="vType" (ngModelChange)="vType = $event; loadVouchers()">
+      <option value="">{{ 'acc.tr.allTypes' | t }}</option>
+      <option value="Receipt">{{ 'acc.voucher.Receipt' | t }}</option>
+      <option value="Payment">{{ 'acc.voucher.Payment' | t }}</option>
+    </select>
+    <select [ngModel]="vStatus" (ngModelChange)="vStatus = $event; loadVouchers()">
+      <option value="">{{ 'acc.allStatuses' | t }}</option>
+      @for (s of statuses; track s) { <option [value]="s">{{ 'acc.st.' + s | t }}</option> }
+    </select>
+  </div>
+  <div class="card"><app-data-table [rows]="vouchers()" [columns]="voucherColumns" [rowTemplate]="vrow" /></div>
+
+  <ng-template #vrow let-v>
+    <td dir="ltr"><strong>{{ v.number }}</strong></td>
+    <td>{{ 'acc.voucher.' + v.type | t }}</td>
+    <td dir="ltr">{{ v.voucherDate | slice: 0 : 10 }}</td>
+    <td>{{ v.partyName ?? v.counterAccountName }}</td>
+    <td>{{ v.cashAccountName }}</td>
+    <td class="num" dir="ltr">{{ v.amount | number: '1.2-2' }}</td>
+    <td class="num" dir="ltr">{{ v.status === 'Posted' && v.partyId && v.unallocated > 0 ? (v.unallocated | number: '1.2-2') : '' }}</td>
+    <td><span class="chip st-{{ v.status }}">{{ 'acc.st.' + v.status | t }}</span></td>
+    <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="viewVoucher(v.id)">{{ 'acc.open' | t }}</button></td>
+  </ng-template>
+}
+
+<!-- ================= transfers ================= -->
+@if (tab() === 'transfers') {
+  <div class="toolbar">
+    @if (canPrepare) { <button type="button" class="btn btn-primary" (click)="startTransfer(null)">+ {{ 'acc.tr.newTransfer' | t }}</button> }
+  </div>
+  <div class="card"><app-data-table [rows]="transfers()" [columns]="transferColumns" [rowTemplate]="trow" /></div>
+
+  <ng-template #trow let-t>
+    <td dir="ltr"><strong>{{ t.number }}</strong></td>
+    <td dir="ltr">{{ t.transferDate | slice: 0 : 10 }}</td>
+    <td>{{ t.fromName }} → {{ t.toName }}</td>
+    <td class="num" dir="ltr">{{ t.amount | number: '1.2-2' }}</td>
+    <td><span class="chip st-{{ t.status }}">{{ 'acc.st.' + t.status | t }}</span></td>
+    <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="transferDetail.set(t)">{{ 'acc.open' | t }}</button></td>
+  </ng-template>
+}
+
+
+<!-- ================= cash held by the shipping companies ================= -->
+@if (tab() === 'carriers' && !only) {
+  <p class="muted">{{ 'acc.tr.carriersHint' | t }}</p>
+  <div class="toolbar">
+    @if (canPrepare) { <button type="button" class="btn btn-primary" (click)="startCarrierSettlement(null)">+ {{ 'acc.tr.newCarrierSettlement' | t }}</button> }
+  </div>
+
+  <div class="card">
+    <h3>{{ 'acc.tr.held' | t }} <span class="muted small" dir="ltr">({{ held().length }} · {{ heldTotal() | number: '1.2-2' }})</span></h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.tr.order' | t }}</th><th>{{ 'acc.tr.city' | t }}</th><th>{{ 'acc.party' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th></tr></thead>
+        <tbody>
+          @for (h of held(); track h.voucherId) {
+            <tr>
+              <td dir="ltr">{{ h.voucherNumber }}</td><td dir="ltr">{{ h.date | slice: 0 : 10 }}</td><td dir="ltr">{{ h.orderNumber }}</td><td>{{ h.city }}</td><td>{{ h.partyName }}</td>
+              <td class="num" dir="ltr">{{ h.amount | number: '1.2-2' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="muted">{{ 'acc.tr.heldNone' | t }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>{{ 'acc.tr.carrierSettlements' | t }}</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.tr.carrier' | t }}</th><th class="num">{{ 'acc.tr.collected' | t }}</th><th class="num">{{ 'acc.tr.fees' | t }}</th><th class="num">{{ 'acc.tr.difference' | t }}</th><th class="num">{{ 'acc.tr.received' | t }}</th><th>{{ 'a.status' | t }}</th><th></th></tr></thead>
+        <tbody>
+          @for (c of carrierSettlements(); track c.id) {
+            <tr>
+              <td dir="ltr"><strong>{{ c.number }}</strong></td><td dir="ltr">{{ c.settlementDate | slice: 0 : 10 }}</td><td>{{ c.carrierName }}</td>
+              <td class="num" dir="ltr">{{ c.collected | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.fees | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.difference | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.amountReceived | number: '1.2-2' }}</td>
+              <td><span class="chip st-{{ c.status }}">{{ 'acc.st.' + c.status | t }}</span></td>
+              <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="viewCarrierSettlement(c.id)">{{ 'acc.open' | t }}</button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="9" class="muted">{{ 'acc.tr.noCarrierSettlements' | t }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- ================= money held by the online payment gateways ================= -->
+@if (tab() === 'gateways' && !only) {
+  <p class="muted">{{ 'acc.tr.gatewaysHint' | t }}</p>
+  <div class="toolbar">
+    @if (canPrepare) { <button type="button" class="btn btn-primary" (click)="startGatewaySettlement(null)">+ {{ 'acc.tr.newGatewaySettlement' | t }}</button> }
+  </div>
+
+  <div class="card">
+    <h3>{{ 'acc.tr.gwHeld' | t }} <span class="muted small" dir="ltr">({{ gwHeld().length }} · {{ gwHeldTotal() | number: '1.2-2' }})</span></h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.tr.gateway' | t }}</th><th>{{ 'acc.tr.order' | t }}</th><th>{{ 'acc.party' | t }}</th><th>{{ 'acc.tr.gwKind' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th></tr></thead>
+        <tbody>
+          @for (h of gwHeld(); track h.voucherId) {
+            <tr>
+              <td dir="ltr">{{ h.voucherNumber }}</td><td dir="ltr">{{ h.date | slice: 0 : 10 }}</td><td>{{ h.gatewayName }}</td><td dir="ltr">{{ h.orderNumber }}</td><td>{{ h.partyName }}</td>
+              <td>{{ 'acc.tr.gwKind.' + h.kind | t }}</td>
+              <td class="num" dir="ltr">{{ h.amount | number: '1.2-2' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="muted">{{ 'acc.tr.gwHeldNone' | t }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>{{ 'acc.tr.gatewaySettlements' | t }}</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.tr.gateway' | t }}</th><th class="num">{{ 'acc.tr.collected' | t }}</th><th class="num">{{ 'acc.tr.fees' | t }}</th><th class="num">{{ 'acc.tr.difference' | t }}</th><th class="num">{{ 'acc.tr.received' | t }}</th><th>{{ 'a.status' | t }}</th><th></th></tr></thead>
+        <tbody>
+          @for (c of gatewaySettlements(); track c.id) {
+            <tr>
+              <td dir="ltr"><strong>{{ c.number }}</strong></td><td dir="ltr">{{ c.settlementDate | slice: 0 : 10 }}</td><td>{{ c.gatewayName }}</td>
+              <td class="num" dir="ltr">{{ c.collected | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.fees | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.difference | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.amountReceived | number: '1.2-2' }}</td>
+              <td><span class="chip st-{{ c.status }}">{{ 'acc.st.' + c.status | t }}</span></td>
+              <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="viewGatewaySettlement(c.id)">{{ 'acc.open' | t }}</button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="9" class="muted">{{ 'acc.tr.noGatewaySettlements' | t }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- ================= cash accounts ================= -->
+@if (tab() === 'cash') {
+  <div class="toolbar">
+    @if (canPrepare) { <button type="button" class="btn btn-primary" (click)="startCash(null)">+ {{ 'acc.tr.newCash' | t }}</button> }
+  </div>
+  <div class="card"><app-data-table [rows]="cashAccounts()" [columns]="cashColumns" [rowTemplate]="crow" /></div>
+
+  <ng-template #crow let-c>
+    <td><strong>{{ c.name }}</strong></td>
+    <td>{{ 'acc.cash.' + c.type | t }}</td>
+    <td dir="ltr">{{ c.accountCode }}</td>
+    <td dir="ltr">{{ c.accountNumber }}</td>
+    <td class="num" dir="ltr">{{ c.balance | number: '1.2-2' }}</td>
+    <td>@if (c.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+    <td class="actions">@if (canPrepare && c.type !== 'Custody') { <button type="button" class="btn btn-light btn-sm" (click)="startCash(c)">{{ 'a.edit' | t }}</button> }</td>
+  </ng-template>
+}
+
+<!-- ================= voucher editor ================= -->
+@if (voucherOpen()) {
+  <app-modal [title]="'acc.voucher.' + vForm.controls.type.value | t" size="xl" (closed)="voucherOpen.set(false)">
+    <form id="voucher-form" [formGroup]="vForm" (ngSubmit)="saveVoucher()">
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.date' | t }} <span class="req">*</span></label><input type="date" formControlName="voucherDate" dir="ltr" /></div>
+        <div class="field">
+          <label>{{ 'acc.tr.cashAccount' | t }} <span class="req">*</span></label>
+          <select formControlName="cashAccountId">
+            <option [ngValue]="null">—</option>
+            @for (c of activeCash(); track c.id) { <option [ngValue]="c.id">{{ c.name }} ({{ c.balance | number: '1.2-2' }})</option> }
+          </select>
+        </div>
+        <div class="field"><label>{{ 'acc.amount' | t }} <span class="req">*</span></label><input type="number" step="0.01" min="0" formControlName="amount" dir="ltr" /></div>
+        <div class="field">
+          <label>{{ 'acc.tr.method' | t }}</label>
+          <select formControlName="method">@for (m of methods; track m) { <option [value]="m">{{ 'acc.method.' + m | t }}</option> }</select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>{{ 'acc.tr.purpose' | t }}</label>
+        <div class="chips">
+          <button type="button" class="chip-btn" [class.on]="vForm.controls.purpose.value === 'Party'" (click)="setPurpose('Party')">{{ 'acc.tr.purposeParty' | t }}</button>
+          <button type="button" class="chip-btn" [class.on]="vForm.controls.purpose.value === 'Other'" (click)="setPurpose('Other')">{{ 'acc.tr.purposeOther' | t }}</button>
+        </div>
+      </div>
+
+      @if (vForm.controls.purpose.value === 'Party') {
+        <div class="field">
+          <label>{{ 'acc.party' | t }} <span class="req">*</span></label>
+          <select formControlName="partyId" (change)="partyPicked()">
+            <option [ngValue]="null">—</option>
+            @for (p of activeParties(); track p.id) { <option [ngValue]="p.id">{{ p.name }} — {{ 'acc.party.' + p.kind | t }}</option> }
+          </select>
+        </div>
+        @if (vForm.controls.partyId.value !== null) {
+          <h4>{{ 'acc.tr.matchTo' | t }}</h4>
+          <p class="muted small">{{ 'acc.tr.matchHint' | t }}</p>
+          <app-acc-alloc-table [docs]="openDocs()" [available]="Number(vForm.controls.amount.value) || 0" [preset]="presetLines" (changed)="allocLines = $event" />
+        }
+      } @else {
+        <div class="field">
+          <label>{{ 'acc.tr.counter' | t }} <span class="req">*</span></label>
+          <select formControlName="counterAccountId">
+            <option [ngValue]="null">—</option>
+            @for (a of counterChoices(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }} ({{ 'acc.type.' + a.type | t }})</option> }
+          </select>
+          <span class="muted small">{{ 'acc.tr.counterHint' | t }}</span>
+        </div>
+        @if (costCenters().length > 0) {
+          <div class="field">
+            <label>{{ 'acc.cc.center' | t }}</label>
+            <select formControlName="costCenterId">
+              <option [ngValue]="null">—</option>
+              @for (c of costCenters(); track c.id) { <option [ngValue]="c.id">{{ c.code }} — {{ c.name }}</option> }
+            </select>
+          </div>
+        }
+      }
+
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.tr.reference' | t }}</label><input formControlName="reference" dir="ltr" /></div>
+        <div class="field"><label>{{ 'inv.note' | t }}</label><input formControlName="notes" /></div>
+      </div>
+    </form>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="voucherOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="voucher-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'acc.doc.saveDraft') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+<!-- ================= voucher detail ================= -->
+@if (voucherDetail(); as v) {
+  <app-modal [title]="('acc.voucher.' + v.type | t) + ' ' + v.number" size="lg" (closed)="voucherDetail.set(null)">
+    <div class="print-area">
+      <div class="form-row">
+        <div><span class="muted small">{{ 'acc.date' | t }}</span><br /><strong dir="ltr">{{ v.voucherDate | slice: 0 : 10 }}</strong></div>
+        <div><span class="muted small">{{ 'acc.tr.cashAccount' | t }}</span><br /><strong>{{ v.cashAccountName }}</strong></div>
+        <div><span class="muted small">{{ 'acc.amount' | t }}</span><br /><strong dir="ltr">{{ v.amount | number: '1.2-2' }}</strong></div>
+        <div><span class="muted small">{{ 'acc.tr.method' | t }}</span><br /><strong>{{ 'acc.method.' + v.method | t }} <span dir="ltr">{{ v.reference }}</span></strong></div>
+        <div><span class="muted small">{{ v.partyName ? ('acc.party' | t) : ('acc.tr.counter' | t) }}</span><br /><strong>{{ v.partyName ?? v.counterAccountName }}</strong></div>
+        @if (v.journalEntryNumber) { <div><span class="muted small">{{ 'acc.entry' | t }}</span><br /><strong dir="ltr">{{ v.journalEntryNumber }}</strong></div> }
+      </div>
+      @if (v.notes) { <p class="muted">{{ v.notes }}</p> }
+
+      @if (v.allocations.length > 0) {
+        <h4>{{ 'acc.tr.matchTo' | t }}</h4>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>{{ 'acc.number' | t }}</th><th class="num">{{ 'acc.doc.amount' | t }}</th><th></th></tr></thead>
+            <tbody>
+              @for (a of v.allocations; track a.id) {
+                <tr [class.muted]="a.isReversed">
+                  <td><strong>{{ a.documentNumber }}</strong> <span class="muted small">{{ 'acc.doc.' + a.documentType | t }}</span></td>
+                  <td class="num" dir="ltr">{{ a.amount | number: '1.2-2' }}</td>
+                  <td>@if (a.isPlanned) { <span class="chip">{{ 'acc.alloc.planned' | t }}</span> } @if (a.isReversed) { <span class="chip">{{ 'acc.alloc.undone' | t }}</span> }</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      @if (v.status === 'Posted' && v.partyId) { <p>{{ 'acc.tr.unmatched' | t }}: <strong dir="ltr">{{ v.unallocated | number: '1.2-2' }}</strong></p> }
+    </div>
+
+    <app-acc-workflow kind="voucher" [id]="v.id" [item]="v" preparePermission="accounting.treasury" (done)="reloadVoucher(v.id)" />
+    <div class="toolbar no-print">
+      @if ((v.status === 'Draft' || v.status === 'Rejected') && canPrepare) { <button type="button" class="btn btn-light btn-sm" (click)="startVoucher(v.type, v)">{{ 'a.edit' | t }}</button> }
+      @if (v.status === 'Posted' && v.partyId && v.unallocated > 0 && canPrepare) { <button type="button" class="btn btn-light btn-sm" (click)="startMatch(v)">{{ 'acc.tr.matchNow' | t }}</button> }
+      <button type="button" class="btn btn-light btn-sm" (click)="print()">{{ 'acc.print' | t }}</button>
+    </div>
+    @if (v.journalEntryId) { <app-acc-entry-details [entryId]="v.journalEntryId" /> }
+    <app-acc-audit entityType="voucher" [entityId]="v.id" [refresh]="refresh()" />
+    <div modal-footer><button type="button" class="btn btn-light" (click)="voucherDetail.set(null)">{{ 'a.close' | t }}</button></div>
+  </app-modal>
+}
+
+@if (matching(); as v) {
+  <app-modal [title]="'acc.tr.matchNow' | t" size="lg" (closed)="matching.set(null)">
+    <p>{{ v.number }} — {{ 'acc.alloc.available' | t }}: <strong dir="ltr">{{ v.unallocated | number: '1.2-2' }}</strong></p>
+    <app-acc-alloc-table [docs]="openDocs()" [available]="v.unallocated" (changed)="allocLines = $event" />
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="matching.set(null)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveMatch(v)">{{ 'a.save' | t }}</button>
+    </div>
+  </app-modal>
+}
+
+<!-- ================= transfer editor / detail ================= -->
+@if (transferOpen()) {
+  <app-modal [title]="'acc.tr.newTransfer' | t" (closed)="transferOpen.set(false)">
+    <form id="transfer-form" [formGroup]="tForm" (ngSubmit)="saveTransfer()">
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'acc.tr.from' | t }} <span class="req">*</span></label>
+          <select formControlName="fromCashAccountId"><option [ngValue]="null">—</option>@for (c of activeCash(); track c.id) { <option [ngValue]="c.id">{{ c.name }} ({{ c.balance | number: '1.2-2' }})</option> }</select>
+        </div>
+        <div class="field">
+          <label>{{ 'acc.tr.to' | t }} <span class="req">*</span></label>
+          <select formControlName="toCashAccountId"><option [ngValue]="null">—</option>@for (c of activeCash(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }</select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.amount' | t }} <span class="req">*</span></label><input type="number" step="0.01" min="0" formControlName="amount" dir="ltr" /></div>
+        <div class="field"><label>{{ 'acc.date' | t }} <span class="req">*</span></label><input type="date" formControlName="transferDate" dir="ltr" /></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.tr.reference' | t }}</label><input formControlName="reference" dir="ltr" /></div>
+        <div class="field"><label>{{ 'inv.note' | t }}</label><input formControlName="notes" /></div>
+      </div>
+    </form>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="transferOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="transfer-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'acc.doc.saveDraft') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (transferDetail(); as t) {
+  <app-modal [title]="('acc.tr.transfer' | t) + ' ' + t.number" (closed)="transferDetail.set(null)">
+    <div class="form-row">
+      <div><span class="muted small">{{ 'acc.date' | t }}</span><br /><strong dir="ltr">{{ t.transferDate | slice: 0 : 10 }}</strong></div>
+      <div><span class="muted small">{{ 'acc.tr.from' | t }}</span><br /><strong>{{ t.fromName }}</strong></div>
+      <div><span class="muted small">{{ 'acc.tr.to' | t }}</span><br /><strong>{{ t.toName }}</strong></div>
+      <div><span class="muted small">{{ 'acc.amount' | t }}</span><br /><strong dir="ltr">{{ t.amount | number: '1.2-2' }}</strong></div>
+    </div>
+    @if (t.notes) { <p class="muted">{{ t.notes }}</p> }
+    <app-acc-workflow kind="transfer" [id]="t.id" [item]="t" preparePermission="accounting.treasury" (done)="afterTransfer()" />
+    @if ((t.status === 'Draft' || t.status === 'Rejected') && canPrepare) {
+      <div class="toolbar"><button type="button" class="btn btn-light btn-sm" (click)="startTransfer(t)">{{ 'a.edit' | t }}</button></div>
+    }
+    @if (t.journalEntryId) { <app-acc-entry-details [entryId]="t.journalEntryId" /> }
+    <app-acc-audit entityType="transfer" [entityId]="t.id" [refresh]="refresh()" />
+    <div modal-footer><button type="button" class="btn btn-light" (click)="transferDetail.set(null)">{{ 'a.close' | t }}</button></div>
+  </app-modal>
+}
+
+
+@if (gsOpen()) {
+  <app-modal [title]="(gsEditing() ? 'acc.tr.editGatewaySettlement' : 'acc.tr.newGatewaySettlement') | t" size="xl" (closed)="gsOpen.set(false)">
+    <div class="form-row">
+      <div class="field">
+        <label>{{ 'acc.tr.gateway' | t }} <span class="req">*</span></label>
+        <select [ngModel]="gsGateway" (ngModelChange)="pickGateway($event)" [disabled]="!!gsEditing()">
+          <option [ngValue]="null">—</option>
+          @for (c of gatewayAccounts(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ 'acc.tr.receivedIn' | t }} <span class="req">*</span></label>
+        <select [ngModel]="gsTo" (ngModelChange)="gsTo = $event">
+          <option [ngValue]="null">—</option>
+          @for (c of activeCash(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+        </select>
+      </div>
+      <div class="field"><label>{{ 'acc.date' | t }} <span class="req">*</span></label><input type="date" [ngModel]="gsDate" (ngModelChange)="gsDate = $event" dir="ltr" /></div>
+    </div>
+
+    @if (gsGateway !== null) {
+      <h4>{{ 'acc.tr.pickGwPayments' | t }}</h4>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th></th><th>{{ 'acc.tr.order' | t }}</th><th>{{ 'acc.tr.gwKind' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th></tr></thead>
+          <tbody>
+            @for (h of gsChoices(); track h.voucherId) {
+              <tr>
+                <td><input type="checkbox" [checked]="gsPicked().has(h.voucherId)" (change)="toggleGwPick(h.voucherId)" /></td>
+                <td dir="ltr">{{ h.orderNumber ?? h.voucherNumber }}</td><td>{{ 'acc.tr.gwKind.' + h.kind | t }}</td>
+                <td class="num" dir="ltr">{{ h.amount | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="muted">{{ 'acc.tr.gwHeldNone' | t }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-light btn-sm" (click)="pickAllGw(true)">{{ 'acc.st2.all' | t }}</button>
+        <button type="button" class="btn btn-light btn-sm" (click)="pickAllGw(false)">{{ 'acc.alloc.clear' | t }}</button>
+      </div>
+
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.tr.collected' | t }}</label><input [value]="gsCollected() | number: '1.2-2'" disabled dir="ltr" /></div>
+        <div class="field"><label>{{ 'acc.tr.gwReceived' | t }}</label><input type="number" step="0.01" min="0" [ngModel]="gsReceived" (ngModelChange)="gsReceived = +$event" dir="ltr" /></div>
+        <div class="field"><label>{{ 'acc.tr.gwFees' | t }}</label><input type="number" step="0.01" min="0" [ngModel]="gsFees" (ngModelChange)="gsFees = +$event" dir="ltr" /></div>
+        <div class="field"><label>{{ 'acc.tr.difference' | t }}</label><input type="number" step="0.01" min="0" [ngModel]="gsDifference" (ngModelChange)="gsDifference = +$event" dir="ltr" /></div>
+      </div>
+      <p class="small" [class.muted]="gsBalance() === 0" [style.color]="gsBalance() !== 0 ? '#b91c1c' : null" dir="auto">{{ (gsBalance() === 0 ? 'acc.tr.gwBalanced' : 'acc.tr.gwUnbalanced') | t }}: <span dir="ltr">{{ gsBalance() | number: '1.2-2' }}</span></p>
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.tr.payoutRef' | t }}</label><input [ngModel]="gsReference" (ngModelChange)="gsReference = $event" dir="ltr" /></div>
+        <div class="field"><label>{{ 'inv.note' | t }}</label><input [ngModel]="gsNotes" (ngModelChange)="gsNotes = $event" /></div>
+      </div>
+    }
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="gsOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving() || gsGateway === null || gsTo === null || gsPicked().size === 0" (click)="saveGatewaySettlement()">{{ (saving() ? 'a.saving' : 'acc.doc.saveDraft') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (gsDetail(); as c) {
+  <app-modal [title]="('acc.tr.gatewaySettlement' | t) + ' ' + c.number" size="lg" (closed)="gsDetail.set(null)">
+    <div class="print-area">
+      <div class="form-row">
+        <div><span class="muted small">{{ 'acc.tr.gateway' | t }}</span><br /><strong>{{ c.gatewayName }}</strong></div>
+        <div><span class="muted small">{{ 'acc.date' | t }}</span><br /><strong dir="ltr">{{ c.settlementDate | slice: 0 : 10 }}</strong></div>
+        <div><span class="muted small">{{ 'acc.tr.receivedIn' | t }}</span><br /><strong>{{ c.toCashAccountName }}</strong></div>
+        @if (c.reference) { <div><span class="muted small">{{ 'acc.tr.payoutRef' | t }}</span><br /><strong dir="ltr">{{ c.reference }}</strong></div> }
+      </div>
+      <div class="stat-grid">
+        <div class="card stat"><span class="muted">{{ 'acc.tr.collected' | t }}</span><strong dir="ltr">{{ c.collected | number: '1.2-2' }}</strong></div>
+        <div class="card stat"><span class="muted">{{ 'acc.tr.gwFees' | t }}</span><strong dir="ltr">{{ c.fees | number: '1.2-2' }}</strong></div>
+        @if (c.difference > 0) { <div class="card stat"><span class="muted">{{ 'acc.tr.difference' | t }}</span><strong dir="ltr">{{ c.difference | number: '1.2-2' }}</strong></div> }
+        <div class="card stat"><span class="muted">{{ 'acc.tr.gwReceived' | t }}</span><strong dir="ltr">{{ c.amountReceived | number: '1.2-2' }}</strong></div>
+      </div>
+      @if (c.notes) { <p class="muted small">{{ c.notes }}</p> }
+      <table class="table">
+        <thead><tr><th>{{ 'acc.tr.order' | t }}</th><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.tr.gwKind' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th></tr></thead>
+        <tbody>@for (i of c.items; track i.voucherId) { <tr><td dir="ltr">{{ i.orderNumber }}</td><td dir="ltr">{{ i.voucherNumber }}</td><td>{{ 'acc.tr.gwKind.' + i.kind | t }}</td><td class="num" dir="ltr">{{ i.amount | number: '1.2-2' }}</td></tr> }</tbody>
+      </table>
+    </div>
+    <app-acc-workflow kind="gateway-settlement" [id]="c.id" [item]="c" preparePermission="accounting.treasury" (done)="afterGatewaySettlement(c.id)" />
+    @if ((c.status === 'Draft' || c.status === 'Rejected') && canPrepare) {
+      <div class="toolbar"><button type="button" class="btn btn-light btn-sm" (click)="startGatewaySettlement(c)">{{ 'a.edit' | t }}</button></div>
+    }
+    @if (c.journalEntryId) { <app-acc-entry-details [entryId]="c.journalEntryId" /> }
+    <app-acc-audit entityType="gateway-settlement" [entityId]="c.id" [refresh]="refresh()" />
+    <div modal-footer><button type="button" class="btn btn-light" (click)="gsDetail.set(null)">{{ 'a.close' | t }}</button></div>
+  </app-modal>
+}
+
+@if (csOpen()) {
+  <app-modal [title]="(csEditing() ? 'acc.tr.editCarrierSettlement' : 'acc.tr.newCarrierSettlement') | t" size="xl" (closed)="csOpen.set(false)">
+    <div class="form-row">
+      <div class="field">
+        <label>{{ 'acc.tr.carrier' | t }} <span class="req">*</span></label>
+        <select [ngModel]="csCarrier" (ngModelChange)="pickCarrier($event)" [disabled]="!!csEditing()">
+          <option [ngValue]="null">—</option>
+          @for (c of carriers(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ 'acc.tr.receivedIn' | t }} <span class="req">*</span></label>
+        <select [ngModel]="csTo" (ngModelChange)="csTo = $event">
+          <option [ngValue]="null">—</option>
+          @for (c of activeCash(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+        </select>
+      </div>
+      <div class="field"><label>{{ 'acc.date' | t }} <span class="req">*</span></label><input type="date" [ngModel]="csDate" (ngModelChange)="csDate = $event" dir="ltr" /></div>
+    </div>
+
+    @if (csCarrier !== null) {
+      <h4>{{ 'acc.tr.pickCollections' | t }}</h4>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th></th><th>{{ 'acc.tr.order' | t }}</th><th>{{ 'acc.tr.city' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th><th class="num">{{ 'acc.tr.suggestedFee' | t }}</th></tr></thead>
+          <tbody>
+            @for (h of csChoices(); track h.voucherId) {
+              <tr>
+                <td><input type="checkbox" [checked]="csPicked().has(h.voucherId)" (change)="togglePick(h.voucherId)" /></td>
+                <td dir="ltr">{{ h.orderNumber ?? h.voucherNumber }}</td><td>{{ h.city }}</td>
+                <td class="num" dir="ltr">{{ h.amount | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ h.suggestedFee | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="muted">{{ 'acc.tr.heldNone' | t }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-light btn-sm" (click)="pickAllCollections(true)">{{ 'acc.st2.all' | t }}</button>
+        <button type="button" class="btn btn-light btn-sm" (click)="pickAllCollections(false)">{{ 'acc.alloc.clear' | t }}</button>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'acc.tr.fees' | t }}</label>
+          <input type="number" step="0.01" min="0" [ngModel]="csFees" (ngModelChange)="csFees = +$event" dir="ltr" />
+          <span class="muted small">{{ 'acc.tr.suggestedFee' | t }}: <a href="javascript:void(0)" (click)="csFees = csSuggested()" dir="ltr">{{ csSuggested() | number: '1.2-2' }}</a></span>
+        </div>
+        <div class="field">
+          <label>{{ 'acc.tr.difference' | t }}</label>
+          <input type="number" step="0.01" min="0" [ngModel]="csDifference" (ngModelChange)="csDifference = +$event" dir="ltr" />
+          <span class="muted small">{{ 'acc.tr.differenceHint' | t }}</span>
+        </div>
+        <div class="field"><label>{{ 'acc.tr.collected' | t }}</label><input [value]="csCollected() | number: '1.2-2'" disabled dir="ltr" /></div>
+        <div class="field"><label>{{ 'acc.tr.received' | t }}</label><input [value]="(csCollected() - csFees - csDifference) | number: '1.2-2'" disabled dir="ltr" /></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.tr.reference' | t }}</label><input [ngModel]="csReference" (ngModelChange)="csReference = $event" dir="ltr" /></div>
+        <div class="field"><label>{{ 'inv.note' | t }}</label><input [ngModel]="csNotes" (ngModelChange)="csNotes = $event" /></div>
+      </div>
+    }
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="csOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving() || csCarrier === null || csTo === null || csPicked().size === 0" (click)="saveCarrierSettlement()">{{ (saving() ? 'a.saving' : 'acc.doc.saveDraft') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (csDetail(); as c) {
+  <app-modal [title]="('acc.tr.carrierSettlement' | t) + ' ' + c.number" size="lg" (closed)="csDetail.set(null)">
+    <div class="print-area">
+      <div class="form-row">
+        <div><span class="muted small">{{ 'acc.tr.carrier' | t }}</span><br /><strong>{{ c.carrierName }}</strong></div>
+        <div><span class="muted small">{{ 'acc.date' | t }}</span><br /><strong dir="ltr">{{ c.settlementDate | slice: 0 : 10 }}</strong></div>
+        <div><span class="muted small">{{ 'acc.tr.receivedIn' | t }}</span><br /><strong>{{ c.toCashAccountName }}</strong></div>
+      </div>
+      <div class="stat-grid">
+        <div class="card stat"><span class="muted">{{ 'acc.tr.collected' | t }}</span><strong dir="ltr">{{ c.collected | number: '1.2-2' }}</strong></div>
+        <div class="card stat"><span class="muted">{{ 'acc.tr.fees' | t }}</span><strong dir="ltr">{{ c.fees | number: '1.2-2' }}</strong></div>
+        @if (c.difference > 0) { <div class="card stat"><span class="muted">{{ 'acc.tr.difference' | t }}</span><strong dir="ltr">{{ c.difference | number: '1.2-2' }}</strong></div> }
+        <div class="card stat"><span class="muted">{{ 'acc.tr.received' | t }}</span><strong dir="ltr">{{ c.amountReceived | number: '1.2-2' }}</strong></div>
+      </div>
+      <table class="table">
+        <thead><tr><th>{{ 'acc.tr.order' | t }}</th><th>{{ 'acc.number' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th></tr></thead>
+        <tbody>@for (i of c.items; track i.voucherId) { <tr><td dir="ltr">{{ i.orderNumber }}</td><td dir="ltr">{{ i.voucherNumber }}</td><td class="num" dir="ltr">{{ i.amount | number: '1.2-2' }}</td></tr> }</tbody>
+      </table>
+    </div>
+    <app-acc-workflow kind="carrier-settlement" [id]="c.id" [item]="c" preparePermission="accounting.treasury" (done)="afterCarrierSettlement(c.id)" />
+    @if ((c.status === 'Draft' || c.status === 'Rejected') && canPrepare) {
+      <div class="toolbar"><button type="button" class="btn btn-light btn-sm" (click)="startCarrierSettlement(c)">{{ 'a.edit' | t }}</button></div>
+    }
+    @if (c.journalEntryId) { <app-acc-entry-details [entryId]="c.journalEntryId" /> }
+    <app-acc-audit entityType="carrier-settlement" [entityId]="c.id" [refresh]="refresh()" />
+    <div modal-footer><button type="button" class="btn btn-light" (click)="csDetail.set(null)">{{ 'a.close' | t }}</button></div>
+  </app-modal>
+}
+
+<!-- ================= cash account editor ================= -->
+@if (cashOpen()) {
+  <app-modal [title]="(cashEditing() ? 'acc.tr.editCash' : 'acc.tr.newCash') | t" (closed)="cashOpen.set(false)">
+    <form id="cash-form" [formGroup]="cForm" (ngSubmit)="saveCash()">
+      <div class="form-row" style="direction: ltr">
+        <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input formControlName="name" dir="ltr" /></div>
+        <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }} <span class="req">*</span></label><input formControlName="nameAr" dir="rtl" /></div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'acc.type' | t }}</label>
+          <select formControlName="type"><option value="Cash">{{ 'acc.cash.Cash' | t }}</option><option value="Bank">{{ 'acc.cash.Bank' | t }}</option><option value="Gateway">{{ 'acc.cash.Gateway' | t }}</option></select>
+        </div>
+        <div class="field">
+          <label>{{ 'acc.tr.ledgerAccount' | t }} <span class="req">*</span></label>
+          <select formControlName="accountId"><option [ngValue]="null">—</option>@for (a of cashLedgerChoices(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }</select>
+          <span class="muted small">{{ 'acc.tr.ledgerHint' | t }}</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.tr.bankName' | t }}</label><input formControlName="bankName" /></div>
+        <div class="field"><label>{{ 'acc.tr.accountNumber' | t }}</label><input formControlName="accountNumber" dir="ltr" /></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>{{ 'accs.cash.responsible' | t }}</label><input formControlName="responsibleName" /></div>
+        <div class="field"><label>{{ 'accs.cash.currency' | t }}</label><input formControlName="currencyCode" maxlength="3" dir="ltr" placeholder="EGP" /></div>
+      </div>
+      <div class="field">
+        <label>{{ 'accs.cash.allowed' | t }}</label>
+        <div class="methods" style="display:flex;gap:1rem;flex-wrap:wrap">
+          @for (m of methods; track m) {
+            <label class="check"><input type="checkbox" [checked]="allowed.includes(m)" (change)="toggleAllowed(m, $any($event.target).checked)" /> {{ 'acc.method.' + m | t }}</label>
+          }
+        </div>
+        <span class="muted small">{{ 'accs.cash.allowedHint' | t }}</span>
+      </div>
+      <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+    </form>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="cashOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="cash-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

@@ -1,0 +1,39 @@
+<div class="page-head">
+  <h1>{{ 'a.prod.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="openForm(null)">+ {{ 'a.prod.new' | t }}</button>
+</div>
+
+<div class="banner" [class.banner-warn]="featuredCount() > featuredLimit()" [class.banner-info]="featuredCount() <= featuredLimit()">
+  {{ 'a.prod.featuredStatus' | t: { count: featuredCount(), limit: featuredLimit() } }}
+</div>
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else {
+    <app-data-table [rows]="products()" [columns]="columns" [rowTemplate]="row" />
+  }
+</div>
+
+<ng-template #row let-p>
+  <td><img class="thumb thumb-sm" [src]="p.mainImageUrl | productImage: p.slug" alt="" /></td>
+  <td>{{ p.id }}</td>
+  <td><strong>{{ p.name }}</strong><div class="muted small"><code>{{ p.slug }}</code></div></td>
+  <td dir="ltr">{{ p.sku }}</td>
+  <td>{{ p.brandName }}</td>
+  <td>{{ p.categoryName }}</td>
+  <td dir="ltr">{{ p.price === null ? '—' : p.price }}@if (p.variantCount > 1) { <span class="muted small"> · {{ p.variantCount }}</span> }</td>
+  <td dir="ltr">{{ p.units }}</td>
+  <td>{{ p.sortOrder }}</td>
+  <td>{{ p.isFeatured ? '★' : '—' }}</td>
+  <td>@if (p.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+  <td class="actions">
+    @if (canSeeStock()) { <button type="button" class="btn btn-light btn-sm" (click)="openStock(p.id)">{{ 'ps.stockButton' | t }}</button> }
+    <button type="button" class="btn btn-light btn-sm" (click)="openForm(p.id)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(p)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (formOpen()) {
+  <app-product-form [productId]="editingId()" (saved)="onSaved()" (created)="afterCreate($event)" (cancelled)="formOpen.set(false)" />
+}

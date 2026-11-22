@@ -1,0 +1,63 @@
+<div class="dt-tools">
+  <input class="dt-search" [value]="search()" [placeholder]="'a.dt.search' | t" (input)="setSearch($any($event.target).value)" />
+
+  <div class="row">
+    @if (hasFilters()) {
+      <button type="button" class="btn btn-light btn-sm" (click)="clearFilters()">{{ 'a.dt.clear' | t }}</button>
+    }
+    <label class="dt-size">
+      {{ 'a.dt.rows' | t }}
+      <select [value]="pageSize()" (change)="setPageSize($any($event.target).value)">
+        @for (n of sizes; track n) { <option [value]="n">{{ n }}</option> }
+      </select>
+    </label>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="dt">
+    <thead>
+      <tr>
+        @for (c of columns; track c.key) {
+          <th [style.width]="c.width ?? null" [class.sortable]="!!c.value" (click)="c.value && sortBy(c)">
+            {{ c.label ? (c.label | t) : '' }}
+            @if (sortKey() === c.key) { <span class="dt-arrow">{{ sortDir() === 'asc' ? '▲' : '▼' }}</span> }
+          </th>
+        }
+      </tr>
+      <tr class="dt-filters">
+        @for (c of columns; track c.key) {
+          <th>
+            @if (c.value && c.filter !== 'none') {
+              @if (c.type === 'bool') {
+                <select [value]="filters()[c.key] ?? ''" (change)="setFilter(c.key, $any($event.target).value)">
+                  <option value="">{{ 'a.dt.all' | t }}</option>
+                  <option value="true">{{ 'a.yes' | t }}</option>
+                  <option value="false">{{ 'a.no' | t }}</option>
+                </select>
+              } @else if (c.filter === 'select') {
+                <select [value]="filters()[c.key] ?? ''" (change)="setFilter(c.key, $any($event.target).value)">
+                  <option value="">{{ 'a.dt.all' | t }}</option>
+                  @for (o of distinct(c); track o) { <option [value]="o">{{ c.optionLabel ? c.optionLabel(o) : o }}</option> }
+                </select>
+              } @else {
+                <input [value]="filters()[c.key] ?? ''" [placeholder]="'a.dt.filter' | t" (input)="setFilter(c.key, $any($event.target).value)" />
+              }
+            }
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody>
+      @for (row of pageRows(); track row) {
+        <tr [class]="rowClass ? rowClass(row) : ''"><ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: row }"></ng-container></tr>
+      } @empty {
+        <tr><td [attr.colspan]="columns.length" class="muted center dt-empty">{{ 'a.dt.empty' | t }}</td></tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<p class="muted small">{{ 'a.dt.showing' | t: { shown: pageRows().length, total: filtered().length, all: rows.length } }}</p>
+<app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="page.set($event)" />

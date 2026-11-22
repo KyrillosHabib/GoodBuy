@@ -1,0 +1,22 @@
+<div class="page-head"><h1>{{ 'acc.nav.settings' | t }}</h1></div>
+<app-intro [text]="'acc.set.intro' | t" />
+
+<div class="card">
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <div class="field">
+      <label>{{ 'acc.set.lock' | t }}</label>
+      <input type="date" formControlName="lockedUntil" dir="ltr" style="max-width: 14rem" />
+      <span class="muted small">{{ 'acc.set.lockHint' | t }}</span>
+    </div>
+    <label class="switch"><input type="checkbox" formControlName="allowSelfApproval" /><span></span> {{ 'acc.set.selfApproval' | t }}</label>
+    <p class="muted small">{{ 'acc.set.selfApprovalHint' | t }}</p>
+    <label class="switch"><input type="checkbox" formControlName="enforceCreditLimit" /><span></span> {{ 'acc.set.creditLimit' | t }}</label>
+    <p class="muted small">{{ 'acc.set.creditLimitHint' | t }}</p>
+    <div class="field">
+      <label>{{ 'acc.set.taxRate' | t }}</label>
+      <input type="number" min="0" max="100" step="0.01" formControlName="defaultTaxRate" dir="ltr" style="max-width: 10rem" />
+    </div>
+    <p class="muted small">{{ 'acc.set.currency' | t }}: <strong dir="ltr">{{ ctx.settings()?.currency }}</strong></p>
+    @if (canEdit) { <button class="btn btn-primary" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button> }
+  </form>
+</div>

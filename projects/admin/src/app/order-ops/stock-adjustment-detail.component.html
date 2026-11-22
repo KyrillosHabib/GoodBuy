@@ -1,0 +1,138 @@
+<div class="page-head">
+  <div>
+    <a class="back" routerLink="/inventory/adjustments">← {{ 'adj.back' | t }}</a>
+    @if (adj(); as a) {
+      <h1><span dir="ltr">{{ a.number }}</span> <span [class]="'chip st-' + a.status">{{ 'adj.s.' + a.status | t }}</span></h1>
+    } @else {
+      <h1>{{ 'adj.newTitle' | t }}</h1>
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <p class="muted">{{ 'common.loading' | t }}</p>
+} @else {
+  <div class="card explain">
+    <strong>{{ 'adj.explain.title' | t }}</strong>
+    <ul>
+      <li>{{ 'adj.explain.1' | t }}</li>
+      <li>{{ 'adj.explain.2' | t }}</li>
+      <li>{{ 'adj.explain.3' | t }}</li>
+    </ul>
+  </div>
+
+  <!-- ================= new ================= -->
+  @if (!adj()) {
+    <div class="card">
+      <div class="grid2">
+        <div class="field">
+          <label>{{ 'adj.whLabel' | t }}</label>
+          <select (change)="setWarehouse(+$any($event.target).value)">
+            <option value="0" [selected]="warehouseId() === 0">{{ 'adj.chooseWh' | t }}</option>
+            @for (w of warehouses(); track w.id) { <option [value]="w.id" [selected]="w.id === warehouseId()">{{ w.name }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ 'adj.note' | t }}</label>
+          <input type="text" maxlength="1000" [value]="note()" (input)="note.set($any($event.target).value)" />
+        </div>
+      </div>
+
+      @if (warehouseId() > 0) {
+        <div class="field">
+          <label>{{ 'adj.addItem' | t }}</label>
+          <app-variant-picker #vp (picked)="addVariant($event); vp.reset()" />
+        </div>
+      }
+
+      @if (lines().length === 0) {
+        <p class="muted">{{ 'adj.noLines' | t }}</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="lt">
+            <thead>
+              <tr>
+                <th>{{ 'adj.item' | t }}</th><th class="num">{{ 'adj.books' | t }}</th><th class="num">{{ 'adj.found' | t }}</th>
+                <th class="num">{{ 'adj.diff' | t }}</th><th>{{ 'adj.reason' | t }}</th><th>{{ 'adj.lineNote' | t }}</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of lines(); track l.variantId; let i = $index) {
+                <tr>
+                  <td><strong>{{ l.name }}</strong><div class="muted small" dir="ltr">{{ l.sku }}</div></td>
+                  <td class="num" dir="ltr">{{ l.books }}</td>
+                  <td class="num"><input type="number" min="0" dir="ltr" class="in-qty" [value]="l.found" (input)="patch(i, { found: $any($event.target).value })" /></td>
+                  <td class="num" dir="ltr" [class.neg]="diff(l) < 0" [class.pos]="diff(l) > 0">{{ diff(l) === 0 ? '—' : signed(diff(l)) }}</td>
+                  <td>
+                    <select (change)="patch(i, { reason: $any($event.target).value })">
+                      @for (r of reasons; track r) { <option [value]="r" [selected]="r === l.reason">{{ 'adj.reason.' + r | t }}</option> }
+                    </select>
+                  </td>
+                  <td><input type="text" maxlength="500" [value]="l.note" (input)="patch(i, { note: $any($event.target).value })" /></td>
+                  <td><button type="button" class="btn btn-light btn-sm" (click)="removeLine(i)">×</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <div class="bar">
+        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">{{ 'adj.save' | t }}</button>
+      </div>
+    </div>
+  }
+
+  <!-- ================= an existing adjustment ================= -->
+  @if (adj(); as a) {
+    <div class="card sheet">
+      <div class="grid2 info">
+        <div><span class="muted small">{{ 'adj.warehouse' | t }}</span><strong>{{ a.warehouse }}</strong></div>
+        <div><span class="muted small">{{ 'adj.source' | t }}</span><strong>{{ 'adj.src.' + a.source | t }}</strong>@if (a.countId) { <span class="muted small"> · {{ 'adj.fromCount' | t: { n: a.countId } }}</span> }</div>
+        <div><span class="muted small">{{ 'adj.createdBy' | t }}</span><strong>{{ a.createdBy }}</strong></div>
+        <div><span class="muted small">{{ 'adj.createdAt' | t }}</span><strong dir="ltr">{{ a.createdAtUtc.slice(0, 16).replace('T', ' ') }}</strong></div>
+        @if (a.approvedBy) {
+          <div><span class="muted small">{{ 'adj.approvedByAt' | t }}</span><strong>{{ a.approvedBy }}</strong>@if (a.approvedAtUtc) { <span class="muted small" dir="ltr"> · {{ a.approvedAtUtc.slice(0, 16).replace('T', ' ') }}</span> }</div>
+        }
+        @if (a.note) { <div class="wide"><span class="muted small">{{ 'adj.note' | t }}</span>{{ a.note }}</div> }
+        @if (a.rejectionReason) { <div class="wide bad"><span class="small">{{ 'adj.rejectReason' | t }}</span>{{ a.rejectionReason }}</div> }
+      </div>
+
+      <div class="table-wrap">
+        <table class="lt">
+          <thead>
+            <tr>
+              <th>{{ 'adj.item' | t }}</th><th class="num">{{ 'adj.books' | t }}</th><th class="num">{{ 'adj.found' | t }}</th><th class="num">{{ 'adj.diff' | t }}</th>
+              <th>{{ 'adj.reason' | t }}</th><th>{{ 'adj.lineNote' | t }}</th>
+              @if (a.status === 'Approved') { <th class="num">{{ 'adj.applied' | t }}</th><th class="num">{{ 'adj.onHandNow' | t }}</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of a.lines; track l.id) {
+              <tr>
+                <td><strong>{{ l.item }}</strong> {{ l.label }}<div class="muted small" dir="ltr">{{ l.sku }}</div></td>
+                <td class="num" dir="ltr">{{ l.systemQuantity }}</td>
+                <td class="num" dir="ltr">{{ l.actualQuantity }}</td>
+                <td class="num" dir="ltr" [class.neg]="l.difference < 0" [class.pos]="l.difference > 0">{{ signed(l.difference) }}</td>
+                <td>{{ 'adj.reason.' + l.reason | t }}</td>
+                <td>{{ l.note }}</td>
+                @if (a.status === 'Approved') {
+                  <td class="num" dir="ltr" [class.neg]="(l.appliedDifference ?? 0) < 0" [class.pos]="(l.appliedDifference ?? 0) > 0">{{ signed(l.appliedDifference ?? 0) }}</td>
+                  <td class="num" dir="ltr">{{ l.onHandNow }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (a.can.approve || a.can.reject || a.can.cancel) {
+        <div class="bar">
+          @if (a.can.approve) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="approve(a)">{{ 'adj.approve' | t }}</button> }
+          @if (a.can.reject) { <button type="button" class="btn btn-light" [disabled]="saving()" (click)="reject(a)">{{ 'adj.reject' | t }}</button> }
+          @if (a.can.cancel) { <button type="button" class="btn btn-light" [disabled]="saving()" (click)="cancel(a)">{{ 'adj.cancel' | t }}</button> }
+        </div>
+      }
+    </div>
+  }
+}

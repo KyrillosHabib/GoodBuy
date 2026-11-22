@@ -1,0 +1,39 @@
+<div class="picker">
+  @if (selected(); as s) {
+    <div class="picker-chosen">
+      <span><strong>{{ s.productName }}</strong>@if (s.label) { · {{ s.label }} } <code>{{ s.sku }}</code></span>
+      <button type="button" class="btn btn-light btn-sm" (click)="clear()">✕</button>
+    </div>
+  } @else {
+    <input type="text" autocomplete="off" [placeholder]="placeholder || ('inv.searchItem' | t)" [value]="text()"
+      (focus)="open()" (input)="search($event)" (keydown)="key($event)" />
+    @if (opened()) {
+      <ul class="picker-list">
+        @if (loading()) {
+          <li class="picker-note">…</li>
+        } @else if (results().length === 0) {
+          <li class="picker-note">{{ 'vp.none' | t }}</li>
+        } @else {
+          @for (g of groups(); track g.name + g.items[0].v.id) {
+            @if (g.items.length === 1) {
+              <li class="vp-one" [class.on]="g.items[0].i === active()" (mousedown)="$event.preventDefault(); choose(g.items[0].v)" (mouseenter)="active.set(g.items[0].i)">
+                <strong>{{ g.name }}</strong>@if (g.items[0].v.label) { · {{ g.items[0].v.label }} } <code>{{ g.items[0].v.sku }}</code>
+              </li>
+            } @else {
+              <li class="vp-group">
+                <strong>{{ g.name }}</strong> <span class="vp-count">{{ g.items.length }}</span>
+                <div class="vp-chips">
+                  @for (it of g.items; track it.v.id) {
+                    <button type="button" class="vp-chip" [class.on]="it.i === active()" [title]="it.v.sku"
+                      (mousedown)="$event.preventDefault(); choose(it.v)" (mouseenter)="active.set(it.i)">{{ it.v.label || it.v.sku }}</button>
+                  }
+                </div>
+              </li>
+            }
+          }
+          @if (groups().length >= 25) { <li class="picker-note">{{ 'vp.more' | t }}</li> }
+        }
+      </ul>
+    }
+  }
+</div>

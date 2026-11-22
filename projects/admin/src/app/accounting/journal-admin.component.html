@@ -1,0 +1,130 @@
+<div class="page-head">
+  <h1>{{ 'acc.nav.journal' | t }}</h1>
+  @if (canPrepare) { <button type="button" class="btn btn-primary" (click)="startEdit(null)">+ {{ 'acc.jr.new' | t }}</button> }
+</div>
+<app-intro [text]="'acc.jr.intro' | t" />
+
+<div class="filters">
+  <select [ngModel]="fSource" (ngModelChange)="fSource = $event; load()">
+    <option value="">{{ 'acc.jr.allSources' | t }}</option>
+    @for (s of sources; track s) { <option [value]="s">{{ 'acc.src.' + s | t }}</option> }
+  </select>
+  <select [ngModel]="fStatus" (ngModelChange)="fStatus = $event; load()">
+    <option value="">{{ 'acc.allStatuses' | t }}</option>
+    @for (s of statuses; track s) { <option [value]="s">{{ 'acc.st.' + s | t }}</option> }
+  </select>
+  <label>{{ 'acc.from' | t }} <input type="date" [ngModel]="fFrom" (ngModelChange)="fFrom = $event; load()" /></label>
+  <label>{{ 'acc.to' | t }} <input type="date" [ngModel]="fTo" (ngModelChange)="fTo = $event; load()" /></label>
+  <input type="search" [placeholder]="'acc.jr.createdBy' | t" [ngModel]="fCreatedBy" (ngModelChange)="fCreatedBy = $event; load()" />
+  <label class="switch"><input type="checkbox" [ngModel]="fUnbalanced" (ngModelChange)="fUnbalanced = $event; load()" /><span></span> {{ 'acc.jr.onlyUnbalanced' | t }}</label>
+</div>
+
+@if (unbalancedCount() > 0) {
+  <p class="unbalanced-note">{{ 'acc.jr.unbalancedCount' | t: { n: unbalancedCount() } }}</p>
+}
+
+<div class="card"><app-data-table [rows]="rows()" [columns]="columns" [rowTemplate]="row" [rowClass]="rowClass" /></div>
+
+<ng-template #row let-e>
+  <td dir="ltr"><strong>{{ e.number }}</strong></td>
+  <td dir="ltr">{{ e.entryDate | slice: 0 : 10 }}</td>
+  <td>{{ e.description }}</td>
+  <td>{{ 'acc.src.' + e.source | t }} <span class="muted small" dir="ltr">{{ e.sourceNumber }}</span></td>
+  <td class="num" dir="ltr">{{ e.totalDebit | number: '1.2-2' }}</td>
+  <td class="num" dir="ltr">{{ e.totalCredit | number: '1.2-2' }}</td>
+  <td>
+    <span class="chip st-{{ e.status }}">{{ 'acc.st.' + e.status | t }}</span> @if (e.isReversed) { <span class="chip">{{ 'acc.jr.reversed' | t }}</span> }
+    @if (isUnbalanced(e)) { <span class="chip chip-bad" dir="ltr">{{ 'acc.jr.notBalanced' | t }}: {{ e.totalDebit - e.totalCredit | number: '1.2-2' }}</span> }
+  </td>
+  <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="view(e.id)">{{ 'acc.open' | t }}</button></td>
+</ng-template>
+
+@if (editorOpen()) {
+  <app-modal [title]="(editing() ? 'acc.jr.edit' : 'acc.jr.new') | t" size="xl" (closed)="editorOpen.set(false)">
+    <form id="jr-form" [formGroup]="form" (ngSubmit)="save()">
+      <div class="form-row">
+        <div class="field"><label>{{ 'acc.date' | t }} <span class="req">*</span></label><input type="date" formControlName="entryDate" dir="ltr" /></div>
+        <div class="field" style="grid-column: span 2"><label>{{ 'acc.description' | t }} <span class="req">*</span></label><input formControlName="description" /></div>
+      </div>
+      <label class="switch"><input type="checkbox" formControlName="isOpening" /><span></span> {{ 'acc.jr.opening' | t }}</label>
+      <p class="muted small">{{ 'acc.jr.openingHint' | t }}</p>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th style="min-width: 16rem">{{ 'acc.account' | t }}</th><th style="min-width: 11rem">{{ 'acc.party' | t }}</th><th>{{ 'acc.debit' | t }}</th><th>{{ 'acc.credit' | t }}</th><th>{{ 'acc.description' | t }}</th>@if (costCenters().length > 0) { <th style="min-width: 9rem">{{ 'acc.cc.center' | t }}</th> }<th></th></tr></thead>
+          <tbody>
+            @for (line of lines.controls; track line; let i = $index) {
+              <tr [formGroup]="line">
+                <td>
+                  <select formControlName="accountId">
+                    <option [ngValue]="null">—</option>
+                    @for (a of accountChoices(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+                  </select>
+                </td>
+                <td>
+                  @if (needsParty(line)) {
+                    <select formControlName="partyId">
+                      <option [ngValue]="null">—</option>
+                      @for (p of parties(); track p.id) { <option [ngValue]="p.id">{{ p.name }}</option> }
+                    </select>
+                  }
+                </td>
+                <td><input type="number" step="0.01" min="0" formControlName="debit" dir="ltr" style="width: 8rem" /></td>
+                <td><input type="number" step="0.01" min="0" formControlName="credit" dir="ltr" style="width: 8rem" /></td>
+                <td><input formControlName="description" /></td>
+                @if (costCenters().length > 0) {
+                  <td>
+                    <select formControlName="costCenterId">
+                      <option [ngValue]="null">—</option>
+                      @for (c of costCenters(); track c.id) { <option [ngValue]="c.id">{{ c.code }} — {{ c.name }}</option> }
+                    </select>
+                  </td>
+                }
+                <td><button type="button" class="btn btn-danger btn-sm" [disabled]="lines.length < 3" (click)="removeLine(i)">×</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="toolbar"><button type="button" class="btn btn-light btn-sm" (click)="addLine()">+ {{ 'acc.jr.addLine' | t }}</button></div>
+
+      <div class="totals" dir="ltr">
+        <div>{{ 'acc.debit' | t }}: <strong>{{ totals().debit | number: '1.2-2' }}</strong></div>
+        <div>{{ 'acc.credit' | t }}: <strong>{{ totals().credit | number: '1.2-2' }}</strong></div>
+        <div [class.text-bad]="totals().debit !== totals().credit">{{ 'acc.jr.difference' | t }}: <strong>{{ (totals().debit - totals().credit) | number: '1.2-2' }}</strong></div>
+      </div>
+      @if (totals().debit !== totals().credit) { <p class="text-bad small">{{ 'acc.jr.unbalanced' | t }}</p> }
+    </form>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="editorOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="jr-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'acc.doc.saveDraft') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (detail(); as e) {
+  <app-modal [title]="('acc.nav.journal' | t) + ' ' + e.number" size="xl" (closed)="detail.set(null)">
+    <div class="print-area">
+      <div class="form-row">
+        <div><span class="muted small">{{ 'acc.date' | t }}</span><br /><strong dir="ltr">{{ e.entryDate | slice: 0 : 10 }}</strong></div>
+        <div><span class="muted small">{{ 'acc.source' | t }}</span><br /><strong>{{ 'acc.src.' + e.source | t }} {{ e.sourceNumber }}</strong></div>
+        <div style="grid-column: span 2"><span class="muted small">{{ 'acc.description' | t }}</span><br /><strong>{{ e.description }}</strong></div>
+      </div>
+      <app-acc-entry-details [entry]="e" />
+    </div>
+
+    @if (isManual(e)) {
+      <app-acc-workflow kind="journal" [id]="e.id" [item]="e" preparePermission="accounting.journal" (done)="reload(e.id)" />
+      @if ((e.status === 'Draft' || e.status === 'Rejected') && canPrepare) {
+        <div class="toolbar"><button type="button" class="btn btn-light btn-sm" (click)="startEdit(e)">{{ 'a.edit' | t }}</button></div>
+      }
+    } @else {
+      <p class="muted small">{{ 'acc.jr.systemEntry' | t }}</p>
+    }
+    <app-acc-audit entityType="journal" [entityId]="e.id" [refresh]="refresh()" />
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="print()">{{ 'acc.print' | t }}</button>
+      <button type="button" class="btn btn-light" (click)="detail.set(null)">{{ 'a.close' | t }}</button>
+    </div>
+  </app-modal>
+}

@@ -1,0 +1,377 @@
+<div class="page-head"><h1>{{ 'acc.nav.reports' | t }}</h1></div>
+<app-intro [text]="'acc.rep.intro' | t" />
+
+<div class="tabs">
+  @for (t of tabs; track t) { <button type="button" class="tab" [class.on]="tab() === t" (click)="setTab(t)">{{ 'acc.rep.' + t | t }}</button> }
+</div>
+
+<div class="toolbar no-print">
+  @if (tab() === 'ledger') {
+    <select [ngModel]="accountId" (ngModelChange)="accountId = $event">
+      <option [ngValue]="null">{{ 'acc.rep.pickAccount' | t }}</option>
+      @for (a of accounts(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+    </select>
+    <select [ngModel]="partyId" (ngModelChange)="partyId = $event">
+      <option [ngValue]="null">{{ 'acc.rep.allParties' | t }}</option>
+      @for (p of parties(); track p.id) { <option [ngValue]="p.id">{{ p.name }}</option> }
+    </select>
+  }
+  @if (tab() === 'aging') {
+    <select [ngModel]="kind" (ngModelChange)="kind = $event">
+      <option value="Customer">{{ 'acc.party.customers' | t }}</option>
+      <option value="Supplier">{{ 'acc.party.suppliers' | t }}</option>
+    </select>
+  }
+  @if (tab() === 'jdetail' || tab() === 'jsummary') {
+    <select [ngModel]="source" (ngModelChange)="source = $event" [attr.aria-label]="'acc.rep.entryTypeHint' | t">
+      <option [ngValue]="null">{{ 'acc.rep.allSources' | t }}</option>
+      @for (s of sources; track s) { <option [ngValue]="s">{{ 'acc.src.' + s | t }}</option> }
+    </select>
+    <select [ngModel]="accountType" (ngModelChange)="accountType = $event" [attr.aria-label]="'acc.rep.touching' | t">
+      <option [ngValue]="null">{{ 'acc.rep.allAccTypes' | t }}</option>
+      @for (a of accountTypes; track a) { <option [ngValue]="a">{{ 'acc.type.' + a | t }}</option> }
+    </select>
+  }
+  @if (tab() === 'treasury') {
+    <select [ngModel]="cashAccountId" (ngModelChange)="cashAccountId = $event" [attr.aria-label]="'acc.rep.cashAccount' | t">
+      <option [ngValue]="null">{{ 'acc.rep.allCash' | t }}</option>
+      @for (c of cashAccounts(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+    </select>
+  }
+  @if (tab() === 'inventory') {
+    <span class="muted small">{{ 'acc.rep.inv.now' | t }}</span>
+  } @else if (tab() === 'balance' || tab() === 'aging') {
+    <label>{{ 'acc.rep.asOf' | t }} <input type="date" [ngModel]="to" (ngModelChange)="to = $event" dir="ltr" /></label>
+  } @else {
+    <label>{{ 'acc.from' | t }} <input type="date" [ngModel]="from" (ngModelChange)="from = $event" dir="ltr" /></label>
+    <label>{{ 'acc.to' | t }} <input type="date" [ngModel]="to" (ngModelChange)="to = $event" dir="ltr" /></label>
+  }
+  <button type="button" class="btn btn-primary" (click)="run()">{{ 'acc.show' | t }}</button>
+  <button type="button" class="btn btn-light" (click)="print()">{{ 'acc.print' | t }}</button>
+</div>
+
+<div class="print-area">
+  <!-- ================= general ledger ================= -->
+  @if (tab() === 'ledger' && ledger(); as r) {
+    <div class="card">
+      <h3>{{ r.code }} — {{ r.name }}</h3>
+      <p class="muted small">{{ 'acc.rep.signHint' | t }}</p>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.entry' | t }}</th><th>{{ 'acc.source' | t }}</th><th>{{ 'acc.account' | t }}</th><th>{{ 'acc.party' | t }}</th><th>{{ 'acc.description' | t }}</th><th class="num">{{ 'acc.debit' | t }}</th><th class="num">{{ 'acc.credit' | t }}</th><th class="num">{{ 'acc.balance' | t }}</th></tr></thead>
+          <tbody>
+            <tr class="muted"><td colspan="8">{{ 'acc.stmt.opening' | t }}</td><td class="num" dir="ltr">{{ r.opening | number: '1.2-2' }}</td></tr>
+            @for (l of r.lines; track $index) {
+              <tr>
+                <td dir="ltr">{{ l.date | slice: 0 : 10 }}</td><td dir="ltr">{{ l.entryNumber }}</td>
+                <td>{{ 'acc.src.' + l.source | t }} {{ l.sourceNumber }}</td><td dir="ltr">{{ l.accountCode }}</td><td>{{ l.partyName }}</td><td class="small">{{ l.description }}</td>
+                <td class="num" dir="ltr">{{ l.debit > 0 ? (l.debit | number: '1.2-2') : '' }}</td>
+                <td class="num" dir="ltr">{{ l.credit > 0 ? (l.credit | number: '1.2-2') : '' }}</td>
+                <td class="num" dir="ltr">{{ l.balance | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot><tr><th colspan="6">{{ 'acc.total' | t }}</th><th class="num" dir="ltr">{{ r.totalDebit | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totalCredit | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.closing | number: '1.2-2' }}</th></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ================= trial balance ================= -->
+  @if (tab() === 'trial' && trial(); as r) {
+    <div class="card">
+      <p [class.ok-text]="r.isBalanced" [class.text-bad]="!r.isBalanced"><strong>{{ (r.isBalanced ? 'acc.rep.balanced' : 'acc.rep.notBalanced') | t }}</strong></p>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'acc.code' | t }}</th><th>{{ 'acc.account' | t }}</th><th class="num">{{ 'acc.stmt.opening' | t }}</th><th class="num">{{ 'acc.debit' | t }}</th><th class="num">{{ 'acc.credit' | t }}</th><th class="num">{{ 'acc.rep.closingDebit' | t }}</th><th class="num">{{ 'acc.rep.closingCredit' | t }}</th></tr></thead>
+          <tbody>
+            @for (x of r.rows; track x.accountId) {
+              <tr [class.heading-row]="!x.isPostable">
+                <td dir="ltr">{{ x.code }}</td>
+                <td>@if (x.isPostable) { {{ x.name }} } @else { <strong>{{ x.name }}</strong> }</td>
+                <td class="num" dir="ltr">{{ x.opening | number: '1.2-2' }}</td>
+                <td class="num" dir="ltr">{{ x.debit | number: '1.2-2' }}</td>
+                <td class="num" dir="ltr">{{ x.credit | number: '1.2-2' }}</td>
+                <td class="num" dir="ltr">{{ x.closing > 0 ? (x.closing | number: '1.2-2') : '' }}</td>
+                <td class="num" dir="ltr">{{ x.closing < 0 ? (-x.closing | number: '1.2-2') : '' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot><tr><th colspan="3">{{ 'acc.total' | t }}</th><th class="num" dir="ltr">{{ r.totalDebit | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totalCredit | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totalClosingDebit | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totalClosingCredit | number: '1.2-2' }}</th></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ================= profit and loss ================= -->
+  @if (tab() === 'income' && income(); as r) {
+    <div class="card">
+      <table class="table">
+        <tbody>
+          <tr><th colspan="2">{{ 'acc.type.Revenue' | t }}</th></tr>
+          @for (x of r.revenue; track x.accountId) { <tr><td>{{ x.code }} {{ x.name }}</td><td class="num" dir="ltr">{{ x.amount | number: '1.2-2' }}</td></tr> }
+          <tr><th>{{ 'acc.rep.totalRevenue' | t }}</th><th class="num" dir="ltr">{{ r.totalRevenue | number: '1.2-2' }}</th></tr>
+          <tr><th colspan="2">{{ 'acc.rep.costOfSales' | t }}</th></tr>
+          @for (x of r.costOfSales; track x.accountId) { <tr><td>{{ x.code }} {{ x.name }}</td><td class="num" dir="ltr">{{ x.amount | number: '1.2-2' }}</td></tr> }
+          <tr><th>{{ 'acc.rep.grossProfit' | t }}</th><th class="num" dir="ltr">{{ r.grossProfit | number: '1.2-2' }}</th></tr>
+          <tr><th colspan="2">{{ 'acc.type.Expense' | t }}</th></tr>
+          @for (x of r.expenses; track x.accountId) { <tr><td>{{ x.code }} {{ x.name }}</td><td class="num" dir="ltr">{{ x.amount | number: '1.2-2' }}</td></tr> }
+          <tr><th>{{ 'acc.rep.totalExpenses' | t }}</th><th class="num" dir="ltr">{{ r.totalExpenses | number: '1.2-2' }}</th></tr>
+          <tr class="grand"><th>{{ 'acc.rep.netProfit' | t }}</th><th class="num" dir="ltr" [class.text-bad]="r.netProfit < 0">{{ r.netProfit | number: '1.2-2' }}</th></tr>
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ================= sales by category ================= -->
+  @if (tab() === 'categories' && categories(); as r) {
+    <div class="card">
+      <p class="muted small">{{ 'acc.rep.categoriesHint' | t }}</p>
+      <table class="table">
+        <thead><tr><th>{{ 'acc.rep.category' | t }}</th><th class="num">{{ 'acc.rep.sales' | t }}</th><th class="num">{{ 'acc.rep.returns' | t }}</th><th class="num">{{ 'acc.rep.net' | t }}</th></tr></thead>
+        <tbody>
+          @for (x of r.rows; track $index) {
+            <tr>
+              <td>{{ x.name ?? ('acc.rep.uncategorized' | t) }}</td>
+              <td class="num" dir="ltr">{{ x.sales | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ x.returns | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ x.net | number: '1.2-2' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="muted">{{ 'acc.rep.noMovement' | t }}</td></tr>
+          }
+          <tr><th>{{ 'acc.total' | t }}</th><th class="num" dir="ltr">{{ r.totalSales | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totalReturns | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ (r.totalSales - r.totalReturns) | number: '1.2-2' }}</th></tr>
+          <tr><td colspan="3">{{ 'acc.rep.discounts' | t }}</td><td class="num" dir="ltr">−{{ r.discounts | number: '1.2-2' }}</td></tr>
+          <tr><td colspan="3">{{ 'acc.rep.shipping' | t }}</td><td class="num" dir="ltr">{{ r.shipping | number: '1.2-2' }}</td></tr>
+          <tr class="grand"><th colspan="3">{{ 'acc.rep.netRevenue' | t }}</th><th class="num" dir="ltr">{{ r.netRevenue | number: '1.2-2' }}</th></tr>
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ================= balance sheet ================= -->
+  @if (tab() === 'balance' && balance(); as r) {
+    <div class="card">
+      <p [class.ok-text]="r.difference === 0" [class.text-bad]="r.difference !== 0"><strong>{{ (r.difference === 0 ? 'acc.rep.sheetBalanced' : 'acc.rep.sheetNot') | t }}</strong></p>
+      <div class="form-row">
+        <table class="table">
+          <tbody>
+            <tr><th colspan="2">{{ 'acc.type.Asset' | t }}</th></tr>
+            @for (x of r.assets; track x.accountId) { <tr><td>{{ x.code }} {{ x.name }}</td><td class="num" dir="ltr">{{ x.amount | number: '1.2-2' }}</td></tr> }
+            <tr class="grand"><th>{{ 'acc.rep.totalAssets' | t }}</th><th class="num" dir="ltr">{{ r.totalAssets | number: '1.2-2' }}</th></tr>
+          </tbody>
+        </table>
+        <table class="table">
+          <tbody>
+            <tr><th colspan="2">{{ 'acc.type.Liability' | t }}</th></tr>
+            @for (x of r.liabilities; track x.accountId) { <tr><td>{{ x.code }} {{ x.name }}</td><td class="num" dir="ltr">{{ x.amount | number: '1.2-2' }}</td></tr> }
+            <tr><th>{{ 'acc.rep.totalLiabilities' | t }}</th><th class="num" dir="ltr">{{ r.totalLiabilities | number: '1.2-2' }}</th></tr>
+            <tr><th colspan="2">{{ 'acc.type.Equity' | t }}</th></tr>
+            @for (x of r.equity; track x.accountId) { <tr><td>{{ x.code }} {{ x.name }}</td><td class="num" dir="ltr">{{ x.amount | number: '1.2-2' }}</td></tr> }
+            <tr><td>{{ 'acc.rep.currentEarnings' | t }}</td><td class="num" dir="ltr">{{ r.currentEarnings | number: '1.2-2' }}</td></tr>
+            <tr><th>{{ 'acc.rep.totalEquity' | t }}</th><th class="num" dir="ltr">{{ r.totalEquity | number: '1.2-2' }}</th></tr>
+            <tr class="grand"><th>{{ 'acc.rep.totalLE' | t }}</th><th class="num" dir="ltr">{{ r.totalLiabilitiesAndEquity | number: '1.2-2' }}</th></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted small">{{ 'acc.rep.earningsHint' | t }}</p>
+    </div>
+  }
+
+  <!-- ================= aging ================= -->
+  @if (tab() === 'aging' && aging(); as r) {
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'acc.party' | t }}</th><th class="num">{{ 'acc.rep.notDue' | t }}</th><th class="num">1–30</th><th class="num">31–60</th><th class="num">61–90</th><th class="num">90+</th><th class="num">{{ 'acc.total' | t }}</th><th class="num">{{ 'acc.rep.credits' | t }}</th></tr></thead>
+          <tbody>
+            @for (x of r.rows; track x.partyId) {
+              <tr>
+                <td><strong>{{ x.name }}</strong> <span class="muted small" dir="ltr">{{ x.code }}</span></td>
+                <td class="num" dir="ltr">{{ x.current | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ x.days1To30 | number: '1.2-2' }}</td>
+                <td class="num" dir="ltr">{{ x.days31To60 | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ x.days61To90 | number: '1.2-2' }}</td>
+                <td class="num text-bad" dir="ltr">{{ x.over90 | number: '1.2-2' }}</td><td class="num" dir="ltr"><strong>{{ x.total | number: '1.2-2' }}</strong></td>
+                <td class="num" dir="ltr">{{ x.unappliedCredits | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="muted">{{ 'acc.rep.noDebts' | t }}</td></tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>{{ 'acc.total' | t }}</th><th class="num" dir="ltr">{{ r.totals.current | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totals.days1To30 | number: '1.2-2' }}</th>
+              <th class="num" dir="ltr">{{ r.totals.days31To60 | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totals.days61To90 | number: '1.2-2' }}</th>
+              <th class="num" dir="ltr">{{ r.totals.over90 | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totals.total | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totals.unappliedCredits | number: '1.2-2' }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="muted small">{{ 'acc.rep.agingHint' | t }}</p>
+    </div>
+  }
+
+  <!-- ================= cash flow ================= -->
+  @if (tab() === 'cash' && cash(); as r) {
+    <div class="stat-grid">
+      <div class="card stat"><span class="muted">{{ 'acc.stmt.opening' | t }}</span><strong dir="ltr">{{ r.opening | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.rep.in' | t }}</span><strong dir="ltr">{{ r.totalIn | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.rep.out' | t }}</span><strong dir="ltr">{{ r.totalOut | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.stmt.closing' | t }}</span><strong dir="ltr">{{ r.closing | number: '1.2-2' }}</strong></div>
+    </div>
+    <div class="card">
+      <h3>{{ 'acc.rep.byNature' | t }}</h3>
+      <table class="table">
+        <thead><tr><th>{{ 'acc.rep.nature' | t }}</th><th class="num">{{ 'acc.rep.in' | t }}</th><th class="num">{{ 'acc.rep.out' | t }}</th><th class="num">{{ 'acc.rep.net' | t }}</th></tr></thead>
+        <tbody>
+          @for (c of r.categories; track c.key + (c.detail ?? '')) {
+            <tr><td>{{ 'acc.cf.' + c.key | t }} @if (c.detail) { <span class="muted small">— {{ c.detail }}</span> }</td><td class="num" dir="ltr">{{ c.in | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.out | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ c.net | number: '1.2-2' }}</td></tr>
+          } @empty {
+            <tr><td colspan="4" class="muted">{{ 'acc.rep.noMovement' | t }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>{{ 'acc.rep.byAccount' | t }}</h3>
+      <table class="table">
+        <thead><tr><th>{{ 'a.name' | t }}</th><th class="num">{{ 'acc.stmt.opening' | t }}</th><th class="num">{{ 'acc.rep.in' | t }}</th><th class="num">{{ 'acc.rep.out' | t }}</th><th class="num">{{ 'acc.stmt.closing' | t }}</th></tr></thead>
+        <tbody>
+          @for (a of r.accounts; track a.cashAccountId) {
+            <tr><td><strong>{{ a.name }}</strong></td><td class="num" dir="ltr">{{ a.opening | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ a.in | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ a.out | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ a.closing | number: '1.2-2' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ================= journal entries, detailed ================= -->
+  @if (tab() === 'jdetail' && jdetail(); as r) {
+    <div class="stat-grid">
+      <div class="card stat"><span class="muted">{{ 'acc.rep.entries' | t }}</span><strong dir="ltr">{{ r.count }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.debit' | t }}</span><strong dir="ltr">{{ r.totalDebit | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.credit' | t }}</span><strong dir="ltr">{{ r.totalCredit | number: '1.2-2' }}</strong></div>
+    </div>
+    @if (r.truncated) { <p class="muted small">{{ 'acc.rep.truncated' | t }}</p> }
+    @for (e of r.entries; track e.id) {
+      <div class="card">
+        <h3><span dir="ltr">{{ e.number }}</span> · <span dir="ltr">{{ e.date | slice: 0 : 10 }}</span> · {{ 'acc.src.' + e.source | t }} {{ e.sourceNumber }}@if (e.isReversal) { <span class="muted small"> ({{ 'acc.rep.reversal' | t }})</span> }</h3>
+        <p class="muted small">{{ e.description }}</p>
+        <table class="table">
+          <thead><tr><th>{{ 'acc.account' | t }}</th><th>{{ 'acc.party' | t }}</th><th>{{ 'acc.description' | t }}</th><th class="num">{{ 'acc.debit' | t }}</th><th class="num">{{ 'acc.credit' | t }}</th></tr></thead>
+          <tbody>
+            @for (l of e.lines; track $index) {
+              <tr>
+                <td><span dir="ltr">{{ l.accountCode }}</span> — {{ l.accountName }}</td><td>{{ l.partyName }}</td><td class="small">{{ l.description }}</td>
+                <td class="num" dir="ltr">{{ l.debit > 0 ? (l.debit | number: '1.2-2') : '' }}</td>
+                <td class="num" dir="ltr">{{ l.credit > 0 ? (l.credit | number: '1.2-2') : '' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @empty {
+      <div class="card muted">{{ 'acc.rep.noEntries' | t }}</div>
+    }
+  }
+
+  <!-- ================= journal entries, summary ================= -->
+  @if (tab() === 'jsummary' && jsummary(); as r) {
+    <div class="stat-grid">
+      <div class="card stat"><span class="muted">{{ 'acc.rep.entries' | t }}</span><strong dir="ltr">{{ r.count }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.total' | t }}</span><strong dir="ltr">{{ r.total | number: '1.2-2' }}</strong></div>
+    </div>
+    <div class="card">
+      <h3>{{ 'acc.rep.bySource' | t }}</h3>
+      <table class="table">
+        <thead><tr><th>{{ 'acc.source' | t }}</th><th class="num">{{ 'acc.rep.count' | t }}</th><th class="num">{{ 'acc.total' | t }}</th></tr></thead>
+        <tbody>
+          @for (b of r.bySource; track b.source) {
+            <tr><td>{{ 'acc.src.' + b.source | t }}</td><td class="num" dir="ltr">{{ b.count }}</td><td class="num" dir="ltr">{{ b.total | number: '1.2-2' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (r.truncated) { <p class="muted small">{{ 'acc.rep.truncated' | t }}</p> }
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.entry' | t }}</th><th>{{ 'acc.source' | t }}</th><th>{{ 'acc.description' | t }}</th><th class="num">{{ 'acc.total' | t }}</th></tr></thead>
+          <tbody>
+            @for (x of r.rows; track x.id) {
+              <tr>
+                <td dir="ltr">{{ x.date | slice: 0 : 10 }}</td><td dir="ltr">{{ x.number }}</td>
+                <td>{{ 'acc.src.' + x.source | t }} {{ x.sourceNumber }}@if (x.isReversal) { <span class="muted small"> ({{ 'acc.rep.reversal' | t }})</span> }</td>
+                <td class="small">{{ x.description }}</td><td class="num" dir="ltr">{{ x.total | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="muted">{{ 'acc.rep.noEntries' | t }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ================= treasury movement ================= -->
+  @if (tab() === 'treasury' && treasury(); as r) {
+    <div class="stat-grid">
+      <div class="card stat"><span class="muted">{{ 'acc.stmt.opening' | t }}</span><strong dir="ltr">{{ r.opening | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.rep.in' | t }}</span><strong dir="ltr">{{ r.totalIn | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.rep.out' | t }}</span><strong dir="ltr">{{ r.totalOut | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.stmt.closing' | t }}</span><strong dir="ltr">{{ r.closing | number: '1.2-2' }}</strong></div>
+    </div>
+    @if (r.truncated) { <p class="muted small">{{ 'acc.rep.truncated' | t }}</p> }
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.entry' | t }}</th><th>{{ 'acc.rep.cashAccount' | t }}</th><th>{{ 'acc.source' | t }}</th><th>{{ 'acc.party' | t }}</th><th>{{ 'acc.description' | t }}</th><th class="num">{{ 'acc.rep.inColumn' | t }}</th><th class="num">{{ 'acc.rep.outColumn' | t }}</th><th class="num">{{ 'acc.balance' | t }}</th></tr></thead>
+          <tbody>
+            <tr class="muted"><td colspan="8">{{ 'acc.stmt.opening' | t }}</td><td class="num" dir="ltr">{{ r.opening | number: '1.2-2' }}</td></tr>
+            @for (x of r.rows; track $index) {
+              <tr>
+                <td dir="ltr">{{ x.date | slice: 0 : 10 }}</td><td dir="ltr">{{ x.entryNumber }}</td><td>{{ x.cashAccountName }}</td>
+                <td>{{ 'acc.src.' + x.source | t }} {{ x.sourceNumber }}</td><td>{{ x.partyName }}</td><td class="small">{{ x.description }}</td>
+                <td class="num" dir="ltr">{{ x.in > 0 ? (x.in | number: '1.2-2') : '' }}</td>
+                <td class="num" dir="ltr">{{ x.out > 0 ? (x.out | number: '1.2-2') : '' }}</td>
+                <td class="num" dir="ltr">{{ x.balance | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot><tr><th colspan="6">{{ 'acc.total' | t }}</th><th class="num" dir="ltr">{{ r.totalIn | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.totalOut | number: '1.2-2' }}</th><th class="num" dir="ltr">{{ r.closing | number: '1.2-2' }}</th></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ================= stock against the books ================= -->
+  @if (tab() === 'inventory' && inventory(); as r) {
+    <div class="stat-grid">
+      <div class="card stat"><span class="muted">{{ 'acc.rep.inv.stock' | t }}</span><strong dir="ltr">{{ r.stockValue | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.rep.inv.ledger' | t }}</span><strong dir="ltr">{{ r.ledgerBalance | number: '1.2-2' }}</strong><span class="muted small" dir="ltr">{{ r.ledgerAccountCode }} — {{ r.ledgerAccountName }}</span></div>
+      <div class="card stat" [style.borderColor]="r.difference !== 0 ? '#dc2626' : null"><span class="muted">{{ 'acc.rep.inv.diff' | t }}</span><strong dir="ltr" [style.color]="r.difference !== 0 ? '#b91c1c' : null">{{ r.difference | number: '1.2-2' }}</strong></div>
+    </div>
+    <div class="card">
+      @if (r.difference === 0) {
+        <p>{{ 'acc.rep.inv.ok' | t }}</p>
+      } @else {
+        <p><strong>{{ 'acc.rep.inv.why' | t }}</strong></p>
+        <ul>
+          <li>{{ 'acc.rep.inv.why1' | t }}</li>
+          <li>{{ 'acc.rep.inv.why2' | t }}</li>
+          <li>{{ 'acc.rep.inv.why3' | t }} <strong dir="ltr">({{ r.openIssues }})</strong></li>
+        </ul>
+      }
+    </div>
+    <div class="card">
+      <h3>{{ 'acc.rep.inv.byWarehouse' | t }}</h3>
+      <table class="table">
+        <thead><tr><th>{{ 'a.name' | t }}</th><th class="num">{{ 'acc.rep.inv.qty' | t }}</th><th class="num">{{ 'acc.rep.inv.value' | t }}</th></tr></thead>
+        <tbody>
+          @for (w of r.warehouses; track w.warehouseId) {
+            <tr><td><strong>{{ w.warehouseName }}</strong></td><td class="num" dir="ltr">{{ w.quantity | number: '1.0-0' }}</td><td class="num" dir="ltr">{{ w.value | number: '1.2-2' }}</td></tr>
+          } @empty {
+            <tr><td colspan="3" class="muted">{{ 'acc.rep.noMovement' | t }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

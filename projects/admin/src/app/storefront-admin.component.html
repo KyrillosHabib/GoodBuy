@@ -1,0 +1,490 @@
+    <div class="page-head">
+      <h1>{{ tx('واجهة المتجر', 'Storefront') }}</h1>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || !cfg">{{ saving() ? tx('جارٍ الحفظ…', 'Saving…') : tx('حفظ', 'Save') }}</button>
+    </div>
+
+    <div class="sf-tabs">
+      <button type="button" [class.on]="tab() === 'strip'" (click)="tab.set('strip')">{{ tx('السلايدر والشريط', 'Slider & strip') }}</button>
+      <button type="button" [class.on]="tab() === 'sections'" (click)="tab.set('sections')">{{ tx('ترتيب وألوان الأقسام', 'Section order & colours') }}</button>
+      <button type="button" [class.on]="tab() === 'media'" (click)="tab.set('media')">{{ tx('الفيديو والكولاج', 'Video & collages') }}</button>
+      <button type="button" [class.on]="tab() === 'pages'" (click)="tab.set('pages')">{{ tx('بانر الصفحات', 'Page banners') }}</button>
+      <button type="button" [class.on]="tab() === 'about'" (click)="tab.set('about')">{{ tx('رحلتنا (من نحن)', 'Our journey (About)') }}</button>
+    </div>
+
+    @if (!cfg) {
+      <p class="muted">…</p>
+    } @else {
+
+      <!-- ===================== tab 1: slider + strip ===================== -->
+      @if (tab() === 'strip') {
+        <div class="card">
+          <h3>{{ tx('شريط الأخبار فوق القائمة', 'News line above the menu') }}</h3>
+          <p class="muted small">{{ tx('سطر متحرك من الرسائل النصية فقط (بدون روابط)، مثل: شحن مجاني فوق 2000 جنيه. اتركه مطفأً إن لم تحتجه.', 'A moving line of plain text messages (no links), like: free shipping over 2000 EGP. Keep it off if you do not need it.') }}</p>
+          <label class="check"><input type="checkbox" [checked]="cfg.topbar.enabled" (change)="cfg.topbar.enabled = $any($event.target).checked" /> {{ tx('إظهار الشريط', 'Show the line') }}</label>
+
+          @if (cfg.topbar.enabled) {
+            <div class="sf-line">
+              <span class="sf-label">{{ tx('لون الخلفية', 'Background') }}</span>
+              <input class="sf-color" type="color" [value]="cfg.topbar.bg" (input)="cfg.topbar.bg = $any($event.target).value" />
+              <input class="sf-year" dir="ltr" maxlength="7" [value]="cfg.topbar.bg" (input)="cfg.topbar.bg = $any($event.target).value" />
+              <span class="sf-label">{{ tx('لون الكتابة', 'Text colour') }}</span>
+              <input class="sf-color" type="color" [value]="cfg.topbar.color" (input)="cfg.topbar.color = $any($event.target).value" />
+              <input class="sf-year" dir="ltr" maxlength="7" [value]="cfg.topbar.color" (input)="cfg.topbar.color = $any($event.target).value" />
+            </div>
+
+            @for (m of cfg.topbar.messages; track m; let i = $index) {
+              <div class="sf-line">
+                <span class="sf-stop-no">{{ i + 1 }}</span>
+                <input class="sf-grow" dir="rtl" [value]="m.ar" placeholder="الرسالة بالعربي" (input)="m.ar = $any($event.target).value" />
+                <input class="sf-grow" dir="ltr" [value]="m.en" placeholder="Message in English" (input)="m.en = $any($event.target).value" />
+                <button type="button" class="sf-x" (click)="cfg.topbar.messages.splice(i, 1)" aria-label="remove">✕</button>
+              </div>
+            }
+            <button type="button" class="btn btn-light" (click)="cfg.topbar.messages.push({ ar: '', en: '' })">+ {{ tx('رسالة', 'Message') }}</button>
+          }
+        </div>
+
+        <div class="card">
+          <h3>{{ tx('كتابة فوق البانر الرئيسي (اختيارية)', 'Words over the main banner (optional)') }}</h3>
+          <p class="muted small">{{ tx('لا يظهر أي نص فوق الصورة إلا لو كتبت هنا. اختر لون الكتابة المناسب لصورتك.', 'No text shows over the picture unless you write it here. Pick the text colour that suits your picture.') }}</p>
+          <div class="sf-line">
+            <span class="sf-label">{{ tx('العنوان', 'Title') }}</span>
+            <input class="sf-grow" dir="rtl" [value]="cfg.hero.title.ar" placeholder="بالعربي" (input)="cfg.hero.title.ar = $any($event.target).value" />
+            <input class="sf-grow" dir="ltr" [value]="cfg.hero.title.en" placeholder="English" (input)="cfg.hero.title.en = $any($event.target).value" />
+          </div>
+          <div class="sf-line">
+            <span class="sf-label">{{ tx('سطر تحته', 'Line under it') }}</span>
+            <input class="sf-grow" dir="rtl" [value]="cfg.hero.subtitle.ar" placeholder="بالعربي" (input)="cfg.hero.subtitle.ar = $any($event.target).value" />
+            <input class="sf-grow" dir="ltr" [value]="cfg.hero.subtitle.en" placeholder="English" (input)="cfg.hero.subtitle.en = $any($event.target).value" />
+          </div>
+          <div class="sf-line">
+            <span class="sf-label">{{ tx('لون الكتابة', 'Text colour') }}</span>
+            <input class="sf-color" type="color" [value]="cfg.hero.color" (input)="cfg.hero.color = $any($event.target).value" />
+            <input class="sf-year" dir="ltr" [value]="cfg.hero.color" (input)="cfg.hero.color = $any($event.target).value" />
+            <label class="check"><input type="checkbox" [checked]="cfg.hero.showButton" (change)="cfg.hero.showButton = $any($event.target).checked" /> {{ tx('زر "تسوق الآن"', '"Shop now" button') }}</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>{{ tx('صور السلايدر الرئيسي', 'Main slider pictures') }}</h3>
+          <label class="check"><input type="checkbox" [checked]="cfg.heroOverlay" (change)="cfg.heroOverlay = $any($event.target).checked" /> {{ tx('إضافة طبقة غامقة وتأثير وعنوان فوق الصور (اتركها فارغة لتظهر الصورة كما هي)', 'Add a dark layer, zoom and a title over the pictures (leave empty to show the picture as it is)') }}</label>
+        </div>
+
+        <div class="card">
+          <h3>{{ tx('شريط العروض (بعد السلايدر)', 'Offers strip (after the slider)') }}</h3>
+          <label class="check"><input type="checkbox" [checked]="cfg.strip.enabled" (change)="cfg.strip.enabled = $any($event.target).checked" /> {{ tx('إظهار الشريط', 'Show the strip') }}</label>
+
+          <div class="sf-line">
+            <span class="sf-label">{{ tx('اللون', 'Colour') }}</span>
+            <button type="button" class="sf-chip" style="background:#222" (click)="cfg.strip.color = '#222222'">{{ tx('أسود', 'Black') }}</button>
+            <button type="button" class="sf-chip" style="background:#D62828" (click)="cfg.strip.color = '#D62828'">{{ tx('أحمر', 'Red') }}</button>
+            <input class="sf-color" type="color" [value]="cfg.strip.color" (input)="cfg.strip.color = $any($event.target).value" />
+          </div>
+
+          <div class="sf-line">
+            <span class="sf-label">{{ tx('العنوان الصغير', 'Tag') }}</span>
+            <input class="sf-grow" dir="rtl" [value]="cfg.strip.title.ar" placeholder="عرض الجمعة السوداء" (input)="cfg.strip.title.ar = $any($event.target).value" />
+            <input class="sf-grow" dir="ltr" [value]="cfg.strip.title.en" placeholder="Black Friday offer" (input)="cfg.strip.title.en = $any($event.target).value" />
+          </div>
+
+          <label class="check"><input type="checkbox" [checked]="cfg.strip.showCountdown" (change)="cfg.strip.showCountdown = $any($event.target).checked" /> {{ tx('عدّاد تنازلي', 'Countdown') }}</label>
+          @if (cfg.strip.showCountdown) {
+            <div class="sf-line">
+              <span class="sf-label">{{ tx('ينتهي في', 'Ends at') }}</span>
+              <input class="sf-date" type="datetime-local" [value]="endsLocal()" (input)="setEnds($any($event.target).value)" />
+              <button type="button" class="btn btn-light btn-sm" (click)="cfg.strip.endsAt = null">{{ tx('تلقائي (أقرب خصم شغال)', 'Automatic (nearest running discount)') }}</button>
+            </div>
+          }
+
+          <h4>{{ tx('العروض (تظهر واحداً بعد الآخر، ولكل عرض رابطه)', 'Offers (shown one after another, each with its own link)') }}</h4>
+          @for (c of cfg.strip.columns; track c; let i = $index) {
+            <div class="sf-item">
+              <div class="sf-line">
+                <span class="sf-num">{{ i + 1 }}</span>
+                <input class="sf-grow" dir="rtl" [value]="c.head.ar" placeholder="الجملة الكبيرة (اشترِ 1 واحصل على 1)" (input)="c.head.ar = $any($event.target).value" />
+                <input class="sf-grow" dir="ltr" [value]="c.head.en" placeholder="Big line (Buy 1 get 1)" (input)="c.head.en = $any($event.target).value" />
+                <button type="button" class="sf-x" (click)="cfg.strip.columns.splice(i, 1)" aria-label="remove">✕</button>
+              </div>
+              <div class="sf-line">
+                <span class="sf-num"></span>
+                <input class="sf-grow" dir="rtl" [value]="c.sub.ar" placeholder="السطر الصغير (اختياري)" (input)="c.sub.ar = $any($event.target).value" />
+                <input class="sf-grow" dir="ltr" [value]="c.sub.en" placeholder="Small line (optional)" (input)="c.sub.en = $any($event.target).value" />
+              </div>
+              <div class="sf-line">
+                <span class="sf-num"></span>
+                <span class="sf-label">{{ tx('يفتح', 'Opens') }}</span>
+                <ng-container [ngTemplateOutlet]="linkEd" [ngTemplateOutletContext]="{ t: c.link }" />
+              </div>
+            </div>
+          }
+          <button type="button" class="btn btn-light btn-sm" (click)="cfg.strip.columns.push({ head: { ar: '', en: '' }, sub: { ar: '', en: '' }, link: { kind: 'offers', value: '' } })">+ {{ tx('عرض', 'Offer') }}</button>
+
+          <h4>{{ tx('الزر على الطرف', 'The button at the end') }}</h4>
+          <div class="sf-line">
+            <input class="sf-grow" dir="rtl" [value]="cfg.strip.footer.ar" placeholder="تسوق الآن" (input)="cfg.strip.footer.ar = $any($event.target).value" />
+            <input class="sf-grow" dir="ltr" [value]="cfg.strip.footer.en" placeholder="Shop now" (input)="cfg.strip.footer.en = $any($event.target).value" />
+            <span class="sf-label">{{ tx('يفتح', 'Opens') }}</span>
+            <ng-container [ngTemplateOutlet]="linkEd" [ngTemplateOutletContext]="{ t: cfg.strip.link }" />
+          </div>
+        </div>
+      }
+
+      <!-- ===================== tab: the banner (picture or video) of each shop page ===================== -->
+      @if (tab() === 'pages') {
+        <app-intro [text]="tx('بانر الصفحة صورة أو فيديو يظهر أعلى صفحة المتجر وعليه اسم الصفحة.\n1) اختر الصفحة: الكل أو وصل حديثاً أو الأكثر مبيعاً أو العروض أو الباكجات أو المزادات.\n2) ارفع صورة أو فيديو، واكتب اسماً عليه إن أردت غير الاسم المعتاد.\n3) احفظ. ما تتركه فارغاً يبقى على شكله المعتاد. صورة الباكجات والمزادات تظهر أيضاً كبطاقة لهما في الصفحة الرئيسية.', 'A page banner is a picture or video at the top of a shop page with the name of the page on it.\n1) Choose the page: all, new, best sellers, offers, packages or auctions.\n2) Upload a picture or video, and write a name on it if you want another one.\n3) Save. Anything left empty keeps its usual look. The picture of Packages and Auctions is also their card on the home page.')" />
+        @for (p of pageKeys; track p.id) {
+          <div class="card">
+            <h3>{{ tx(p.ar, p.en) }}</h3>
+            <div class="sf-line">
+              <span class="sf-label">{{ tx('النوع', 'Type') }}</span>
+              <select [value]="cfg.pages[p.id].kind" (change)="cfg.pages[p.id].kind = $any($event.target).value">
+                <option value="image">{{ tx('صورة', 'Picture') }}</option>
+                <option value="video">{{ tx('فيديو', 'Video') }}</option>
+              </select>
+            </div>
+            <div class="sf-line">
+              <span class="sf-label">{{ cfg.pages[p.id].kind === 'video' ? tx('الفيديو', 'Video') : tx('الصورة', 'Picture') }}</span>
+              @if (cfg.pages[p.id].kind === 'image' && cfg.pages[p.id].url) { <img class="sf-thumb" [src]="cfg.pages[p.id].url | assetUrl" alt="" /> }
+              @if (cfg.pages[p.id].kind === 'video') { <input type="file" accept="video/mp4,video/webm" (change)="uploadVideo($event, cfg.pages[p.id])" /> }
+              @else { <input type="file" accept="image/*" (change)="upload($event, cfg.pages[p.id], 'url')" /> }
+              <input class="sf-grow" dir="ltr" [value]="cfg.pages[p.id].url" placeholder="/uploads/…" (input)="cfg.pages[p.id].url = $any($event.target).value" />
+              @if (cfg.pages[p.id].url) { <button type="button" class="sf-x" (click)="cfg.pages[p.id].url = ''">✕</button> }
+              @if (uploading()) { <span class="muted">{{ tx('جارٍ الرفع…', 'Uploading…') }}</span> }
+            </div>
+            @if (cfg.pages[p.id].kind === 'video') {
+              <div class="sf-line">
+                <span class="sf-label">{{ tx('صورة الغلاف', 'Poster') }}</span>
+                @if (cfg.pages[p.id].posterUrl) { <img class="sf-thumb" [src]="cfg.pages[p.id].posterUrl | assetUrl" alt="" /> }
+                <input type="file" accept="image/*" (change)="upload($event, cfg.pages[p.id], 'posterUrl')" />
+                <input class="sf-grow" dir="ltr" [value]="cfg.pages[p.id].posterUrl" placeholder="/uploads/…" (input)="cfg.pages[p.id].posterUrl = $any($event.target).value" />
+              </div>
+            }
+            <div class="sf-line">
+              <span class="sf-label">{{ tx('الاسم على البانر', 'Name on the banner') }}</span>
+              <input class="sf-grow" dir="rtl" [value]="cfg.pages[p.id].title.ar" [placeholder]="p.ar" (input)="cfg.pages[p.id].title.ar = $any($event.target).value" />
+              <input class="sf-grow" dir="ltr" [value]="cfg.pages[p.id].title.en" [placeholder]="p.en" (input)="cfg.pages[p.id].title.en = $any($event.target).value" />
+            </div>
+          </div>
+        }
+      }
+
+      <!-- ===================== tab 2: order and colours ===================== -->
+      @if (tab() === 'sections') {
+        <div class="card">
+          <h3>{{ tx('أقسام الصفحة الرئيسية', 'Home page sections') }}</h3>
+          <p class="muted small">{{ tx('الأسهم للترتيب، "ظاهر" لإخفاء القسم، والمربع الصغير للون الخلفية (زر ↺ يرجّعه للون التصميم).', 'Arrows reorder, "Visible" hides a section, the small square sets the background colour (↺ returns to the design colour).') }}</p>
+
+          @for (s of cfg.sections; track s.id; let i = $index) {
+            <div class="sf-row-sec" [class.off]="!s.enabled">
+              <div class="sf-arrows">
+                <button type="button" [disabled]="i === 0" (click)="move(i, -1)">▲</button>
+                <button type="button" [disabled]="i === cfg.sections.length - 1" (click)="move(i, 1)">▼</button>
+              </div>
+              <strong class="sf-grow">{{ name(s) }}</strong>
+              <label class="check sf-vis"><input type="checkbox" [checked]="s.enabled" (change)="s.enabled = $any($event.target).checked" /> {{ tx('ظاهر', 'Visible') }}</label>
+              <input class="sf-color" type="color" [value]="s.bg || '#ffffff'" [title]="tx('لون الخلفية', 'Background colour')" (input)="s.bg = $any($event.target).value" />
+              <button type="button" class="sf-x" [disabled]="!s.bg" (click)="s.bg = ''" [title]="tx('لون التصميم', 'Design colour')">↺</button>
+              <input class="sf-title" dir="rtl" [value]="s.title.ar" placeholder="عنوان بديل" (input)="s.title.ar = $any($event.target).value" />
+              <input class="sf-title" dir="ltr" [value]="s.title.en" placeholder="Own title" (input)="s.title.en = $any($event.target).value" />
+              @if (s.type === 'video' || s.type === 'collage') { <button type="button" class="sf-x" (click)="cfg.sections.splice(i, 1)" aria-label="remove">✕</button> }
+
+              <!-- an optional picture behind the section, under a white or a dark screen -->
+              <details class="sf-bgimg" [open]="!!s.bgImage">
+                <summary>{{ tx('صورة الخلفية (اختياري)', 'Background picture (optional)') }}@if (s.bgImage) { <span class="sf-on">●</span> }</summary>
+                <div class="sf-line">
+                  @if (s.bgImage) { <img class="sf-thumb" [src]="s.bgImage | assetUrl" alt="" /> }
+                  <input type="file" accept="image/*" (change)="upload($event, s, 'bgImage')" />
+                  <input class="sf-grow" dir="ltr" [value]="s.bgImage" placeholder="/uploads/…" (input)="s.bgImage = $any($event.target).value" />
+                  @if (s.bgImage) { <button type="button" class="sf-x" (click)="s.bgImage = ''" [title]="tx('إزالة الصورة', 'Remove the picture')">✕</button> }
+                </div>
+                @if (s.bgImage) {
+                  <div class="sf-line">
+                    <span class="sf-label">{{ tx('الشاشة فوق الصورة', 'Screen over the picture') }}</span>
+                    <label class="check"><input type="radio" [name]="'tone-' + s.id" [checked]="s.bgTone === 'light'" (change)="s.bgTone = 'light'" /> {{ tx('بيضاء (نص غامق)', 'White (dark text)') }}</label>
+                    <label class="check"><input type="radio" [name]="'tone-' + s.id" [checked]="s.bgTone !== 'light'" (change)="s.bgTone = 'dark'" /> {{ tx('داكنة (نص فاتح)', 'Dark (light text)') }}</label>
+                    <span class="sf-label">{{ tx('قوتها', 'Strength') }}</span>
+                    <input type="range" min="0" max="95" step="5" [value]="s.bgStrength" (input)="s.bgStrength = +$any($event.target).value" />
+                    <b dir="ltr">{{ s.bgStrength }}%</b>
+                  </div>
+                }
+              </details>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ===================== tab 3: video and collages ===================== -->
+      @if (tab() === 'media') {
+        @for (s of cfg.sections; track s.id) {
+          @if (s.type === 'video') {
+            <div class="card">
+              <h3>{{ tx('قسم فيديو', 'Video section') }}</h3>
+              <div class="sf-line">
+                <span class="sf-label">{{ tx('الفيديو من جهازك', 'Video from your computer') }}</span>
+                <input type="file" accept="video/mp4,video/webm" (change)="uploadVideo($event, s.video)" />
+                <input class="sf-grow" dir="ltr" [value]="s.video.url" placeholder="/uploads/videos/…" (input)="s.video.url = $any($event.target).value" />
+                <span class="muted small">MP4 / WebM · 100 MB</span>
+                @if (uploading()) { <span class="muted">{{ tx('جارٍ الرفع…', 'Uploading…') }}</span> }
+              </div>
+              @if (s.video.url) {
+                <div class="sf-line"><video class="sf-vid" [src]="s.video.url | assetUrl" muted controls preload="metadata"></video><button type="button" class="sf-x" (click)="s.video.url = ''">✕</button></div>
+              }
+              <div class="sf-line">
+                <span class="sf-label">{{ tx('صورة الغلاف', 'Poster') }}</span>
+                @if (s.video.posterUrl) { <img class="sf-thumb" [src]="s.video.posterUrl | assetUrl" alt="" /> }
+                <input type="file" accept="image/*" (change)="upload($event, s.video, 'posterUrl')" />
+                <input class="sf-grow" dir="ltr" [value]="s.video.posterUrl" placeholder="/uploads/…" (input)="s.video.posterUrl = $any($event.target).value" />
+              </div>
+              <div class="sf-line">
+                <span class="sf-label">{{ tx('الزر', 'Button') }}</span>
+                <input class="sf-grow" dir="rtl" [value]="s.video.buttonLabel.ar" placeholder="تسوق الآن" (input)="s.video.buttonLabel.ar = $any($event.target).value" />
+                <input class="sf-grow" dir="ltr" [value]="s.video.buttonLabel.en" placeholder="Shop now" (input)="s.video.buttonLabel.en = $any($event.target).value" />
+                <span class="sf-label">{{ tx('يفتح', 'Opens') }}</span>
+                <ng-container [ngTemplateOutlet]="linkEd" [ngTemplateOutletContext]="{ t: s.video.link }" />
+              </div>
+            </div>
+          }
+
+          @if (s.type === 'collage') {
+            <div class="card">
+              <h3>{{ tx('كولاج صور', 'Image collage') }}</h3>
+
+              <p class="sf-label">{{ tx('1) اختر الشكل', '1) Choose the shape') }}</p>
+              <div class="sf-shapes">
+                @for (l of layouts; track l.id) {
+                  <button type="button" class="sf-shape" [class.on]="s.collage.layout === l.id" (click)="setLayout(s, l.id)">
+                    <span class="lp lp-{{ l.id }}"><i></i><i></i><i></i><i></i><i></i></span>
+                    <small>{{ tx(l.ar, l.en) }}</small>
+                  </button>
+                }
+              </div>
+
+              <p class="sf-label">{{ tx('2) اضغط على مربع الصورة لتحرّرها', '2) Click a picture slot to edit it') }}</p>
+              <div class="sf-slots">
+                @for (im of visible(s); track im; let j = $index) {
+                  <button type="button" class="sf-slot" [class.on]="slot(s) === j" (click)="sel[s.id] = j">
+                    @if (im.imageUrl) { <img [src]="im.imageUrl | assetUrl" alt="" /> } @else { <span>+</span> }
+                    <b>{{ j + 1 }}</b>
+                  </button>
+                }
+                @if (canAddSlot(s)) { <button type="button" class="sf-slot add" (click)="addImage(s)">+ {{ tx('صورة', 'Picture') }}</button> }
+              </div>
+
+              @if (s.collage.images[slot(s)]; as im) {
+                <div class="sf-edit">
+                  <h4>{{ tx('الصورة', 'Picture') }} {{ slot(s) + 1 }}</h4>
+                  <div class="sf-line">
+                    <span class="sf-label">{{ tx('الصورة', 'Image') }}</span>
+                    @if (im.imageUrl) { <img class="sf-thumb" [src]="im.imageUrl | assetUrl" alt="" /> }
+                    <input type="file" accept="image/*" (change)="upload($event, im, 'imageUrl')" />
+                    <input class="sf-grow" dir="ltr" [value]="im.imageUrl" placeholder="/uploads/…" (input)="im.imageUrl = $any($event.target).value" />
+                  </div>
+                  <div class="sf-line">
+                    <span class="sf-label">{{ tx('الاسم عليها', 'Name on it') }}</span>
+                    <input class="sf-grow" dir="rtl" [value]="im.title.ar" placeholder="بدل رسمية" (input)="im.title.ar = $any($event.target).value" />
+                    <input class="sf-grow" dir="ltr" [value]="im.title.en" placeholder="Suits" (input)="im.title.en = $any($event.target).value" />
+                  </div>
+                  <div class="sf-line">
+                    <span class="sf-label">{{ tx('عند الضغط يفتح', 'Click opens') }}</span>
+                    <ng-container [ngTemplateOutlet]="linkEd" [ngTemplateOutletContext]="{ t: im.link }" />
+                  </div>
+                  @if (s.collage.layout === 'rects') {
+                    <div class="sf-line"><span class="sf-label">{{ tx('العرض %', 'Width %') }}</span><input class="sf-num-in" type="number" min="10" max="100" [value]="im.width" (input)="im.width = +$any($event.target).value" /></div>
+                  }
+                  @if (canAddSlot(s)) { <button type="button" class="btn btn-light btn-sm" (click)="removeImage(s, slot(s))">✕ {{ tx('حذف هذه الصورة', 'Delete this picture') }}</button> }
+                </div>
+              }
+            </div>
+          }
+        }
+
+        <div class="sf-line">
+          <button type="button" class="btn btn-light" (click)="add('video')">+ {{ tx('قسم فيديو', 'Video section') }}</button>
+          <button type="button" class="btn btn-light" (click)="add('collage')">+ {{ tx('قسم كولاج صور', 'Image collage') }}</button>
+        </div>
+        <p class="muted small">{{ tx('بعد الإضافة اذهب لتبويب "ترتيب وألوان الأقسام" لتحديد مكانه ولونه.', 'After adding, use the "Section order & colours" tab to place it and set its colour.') }}</p>
+      }
+
+      <!-- ===================== tab 4: the journey on the About page ===================== -->
+      @if (tab() === 'about') {
+        <div class="sf-subtabs">
+          <button type="button" [class.on]="aboutTab() === 'basics'" (click)="aboutTab.set('basics')">1 · {{ tx('السنة والصورة', 'Year & picture') }}</button>
+          <button type="button" [class.on]="aboutTab() === 'texts'" (click)="aboutTab.set('texts')">2 · {{ tx('نصوص الصفحة', 'Page texts') }}</button>
+          <button type="button" [class.on]="aboutTab() === 'journey'" (click)="aboutTab.set('journey')">3 · {{ tx('الرحلة (الخط الزمني)', 'Journey (timeline)') }}</button>
+          <button type="button" [class.on]="aboutTab() === 'blocks'" (click)="aboutTab.set('blocks')">4 · {{ tx('أقسام الصفحة', 'Page sections') }}</button>
+        </div>
+
+        @if (aboutTab() === 'basics') {
+          <div class="card">
+            <h3>{{ tx('السنة والصور', 'Year & pictures') }}</h3>
+            <p class="muted small">{{ tx('سنة التأسيس تظهر بجانب القصة. الصورة اختيارية.', 'The founding year shows beside the story. The picture is optional.') }}</p>
+
+            <div class="sf-line">
+              <span class="sf-label">{{ tx('سنة التأسيس', 'Founded in') }}</span>
+              <input class="sf-year" dir="ltr" [value]="cfg.about.since" placeholder="2018" (input)="cfg.about.since = $any($event.target).value" />
+            </div>
+
+            @for (im of aboutImages; track im.key) {
+              <div class="sf-line">
+                <span class="sf-label">{{ tx(im.ar, im.en) }}</span>
+                @if (cfg.about.images[im.key]) { <img class="sf-thumb" [src]="cfg.about.images[im.key] | assetUrl" alt="" /> }
+                <input type="file" accept="image/*" (change)="upload($event, cfg.about.images, im.key)" />
+                <input class="sf-grow" dir="ltr" [value]="cfg.about.images[im.key]" placeholder="/uploads/…" (input)="cfg.about.images[im.key] = $any($event.target).value" />
+              </div>
+            }
+          </div>
+        }
+
+        @if (aboutTab() === 'texts') {
+          <p class="muted small">{{ tx('كل مجموعة هنا هي جزء من الصفحة بنفس ترتيبه. اتركها فارغة ليظهر النص الافتراضي (باهت داخل الخانة). اكتب {brand} ليظهر اسم الشركة.', 'Each group is a part of the page, in the same order. Leave a box empty to show the default (greyed inside it). Write {brand} to show the company name.') }}</p>
+
+          @for (g of aboutGroups; track g.en) {
+            <div class="card">
+              <h3>{{ tx(g.ar, g.en) }}</h3>
+              @for (f of g.fields; track f.key) {
+                <div class="sf-item">
+                  <span class="sf-label">{{ tx(f.label.ar, f.label.en) }}</span>
+                  <div class="sf-line">
+                    <textarea class="sf-grow" [rows]="f.rows" dir="rtl" [value]="cfg.about.texts[f.key].ar" [placeholder]="f.ar" (input)="cfg.about.texts[f.key].ar = $any($event.target).value"></textarea>
+                    <textarea class="sf-grow" [rows]="f.rows" dir="ltr" [value]="cfg.about.texts[f.key].en" [placeholder]="f.en" (input)="cfg.about.texts[f.key].en = $any($event.target).value"></textarea>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        }
+
+        @if (aboutTab() === 'blocks') {
+          <div class="card">
+            <h3>{{ tx('أقسام صفحة "من نحن"', 'About page sections') }}</h3>
+            <p class="muted small">{{ tx('"ظاهر" يخفي القسم من الصفحة بدون ما تفقد بياناته. ✕ يحذف القسم من القائمة (تقدر ترجعه من "إضافة قسم"). الأسهم للترتيب، والمربع الصغير للون خلفية القسم.', '"Visible" hides a section without losing its data. ✕ removes it from the list (you can bring it back with "Add a section"). Arrows reorder, the small square sets the section background.') }}</p>
+
+            @for (b of cfg.about.blocks; track b.id; let i = $index) {
+              <div class="sf-row-sec" [class.off]="!b.enabled">
+                <div class="sf-arrows">
+                  <button type="button" [disabled]="i === 0" (click)="moveBlock(i, -1)">▲</button>
+                  <button type="button" [disabled]="i === cfg.about.blocks.length - 1" (click)="moveBlock(i, 1)">▼</button>
+                </div>
+                <strong class="sf-grow">{{ blockName(b.kind) }}@if (b.kind === 'custom' && (b.custom.title.ar || b.custom.title.en)) { <span class="muted"> — {{ b.custom.title.ar || b.custom.title.en }}</span> }</strong>
+                <label class="check sf-vis"><input type="checkbox" [checked]="b.enabled" (change)="b.enabled = $any($event.target).checked" /> {{ tx('ظاهر', 'Visible') }}</label>
+                <input class="sf-color" type="color" [value]="b.bg || '#ffffff'" [title]="tx('لون الخلفية', 'Background colour')" (input)="b.bg = $any($event.target).value" />
+                <button type="button" class="sf-x" [disabled]="!b.bg" (click)="b.bg = ''" [title]="tx('لون التصميم', 'Design colour')">↺</button>
+                <button type="button" class="sf-x" (click)="removeBlock(i)" [title]="tx('حذف القسم', 'Remove the section')" aria-label="remove">✕</button>
+
+                @if (b.kind === 'custom') {
+                  <details class="sf-bgimg" [open]="!b.custom.title.ar && !b.custom.title.en">
+                    <summary>{{ tx('محتوى القسم', 'Section content') }}</summary>
+                    <div class="sf-line">
+                      <span class="sf-label">{{ tx('العنوان', 'Headline') }}</span>
+                      <input class="sf-grow" dir="rtl" [value]="b.custom.title.ar" placeholder="العنوان بالعربي" (input)="b.custom.title.ar = $any($event.target).value" />
+                      <input class="sf-grow" dir="ltr" [value]="b.custom.title.en" placeholder="Headline in English" (input)="b.custom.title.en = $any($event.target).value" />
+                    </div>
+                    <div class="sf-line">
+                      <span class="sf-label">{{ tx('النص', 'Text') }}</span>
+                      <textarea class="sf-grow" rows="3" dir="rtl" [value]="b.custom.text.ar" placeholder="النص بالعربي" (input)="b.custom.text.ar = $any($event.target).value"></textarea>
+                      <textarea class="sf-grow" rows="3" dir="ltr" [value]="b.custom.text.en" placeholder="Text in English" (input)="b.custom.text.en = $any($event.target).value"></textarea>
+                    </div>
+                    <div class="sf-line">
+                      <span class="sf-label">{{ tx('الشكل', 'Layout') }}</span>
+                      <select class="sf-sel" (change)="b.custom.layout = $any($event.target).value">
+                        <option value="imageStart" [selected]="b.custom.layout === 'imageStart'">{{ tx('صورة في البداية', 'Picture at the start') }}</option>
+                        <option value="imageEnd" [selected]="b.custom.layout === 'imageEnd'">{{ tx('صورة في النهاية', 'Picture at the end') }}</option>
+                        <option value="textOnly" [selected]="b.custom.layout === 'textOnly'">{{ tx('نص فقط', 'Text only') }}</option>
+                      </select>
+                    </div>
+                    @if (b.custom.layout !== 'textOnly') {
+                      <div class="sf-line">
+                        <span class="sf-label">{{ tx('صورة', 'Picture') }}</span>
+                        @if (b.custom.imageUrl) { <img class="sf-thumb" [src]="b.custom.imageUrl | assetUrl" alt="" /> }
+                        <input type="file" accept="image/*" (change)="upload($event, b.custom, 'imageUrl')" />
+                        <input class="sf-grow" dir="ltr" [value]="b.custom.imageUrl" placeholder="/uploads/…" (input)="b.custom.imageUrl = $any($event.target).value" />
+                      </div>
+                    }
+                    <div class="sf-line">
+                      <span class="sf-label">{{ tx('الزر (اختياري)', 'Button (optional)') }}</span>
+                      <input class="sf-grow" dir="rtl" [value]="b.custom.buttonLabel.ar" placeholder="نص الزر" (input)="b.custom.buttonLabel.ar = $any($event.target).value" />
+                      <input class="sf-grow" dir="ltr" [value]="b.custom.buttonLabel.en" placeholder="Button text" (input)="b.custom.buttonLabel.en = $any($event.target).value" />
+                      <input class="sf-grow" dir="ltr" [value]="b.custom.buttonUrl" placeholder="/products" (input)="b.custom.buttonUrl = $any($event.target).value" />
+                    </div>
+                  </details>
+                }
+              </div>
+            }
+
+            <div class="sf-line" style="margin-top:1rem">
+              <span class="sf-label">{{ tx('إضافة قسم', 'Add a section') }}</span>
+              <button type="button" class="btn btn-light" (click)="addBlock('custom')">+ {{ tx('قسم جديد (نص وصورة)', 'New section (text & picture)') }}</button>
+              @for (k of missingBlocks(); track k) {
+                <button type="button" class="btn btn-light" (click)="addBlock(k)">+ {{ blockName(k) }}</button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (aboutTab() === 'journey') {
+          <div class="card">
+            <h3>{{ tx('رحلة الشركة (الخط الزمني)', 'Company journey (timeline)') }}</h3>
+            <p class="muted small">{{ tx('كل محطة على الخط: سنة وعنوان وفقرة وصورة أو فيديو. اضغط على المحطة لفتحها أو طيّها. البيانات الموجودة الآن مثال كامل، عدّلها أو احذفها أو أضف محطاتك.', 'Each stop on the line: a year, a title, a paragraph and a picture or video. Click a stop to open or fold it. What is here now is a full example: edit it, delete it or add your own stops.') }}</p>
+
+            @for (it of cfg.timeline; track it; let i = $index) {
+              <details class="sf-stop" [open]="i === 0">
+                <summary>
+                  <span class="sf-stop-no">{{ i + 1 }}</span>
+                  <b>{{ it.year || '—' }}</b>
+                  <span class="sf-stop-title">{{ it.title.ar || it.title.en || tx('بدون عنوان', 'No title') }}</span>
+                  <span class="sf-arrows">
+                    <button type="button" [disabled]="i === 0" (click)="moveStop(i, -1)" aria-label="up">▲</button>
+                    <button type="button" [disabled]="i === cfg.timeline.length - 1" (click)="moveStop(i, 1)" aria-label="down">▼</button>
+                  </span>
+                  <button type="button" class="sf-x" (click)="cfg.timeline.splice(i, 1)" aria-label="remove">✕</button>
+                </summary>
+
+                <div class="sf-line">
+                  <span class="sf-label">{{ tx('السنة', 'Year') }}</span>
+                  <input class="sf-year" dir="ltr" [value]="it.year" placeholder="2018" (input)="it.year = $any($event.target).value" />
+                </div>
+                <div class="sf-line">
+                  <span class="sf-label">{{ tx('العنوان', 'Title') }}</span>
+                  <input class="sf-grow" dir="rtl" [value]="it.title.ar" placeholder="العنوان بالعربي" (input)="it.title.ar = $any($event.target).value" />
+                  <input class="sf-grow" dir="ltr" [value]="it.title.en" placeholder="Title in English" (input)="it.title.en = $any($event.target).value" />
+                </div>
+                <div class="sf-line">
+                  <span class="sf-label">{{ tx('الفقرة', 'Paragraph') }}</span>
+                  <textarea class="sf-grow" rows="3" dir="rtl" [value]="it.text.ar" placeholder="الفقرة بالعربي" (input)="it.text.ar = $any($event.target).value"></textarea>
+                  <textarea class="sf-grow" rows="3" dir="ltr" [value]="it.text.en" placeholder="Paragraph in English" (input)="it.text.en = $any($event.target).value"></textarea>
+                </div>
+                <div class="sf-line">
+                  <span class="sf-label">{{ tx('صورة', 'Picture') }}</span>
+                  @if (it.imageUrl) { <img class="sf-thumb" [src]="it.imageUrl | assetUrl" alt="" /> }
+                  <input type="file" accept="image/*" (change)="upload($event, it, 'imageUrl')" />
+                  <input class="sf-grow" dir="ltr" [value]="it.imageUrl" placeholder="/uploads/…" (input)="it.imageUrl = $any($event.target).value" />
+                </div>
+                <div class="sf-line">
+                  <span class="sf-label">{{ tx('فيديو', 'Video') }}</span>
+                  <input type="file" accept="video/mp4,video/webm" (change)="uploadVideo($event, it)" />
+                  <input class="sf-grow" dir="ltr" [value]="it.videoUrl" placeholder="/uploads/videos/…" (input)="it.videoUrl = $any($event.target).value" />
+                  @if (uploading()) { <span class="muted">{{ tx('جارٍ الرفع…', 'Uploading…') }}</span> }
+                </div>
+                <p class="muted small">{{ tx('لو حطيت فيديو وصورة معاً يظهر الفيديو.', 'If both a video and a picture are set, the video is shown.') }}</p>
+              </details>
+            }
+
+            <button type="button" class="btn btn-light" (click)="addStop()">+ {{ tx('محطة في الرحلة', 'Journey stop') }}</button>
+          </div>
+        }
+      }
+
+      <!-- one link editor used everywhere: where does it open? -->
+      <ng-template #linkEd let-t="t">
+        <select class="sf-sel" (change)="t.kind = $any($event.target).value">
+          @for (l of links; track l.kind) { <option [value]="l.kind" [selected]="t.kind === l.kind">{{ tx(l.ar, l.en) }}</option> }
+        </select>
+        @if (t.kind === 'category') {
+          <select class="sf-sel" (change)="t.value = $any($event.target).value">
+            <option value="">—</option>
+            @for (c of categories(); track c.id) { <option [value]="c.slug" [selected]="t.value === c.slug">{{ c.translations[0]?.name || c.slug }}</option> }
+          </select>
+        }
+        @if (t.kind === 'custom') { <input class="sf-grow" [value]="t.value" placeholder="/products?sort=newest" (input)="t.value = $any($event.target).value" /> }
+      </ng-template>
+    }

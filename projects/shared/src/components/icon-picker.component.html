@@ -1,0 +1,23 @@
+<div class="field">
+  <label>{{ label | t }}</label>
+
+  <div class="icon-picker">
+    <div class="icon-picker-head">
+      <span class="icon-current">
+        @if (control.value) { <app-icon [name]="control.value" [size]="26" /> } @else { <span class="muted small">—</span> }
+      </span>
+      <input class="grow" [placeholder]="'a.icon.search' | t" (input)="query.set($any($event.target).value)" />
+      @if (control.value) {
+        <button type="button" class="btn btn-light btn-sm" (click)="pick('')">{{ 'a.clear' | t }}</button>
+      }
+    </div>
+
+    <div class="icon-grid">
+      @for (i of filtered(); track i.name) {
+        <button type="button" class="icon-cell" [class.on]="control.value === i.name" [title]="i.name" (click)="pick(i.name)">
+          <app-icon [name]="i.name" [size]="22" />
+        </button>
+      }
+    </div>
+  </div>
+</div>

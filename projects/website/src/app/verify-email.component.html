@@ -1,0 +1,32 @@
+<div class="container shop-page">
+  <header class="shop-head">
+    <div class="shop-head-top">
+      <nav class="crumbs" aria-label="breadcrumb"><a routerLink="/" class="crumb-home" [attr.aria-label]="'nav.home' | t"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></a><i>›</i><b>{{ 'auth.verifyTitle' | t }}</b></nav>
+    </div>
+    <h1 class="shop-title">{{ 'auth.verifyTitle' | t }}</h1>
+  </header>
+</div>
+<div class="container section auth-wrap">
+  <div class="auth-card">
+    <p class="auth-sub">{{ 'auth.verifySub' | t }} <strong dir="ltr">{{ email }}</strong></p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="field">
+        <input class="otp-input" formControlName="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+               placeholder="••••••" dir="ltr" (input)="onType()" />
+        @if (form.controls.code.touched && form.controls.code.invalid) { <div class="error">{{ 'auth.codeRule' | t }}</div> }
+      </div>
+
+      <button class="btn btn-primary btn-lg auth-submit" [disabled]="loading()">{{ (loading() ? 'auth.verifying' : 'auth.verify') | t }}</button>
+    </form>
+
+    <p class="auth-foot">
+      @if (timer.seconds() > 0) {
+        {{ 'auth.resendIn' | t: { s: timer.seconds() } }}
+      } @else {
+        <a href="#" (click)="resend($event)">{{ 'auth.resend' | t }}</a>
+      }
+      · <a routerLink="/register">{{ 'auth.wrongEmail' | t }}</a>
+    </p>
+  </div>
+</div>

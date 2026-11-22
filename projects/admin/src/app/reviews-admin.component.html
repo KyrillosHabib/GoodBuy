@@ -1,0 +1,16 @@
+<div class="page-head"><h1>{{ 'review.admin.title' | t }}</h1></div>
+<app-intro [text]="'review.admin.intro' | t" />
+<div class="card"><app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" /></div>
+
+<ng-template #row let-r>
+  <td><strong>{{ r.productName }}</strong><div class="muted small">{{ r.name }}@if (r.verified) { · ✓ {{ 'review.verified' | t }} }</div></td>
+  <td dir="ltr"><span style="color:#f5a623">{{ '★'.repeat(r.rating) }}</span></td>
+  <td style="max-width: 360px">{{ r.comment }}@if (r.reply) { <div class="muted small">↪ {{ r.reply }}</div> }</td>
+  <td><span class="chip" [class.chip-off]="!r.isApproved">{{ (r.isApproved ? 'review.admin.shown' : 'review.admin.waiting') | t }}</span></td>
+  <td class="actions">
+    @if (!r.isApproved) { <button type="button" class="btn btn-primary btn-sm" (click)="act(r, 'approve')">{{ 'review.admin.approve' | t }}</button> }
+    @else { <button type="button" class="btn btn-light btn-sm" (click)="act(r, 'hide')">{{ 'review.admin.hide' | t }}</button> }
+    <button type="button" class="btn btn-light btn-sm" (click)="reply(r)">{{ 'review.admin.reply' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(r)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>

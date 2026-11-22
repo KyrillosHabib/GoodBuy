@@ -1,0 +1,253 @@
+<div class="page-head">
+  <h1>{{ 'a.invmgr.title' | t }}</h1>
+  <span class="spacer"></span>
+  <span class="head-tools">
+    @if (warehouses().length > 1) {
+      <select class="pill-select" (change)="setWarehouse($any($event.target).value)">
+        <option value="">{{ 'a.invmgr.allWh' | t }}</option>
+        @for (w of warehouses(); track w.id) { <option [value]="w.id" [selected]="warehouseId() === w.id">{{ w.name }}</option> }
+      </select>
+    }
+    <select class="pill-select" (change)="setDays(+$any($event.target).value)">
+      @for (n of periods; track n) { <option [value]="n" [selected]="n === days()">{{ 'a.invmgr.last' | t: { n: n } }}</option> }
+    </select>
+    <button type="button" class="btn btn-light btn-sm" (click)="load()">{{ 'a.invmgr.refresh' | t }}</button>
+  </span>
+</div>
+
+@if (failed()) { <div class="card warn-card">{{ 'a.invmgr.error' | t }}</div> }
+
+@if (d(); as x) {
+  <!-- the five numbers -->
+  <div class="tops">
+    @for (k of tops(); track k.id) {
+      <a class="card top" [class.warn]="k.warn" [routerLink]="k.anchor ? null : k.link" [style.--c]="k.color" (click)="k.anchor ? jump(k.anchor) : null">
+        <span class="ic"><app-icon [name]="k.icon" [size]="22" /></span>
+        <span class="kb"><span class="kl">{{ k.label | t }}</span><strong dir="ltr">{{ k.value }}</strong><span class="muted small">{{ k.sub }}</span></span>
+      </a>
+    }
+  </div>
+
+  <!-- what to buy now: the reorder level linked to purchase orders -->
+  <h2 class="sec" id="reorder">{{ 'a.invmgr.s.reorder' | t }}</h2>
+  <div class="card">
+    <p class="muted small">{{ 'a.invmgr.r.hint' | t }}</p>
+    @if (x.reorder.length === 0) {
+      <p class="muted">{{ 'a.invmgr.r.none' | t }}</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              @if (canOrder()) { <th class="chk"><input type="checkbox" [checked]="allSelected()" (change)="toggleAll($any($event.target).checked)" /></th> }
+              <th>{{ 'a.invmgr.r.item' | t }}</th><th>{{ 'a.invmgr.r.wh' | t }}</th><th>{{ 'a.invmgr.r.onhand' | t }}</th><th>{{ 'a.invmgr.r.incoming' | t }}</th>
+              <th>{{ 'a.invmgr.r.qty' | t }}</th><th>{{ 'a.invmgr.r.supplier' | t }}</th><th>{{ 'a.invmgr.r.cost' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of x.reorder; track key(r)) {
+              <tr>
+                @if (canOrder()) { <td class="chk"><input type="checkbox" [checked]="isSel(r)" (change)="toggle(r, $any($event.target).checked)" /></td> }
+                <td><div class="item"><img class="thumb" [src]="r.imageUrl | productImage: r.sku" alt="" /><span><strong>{{ r.productName }}</strong><br /><span class="muted small">{{ r.label }}</span></span></div></td>
+                <td>{{ r.warehouseName }}</td>
+                <td dir="ltr"><strong class="bad">{{ r.onHand }}</strong> <span class="muted small">/ {{ r.reorderLevel }}</span></td>
+                <td dir="ltr">{{ r.incoming }}</td>
+                <td>
+                  @if (canOrder()) { <input class="qty" type="number" min="1" dir="ltr" [value]="qtyOf(r)" (input)="setQty(r, +$any($event.target).value)" /> }
+                  @else { <strong dir="ltr">{{ r.suggestedQuantity }}</strong> }
+                </td>
+                <td>
+                  @if (canOrder()) {
+                    <select class="sup" (change)="setSupplier(r, $any($event.target).value)">
+                      <option value="">{{ 'a.invmgr.r.pick' | t }}</option>
+                      @for (s of suppliers(); track s.id) { <option [value]="s.id" [selected]="supplierOf(r) === s.id">{{ s.name }}</option> }
+                    </select>
+                  } @else { {{ r.supplierName }} }
+                </td>
+                <td dir="ltr">{{ r.unitCost | number: '1.0-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (x.reorderTotal > x.reorder.length) {
+        <p class="muted small">{{ 'a.invmgr.r.more' | t: { n: x.reorderTotal - x.reorder.length } }} <a routerLink="/inventory/reports/reorder">→</a></p>
+      }
+      @if (canOrder()) {
+        <div class="actions">
+          <button type="button" class="btn btn-primary" [disabled]="selectedRows().length === 0 || creating()" (click)="create()">{{ 'a.invmgr.r.create' | t: { n: selectedRows().length } }}</button>
+          @if (needSupplier()) { <span class="muted small">{{ 'a.invmgr.r.needSupplier' | t }}</span> }
+        </div>
+      } @else {
+        <p class="muted small">{{ 'a.invmgr.r.noPerm' | t }}</p>
+      }
+    }
+  </div>
+
+  <!-- 1. main indicators -->
+  <h2 class="sec">{{ 'a.invmgr.s.kpi' | t }}</h2>
+  <div class="mini-grid">
+    <div class="card mini"><span class="muted">{{ 'a.invmgr.k.value' | t }}</span><strong dir="ltr">{{ x.stockValue | number: '1.0-0' }}</strong></div>
+    <div class="card mini"><span class="muted">{{ 'a.invmgr.k.items' | t }}</span><strong dir="ltr">{{ x.itemsInStock | number }}</strong></div>
+    <a class="card mini" [class.warn]="x.lowStockItems > 0" routerLink="/inventory/reports/reorder"><span class="muted">{{ 'a.invmgr.k.low' | t }}</span><strong dir="ltr">{{ x.lowStockItems | number }}</strong></a>
+    <a class="card mini" [class.warn]="x.outOfStockItems > 0" routerLink="/inventory/stock"><span class="muted">{{ 'a.invmgr.k.out' | t }}</span><strong dir="ltr">{{ x.outOfStockItems | number }}</strong></a>
+    <a class="card mini" routerLink="/inventory/purchase-orders"><span class="muted">{{ 'a.invmgr.k.po' | t }}</span><strong dir="ltr">{{ x.openPurchaseOrders | number }}</strong></a>
+    <a class="card mini" routerLink="/inventory/transfers"><span class="muted">{{ 'a.invmgr.k.tr' | t }}</span><strong dir="ltr">{{ x.pendingTransfers | number }}</strong></a>
+    <div class="card mini"><span class="muted">{{ 'a.invmgr.k.buy' | t }}</span><strong dir="ltr">{{ x.purchasesValue | number: '1.0-0' }}</strong></div>
+  </div>
+
+  <!-- 2. stock status -->
+  <h2 class="sec">{{ 'a.invmgr.s.stock' | t }}</h2>
+  <div class="grid">
+    <div class="card" style="grid-column: span 4">
+      <div class="card-head"><h3>{{ 'a.invmgr.st.total' | t }}</h3><strong dir="ltr">{{ x.totalUnits | number }}</strong></div>
+      <app-donut-chart [items]="stockSplit()" [emptyText]="'a.invmgr.st.none' | t" />
+    </div>
+    <div class="card" style="grid-column: span 4">
+      <div class="card-head"><h3>{{ 'a.invmgr.st.low' | t }}</h3><a class="small" routerLink="/inventory/reports/reorder">→</a></div>
+      @if (x.lowStock.length === 0) { <p class="muted">{{ 'a.invmgr.st.none' | t }}</p> } @else {
+        <ul class="rows">
+          @for (r of x.lowStock; track $index) {
+            <li><span class="grow"><strong>{{ r.productName }}</strong><br /><span class="muted small">{{ r.label }} · {{ r.warehouseName }}</span></span><span dir="ltr"><strong class="bad">{{ r.onHand }}</strong> <span class="muted small">/ {{ r.reorderLevel }}</span></span></li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="card" style="grid-column: span 4">
+      <div class="card-head"><h3>{{ 'a.invmgr.st.top' | t }}</h3></div>
+      @if (x.topMoving.length === 0) { <p class="muted">{{ 'a.invmgr.st.none' | t }}</p> } @else {
+        <ul class="rows">
+          @for (r of x.topMoving; track r.variantId) {
+            <li><img class="thumb" [src]="r.imageUrl | productImage: r.sku" alt="" /><span class="grow"><strong>{{ r.productName }}</strong><br /><span class="muted small">{{ r.label }}</span></span><span class="muted small">{{ 'a.invmgr.st.sold' | t: { n: r.units } }}</span></li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="card" id="stagnant" style="grid-column: span 4">
+      <div class="card-head"><h3>{{ 'a.invmgr.st.stagnant' | t }}</h3><span class="muted small">{{ 'a.invmgr.st.stagnantSub' | t: { n: x.stagnantDays } }}</span></div>
+      <p><strong dir="ltr">{{ x.stagnantItems | number }}</strong> <span class="muted">· {{ 'a.invmgr.st.value' | t }} <span dir="ltr">{{ x.stagnantValue | number: '1.0-0' }}</span></span></p>
+      @if (x.stagnant.length > 0) {
+        <ul class="rows">
+          @for (r of x.stagnant; track r.variantId) {
+            <li><span class="grow"><strong>{{ r.productName }}</strong><br /><span class="muted small">{{ r.label }}</span></span><span dir="ltr" class="small">{{ r.units }} · {{ r.value | number: '1.0-0' }}</span></li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="card" style="grid-column: span 4">
+      <div class="card-head"><h3>{{ 'a.invmgr.st.damaged' | t }}</h3></div>
+      <p><strong dir="ltr">{{ x.damagedUnits | number }}</strong> <span class="muted">· {{ 'a.invmgr.st.value' | t }} <span dir="ltr">{{ x.damagedValue | number: '1.0-0' }}</span></span></p>
+      @if (x.damaged.length > 0) {
+        <ul class="rows">
+          @for (r of x.damaged; track r.variantId) {
+            <li><span class="grow"><strong>{{ r.productName }}</strong><br /><span class="muted small">{{ r.label }}</span></span><span dir="ltr" class="small">{{ r.units }} · {{ r.value | number: '1.0-0' }}</span></li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="card" style="grid-column: span 4">
+      <div class="card-head"><h3>{{ 'a.invmgr.st.expiry' | t }}</h3><a class="small" routerLink="/inventory/reports/expiry">→</a></div>
+      <p class="small"><span [class.bad]="x.expiringSoon > 0">{{ 'a.invmgr.st.expSoon' | t: { n: x.expiringSoon } }}</span><br /><span [class.bad]="x.expired > 0">{{ 'a.invmgr.st.expired' | t: { n: x.expired } }}</span></p>
+      @if (x.expiring.length > 0) {
+        <ul class="rows">
+          @for (r of x.expiring; track $index) {
+            <li><span class="grow"><strong>{{ r.productName }}</strong><br /><span class="muted small">{{ r.label }} · {{ r.batchNumber }}</span></span><span class="small" dir="ltr" [class.bad]="r.daysToExpiry < 0">{{ r.expiryDate | date: 'yyyy-MM-dd' }}</span></li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+
+  <!-- 3. purchase orders -->
+  <h2 class="sec">{{ 'a.invmgr.s.po' | t }}</h2>
+  <div class="queues">
+    @for (t of poTiles(); track t.label) {
+      <a class="card queue" [class.warn]="t.warn" routerLink="/inventory/purchase-orders"><span class="muted">{{ t.label | t }}</span><strong dir="ltr">{{ t.value | number }}</strong></a>
+    }
+  </div>
+  <p class="muted small">{{ 'a.invmgr.po.noApproval' | t }}</p>
+  <div class="grid">
+    <div class="card" style="grid-column: span 5">
+      <div class="card-head"><h3>{{ 'a.invmgr.po.byStatus' | t }}</h3></div>
+      <app-donut-chart [items]="poSplit()" [emptyText]="'a.invmgr.st.none' | t" />
+    </div>
+    <div class="card" style="grid-column: span 7">
+      <div class="card-head"><h3>{{ 'a.invmgr.po.lateList' | t }}</h3></div>
+      @if (x.lateOrders.length === 0) { <p class="muted">{{ 'a.invmgr.po.noLate' | t }}</p> } @else {
+        <ul class="rows">
+          @for (o of x.lateOrders; track o.id) {
+            <li>
+              <span class="grow"><a [routerLink]="'/inventory/purchase-orders'" [queryParams]="{ open: o.id }"><strong dir="ltr">{{ o.number }}</strong></a> · {{ o.supplier }}<br /><span class="muted small">{{ o.warehouse }} · {{ 'a.invmgr.po.left' | t: { n: o.unitsLeft } }}</span></span>
+              <span class="bad small">{{ 'a.invmgr.po.daysLate' | t: { n: o.daysLate } }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+
+  <!-- 4. warehouse operations -->
+  <h2 class="sec">{{ 'a.invmgr.s.ops' | t }}</h2>
+  <div class="queues">
+    @for (t of opTiles(); track t.label) {
+      <a class="card queue" [class.warn]="t.warn" [routerLink]="t.link"><span class="muted">{{ t.label | t }}</span><strong dir="ltr">{{ t.value | number }}</strong></a>
+    }
+  </div>
+
+  <!-- 5. suppliers and purchasing -->
+  <h2 class="sec" id="suppliers">{{ 'a.invmgr.s.sup' | t }}</h2>
+  <div class="mini-grid">
+    <div class="card mini"><span class="muted">{{ 'a.invmgr.su.total' | t }}</span><strong dir="ltr">{{ x.purchasesValue | number: '1.0-0' }}</strong></div>
+    <a class="card mini" routerLink="/inventory/purchase-orders"><span class="muted">{{ 'a.invmgr.su.unreceived' | t }}</span><strong dir="ltr">{{ x.unreceivedOrders | number }}</strong><span class="muted small">{{ 'a.invmgr.su.units' | t: { n: x.unreceivedUnits } }}</span></a>
+    <a class="card mini" [class.warn]="x.reorderTotal > 0" (click)="jump('reorder')"><span class="muted">{{ 'a.invmgr.su.toPo' | t }}</span><strong dir="ltr">{{ x.reorderTotal | number }}</strong></a>
+  </div>
+  <div class="grid">
+    <div class="card" style="grid-column: span 6">
+      <div class="card-head"><h3>{{ 'a.invmgr.su.top' | t }}</h3></div>
+      <app-hbar-chart [items]="supplierBars()" [color]="accent" [emptyText]="'a.invmgr.su.none' | t" />
+    </div>
+    <div class="card" style="grid-column: span 6">
+      <div class="card-head"><h3>{{ 'a.invmgr.su.perf' | t }}</h3></div>
+      <p class="muted small">{{ 'a.invmgr.su.perfHint' | t }}</p>
+      @if (x.performance.length === 0) { <p class="muted">{{ 'a.invmgr.su.none' | t }}</p> } @else {
+        <ul class="rows">
+          @for (p of x.performance; track p.supplierId) {
+            <li><span class="grow"><strong>{{ p.name }}</strong><br /><span class="muted small">{{ 'a.invmgr.su.perfRow' | t: { a: p.onTime, b: p.orders } }}</span></span><strong dir="ltr" [class.bad]="p.onTimePercent < 60">{{ p.onTimePercent | number: '1.0-0' }}%</strong></li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+
+  <!-- 6. alerts and actions -->
+  <h2 class="sec">{{ 'a.invmgr.s.alerts' | t }}</h2>
+  <div class="card">
+    @if (alerts().length === 0) { <p class="muted">{{ 'a.invmgr.al.none' | t }}</p> } @else {
+      <ul class="rows">
+        @for (a of alerts(); track a.text) {
+          <li>
+            <span class="dot" [class.bad]="a.level === 'bad'" [class.warn]="a.level === 'warn'"></span>
+            <span class="grow">{{ a.text | t }}</span>
+            <strong dir="ltr">{{ a.count | number }}</strong>
+            <a class="small" [routerLink]="a.link">→</a>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <!-- 7. quick reports -->
+  <h2 class="sec">{{ 'a.invmgr.s.reports' | t }}</h2>
+  <div class="reports">
+    @for (r of reports; track r.label) {
+      @if (r.link) {
+        <a class="card rep" [routerLink]="r.link"><span class="ic"><app-icon [name]="r.icon" [size]="20" /></span><span>{{ r.label | t }}</span></a>
+      } @else {
+        <a class="card rep" (click)="jump(r.anchor ?? '')"><span class="ic"><app-icon [name]="r.icon" [size]="20" /></span><span>{{ r.label | t }}<br /><span class="muted small">{{ 'a.invmgr.rp.onPage' | t }}</span></span></a>
+      }
+    }
+  </div>
+} @else if (!failed()) {
+  <p class="muted">…</p>
+}

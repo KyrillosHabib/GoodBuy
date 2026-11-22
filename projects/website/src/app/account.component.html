@@ -1,0 +1,165 @@
+<div class="container shop-page">
+  <header class="shop-head">
+    <div class="shop-head-top">
+      <nav class="crumbs" aria-label="breadcrumb"><a routerLink="/" class="crumb-home" [attr.aria-label]="'nav.home' | t"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></a><i>›</i><b>{{ 'account.title' | t }}</b></nav>
+    </div>
+    <h1 class="shop-title">{{ 'account.title' | t }}</h1>
+    @if (profile(); as p) { <p class="account-who">{{ p.fullName }} · <span dir="ltr">{{ p.email }}</span></p> }
+  </header>
+</div>
+
+<div class="container section">
+  <div class="tabs">
+    <button type="button" [class.active]="tab() === 'profile'" (click)="tab.set('profile')">{{ 'account.tabProfile' | t }}</button>
+    <button type="button" [class.active]="tab() === 'orders'" (click)="tab.set('orders')">{{ 'account.tabOrders' | t }}</button>
+    <button type="button" [class.active]="tab() === 'addresses'" (click)="tab.set('addresses')">{{ 'account.tabAddresses' | t }}</button>
+    <button type="button" [class.active]="tab() === 'password'" (click)="tab.set('password')">{{ 'account.tabPassword' | t }}</button>
+    <button type="button" class="tabs-out" (click)="logout()">{{ 'auth.logout' | t }}</button>
+  </div>
+
+  <!-- ===== profile ===== -->
+  @if (tab() === 'profile') {
+    <div class="card account-card">
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <div class="field">
+          <label>{{ 'auth.fullName' | t }} *</label>
+          <input formControlName="fullName" />
+          @if (profileForm.controls.fullName.touched && profileForm.controls.fullName.invalid) { <div class="error">{{ 'contact.required' | t }}</div> }
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'contact.email' | t }}</label>
+            <input [value]="profile()?.email ?? ''" disabled dir="ltr" />
+          </div>
+          <div class="field">
+            <label>{{ 'contact.phone' | t }}</label>
+            <input type="tel" formControlName="phone" dir="ltr" />
+            @if (profileForm.controls.phone.touched && profileForm.controls.phone.invalid) { <div class="error">{{ 'auth.phoneRule' | t }}</div> }
+          </div>
+        </div>
+        <button class="btn btn-primary" [disabled]="busy()">{{ 'account.save' | t }}</button>
+      </form>
+    </div>
+  }
+
+  <!-- ===== my orders ===== -->
+  @if (tab() === 'orders') {
+    @for (o of orders(); track o.id) {
+      <div class="card account-card" style="margin-bottom: 1rem">
+        <div class="sum-row"><strong dir="ltr">{{ o.number }}</strong><span class="chip">{{ ('order.status.' + o.status) | t }}</span></div>
+        <div class="muted small">{{ o.createdAtUtc.slice(0, 10) }} · {{ ('pay.' + o.paymentMethod) | t }}</div>
+        @if (o.auctionId && o.payByUtc && o.status === 'Pending' && o.paymentStatus !== 'Paid') {
+          <p class="chip" style="margin: .5rem 0">{{ 'auction.order.pending' | t: { date: o.payByUtc.slice(0, 16).replace('T', ' ') } }} · <a [routerLink]="['/order', o.number]">{{ 'auction.order.open' | t }}</a></p>
+        }
+        @for (i of o.items; track i.variantId) {
+          <div class="sum-row"><span>{{ i.productName }}@if (i.variantLabel) { <small class="muted"> · {{ i.variantLabel }}</small> } × {{ i.quantity }}</span><span>{{ i.lineTotal | money }}</span></div>
+        }
+        <div class="sum-row total"><span>{{ 'checkout.total' | t }}</span><span>{{ o.total | money }}</span></div>
+      </div>
+    } @empty { <p class="muted">{{ 'account.noOrders' | t }}</p> }
+  }
+
+  <!-- ===== addresses ===== -->
+  @if (tab() === 'addresses') {
+    @if (editing() === null) {
+      <div class="addr-grid">
+        @for (a of addresses(); track a.id) {
+          <div class="card addr" [class.addr-default]="a.isDefault">
+            @if (a.isDefault) { <span class="addr-badge">{{ 'account.default' | t }}</span> }
+            <strong>{{ a.label || a.recipientName }}</strong>
+            <div>{{ a.recipientName }} · <span dir="ltr">{{ a.phone }}</span></div>
+            <div>{{ a.line1 }}@if (a.line2) { , {{ a.line2 }} }</div>
+            <div>{{ a.city }}@if (a.region) { , {{ a.region }} }, {{ a.country }}@if (a.postalCode) { · {{ a.postalCode }} }</div>
+            <div class="addr-actions">
+              <button type="button" class="btn btn-light btn-sm" (click)="edit(a)">{{ 'account.edit' | t }}</button>
+              @if (!a.isDefault) { <button type="button" class="btn btn-light btn-sm" (click)="makeDefault(a)">{{ 'account.makeDefault' | t }}</button> }
+              <button type="button" class="btn btn-light btn-sm addr-del" (click)="remove(a)">{{ 'account.delete' | t }}</button>
+            </div>
+          </div>
+        } @empty {
+          <p class="muted">{{ 'account.noAddresses' | t }}</p>
+        }
+      </div>
+      <button type="button" class="btn btn-primary" (click)="addNew()">+ {{ 'account.addAddress' | t }}</button>
+    } @else {
+      <div class="card account-card">
+        <h3>{{ (editing() === 'new' ? 'account.addAddress' : 'account.editAddress') | t }}</h3>
+        <form [formGroup]="addressForm" (ngSubmit)="saveAddress()">
+          <div class="form-row">
+            <div class="field">
+              <label>{{ 'account.label' | t }}</label>
+              <input formControlName="label" [placeholder]="'account.labelHint' | t" />
+            </div>
+            <div class="field">
+              <label>{{ 'account.recipient' | t }} *</label>
+              <input formControlName="recipientName" />
+              @if (bad('recipientName')) { <div class="error">{{ 'contact.required' | t }}</div> }
+            </div>
+            <div class="field">
+              <label>{{ 'contact.phone' | t }} *</label>
+              <input type="tel" formControlName="phone" dir="ltr" />
+              @if (bad('phone')) { <div class="error">{{ 'auth.phoneRule' | t }}</div> }
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>{{ 'account.country' | t }} *</label>
+              <input formControlName="country" />
+              @if (bad('country')) { <div class="error">{{ 'contact.required' | t }}</div> }
+            </div>
+            <div class="field">
+              <label>{{ 'account.city' | t }} *</label>
+              <input formControlName="city" />
+              @if (bad('city')) { <div class="error">{{ 'contact.required' | t }}</div> }
+            </div>
+            <div class="field">
+              <label>{{ 'account.region' | t }}</label>
+              <input formControlName="region" />
+            </div>
+          </div>
+          <div class="field">
+            <label>{{ 'account.line1' | t }} *</label>
+            <input formControlName="line1" />
+            @if (bad('line1')) { <div class="error">{{ 'contact.required' | t }}</div> }
+          </div>
+          <div class="form-row">
+            <div class="field"><label>{{ 'account.line2' | t }}</label><input formControlName="line2" /></div>
+            <div class="field"><label>{{ 'account.postal' | t }}</label><input formControlName="postalCode" dir="ltr" /></div>
+          </div>
+          <label class="switch"><input type="checkbox" formControlName="isDefault" /><span></span> {{ 'account.makeDefault' | t }}</label>
+
+          <div class="addr-actions">
+            <button class="btn btn-primary" [disabled]="busy()">{{ 'account.save' | t }}</button>
+            <button type="button" class="btn btn-light" (click)="editing.set(null)">{{ 'account.cancel' | t }}</button>
+          </div>
+        </form>
+      </div>
+    }
+  }
+
+  <!-- ===== password ===== -->
+  @if (tab() === 'password') {
+    <div class="card account-card">
+      <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
+        <div class="field">
+          <label>{{ 'account.currentPassword' | t }}</label>
+          <input type="password" formControlName="current" autocomplete="current-password" dir="ltr" />
+          @if (passwordForm.controls.current.touched && passwordForm.controls.current.invalid) { <div class="error">{{ 'contact.required' | t }}</div> }
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'auth.newPassword' | t }}</label>
+            <input type="password" formControlName="password" autocomplete="new-password" dir="ltr" />
+            @if (passwordForm.controls.password.touched && passwordForm.controls.password.invalid) { <div class="error">{{ 'auth.passwordRule' | t }}</div> }
+          </div>
+          <div class="field">
+            <label>{{ 'auth.confirmPassword' | t }}</label>
+            <input type="password" formControlName="confirm" autocomplete="new-password" dir="ltr" />
+            @if (passwordForm.controls.confirm.touched && passwordForm.hasError('mismatch')) { <div class="error">{{ 'auth.passwordMismatch' | t }}</div> }
+          </div>
+        </div>
+        <button class="btn btn-primary" [disabled]="busy()">{{ 'account.changePassword' | t }}</button>
+      </form>
+    </div>
+  }
+</div>

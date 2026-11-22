@@ -1,0 +1,115 @@
+<div class="page-head"><h1>{{ 'acc.nav.autoEntries' | t }}</h1></div>
+<app-intro [text]="'accs.auto.intro' | t" />
+
+@for (g of groups; track g) {
+  <div class="card">
+    <h3>{{ 'accs.auto.group.' + g | t }}</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>{{ 'accs.auto.event' | t }}</th><th>{{ 'acc.debitDetails' | t }}</th><th>{{ 'acc.creditDetails' | t }}</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (t of inGroup(g); track t.eventKey) {
+            <tr>
+              <td>
+                <strong>{{ t.name }}</strong>
+                @if (!t.isActive) { <span class="chip chip-bad">{{ 'accs.auto.off' | t }}</span> }
+              </td>
+              <td class="small">{{ summary(t.debit) }}</td>
+              <td class="small">{{ summary(t.credit) }}</td>
+              <td class="actions">
+                <button type="button" class="btn btn-primary btn-sm" (click)="open(t)">{{ (canEdit ? 'a.edit' : 'accs.auto.view') | t }}</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<p class="muted small">{{ 'accs.auto.fixedNote' | t }}</p>
+
+@if (editing(); as t) {
+  <app-modal [title]="t.name" size="xl" (closed)="editing.set(null)">
+    <p class="muted small">{{ 'accs.auto.virtualHint' | t }}</p>
+
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="draft.isActive" [disabled]="!canEdit" />
+      {{ 'accs.auto.active' | t }}
+    </label>
+
+    @for (side of sides; track side) {
+      <div class="side-card" [class.side-debit]="side === 'debit'" [class.side-credit]="side === 'credit'">
+        <div class="side-head"><strong>{{ (side === 'debit' ? 'acc.debitDetails' : 'acc.creditDetails') | t }}</strong></div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ 'accs.auto.accountKind' | t }}</th><th>{{ 'acc.account' | t }}</th><th>{{ 'accs.auto.amountFrom' | t }}</th>
+                <th>{{ 'accs.auto.percent' | t }}</th><th>{{ 'accs.auto.linkParty' | t }}</th><th>{{ 'acc.description' | t }}</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of rowsOf(side); track r; let i = $index) {
+                <tr>
+                  <td>
+                    <select [ngModel]="r.accountMode" (ngModelChange)="changeMode(r, $event, t)" [disabled]="!canEdit">
+                      @for (m of modesOf(t); track m) { <option [value]="m">{{ 'accs.auto.mode.' + m | t }}</option> }
+                    </select>
+                  </td>
+                  <td>
+                    @switch (r.accountMode) {
+                      @case ('Fixed') {
+                        <select [(ngModel)]="r.accountId" [disabled]="!canEdit">
+                          <option [ngValue]="null">—</option>
+                          @for (a of postable(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+                        </select>
+                      }
+                      @case ('Role') {
+                        <select [(ngModel)]="r.roleKey" [disabled]="!canEdit">
+                          <option [ngValue]="null">—</option>
+                          @for (ro of catalog()?.roles ?? []; track ro.key) { <option [ngValue]="ro.key">{{ ro.name }}{{ ro.accountLabel ? ' (' + ro.accountLabel + ')' : '' }}</option> }
+                        </select>
+                      }
+                      @default { <span class="muted small">{{ 'accs.auto.modeHint.' + r.accountMode | t }}</span> }
+                    }
+                  </td>
+                  <td>
+                    @if (r.accountMode === 'DocumentLines') {
+                      <span class="muted small">{{ 'accs.auto.src.lines' | t }}</span>
+                    } @else {
+                      <select [(ngModel)]="r.amountSource" [disabled]="!canEdit">
+                        @for (s of t.sources; track s) { <option [value]="s">{{ 'accs.auto.src.' + s | t }}</option> }
+                      </select>
+                    }
+                  </td>
+                  <td class="pct">
+                    <input type="checkbox" [(ngModel)]="r.usePercent" [disabled]="!canEdit" />
+                    @if (r.usePercent) { <input type="number" min="0" max="1000" step="0.01" dir="ltr" [(ngModel)]="r.percent" [disabled]="!canEdit" /> % }
+                  </td>
+                  <td><input type="checkbox" [(ngModel)]="r.linkParty" [disabled]="!canEdit || !t.partyKind" /></td>
+                  <td><input type="text" maxlength="200" [(ngModel)]="r.description" [disabled]="!canEdit" /></td>
+                  <td>@if (canEdit) { <button type="button" class="btn btn-danger btn-sm" (click)="removeRow(side, i)">×</button> }</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (canEdit) { <button type="button" class="btn btn-light btn-sm" (click)="addRow(side, t)">+ {{ 'accs.auto.addRow' | t }}</button> }
+      </div>
+    }
+
+    <div class="field">
+      <label>{{ 'inv.note' | t }}</label>
+      <input type="text" maxlength="500" [(ngModel)]="draft.notes" [disabled]="!canEdit" />
+    </div>
+
+    <div modal-footer>
+      @if (canEdit && t.isCustomized) { <button type="button" class="btn btn-light" (click)="reset(t)">{{ 'accs.auto.reset' | t }}</button> }
+      <button type="button" class="btn btn-light" (click)="editing.set(null)">{{ 'a.cancel' | t }}</button>
+      @if (canEdit) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(t)">{{ 'a.save' | t }}</button> }
+    </div>
+  </app-modal>
+}

@@ -1,0 +1,69 @@
+<div class="login-page">
+  <button type="button" class="btn btn-light btn-sm login-lang" (click)="i18n.toggle()"><app-icon name="globe" [size]="14" /> {{ 'lang.switch' | t }}</button>
+
+  <div class="card login-card">
+    <div class="login-brand">
+      @if (home()?.company?.logoUrl) {
+        <img class="login-logo" [src]="home()!.company.logoUrl | assetUrl" alt="" />
+      } @else {
+        <span class="logo-mark login-mark"><app-icon name="zap" [size]="26" /></span>
+      }
+      <h2>{{ home()?.company?.companyName || ('a.brand' | t) }}</h2>
+      <span class="chip">{{ 'a.brand' | t }}</span>
+    </div>
+    @if (auth.mustChangePassword()) {
+      <p class="muted">{{ 'a.pwd.intro' | t }}</p>
+
+      <form [formGroup]="changeForm" (ngSubmit)="changePassword()">
+        <div class="field">
+          <label>{{ 'a.pwd.current' | t }}</label>
+          <input type="password" dir="ltr" formControlName="currentPassword" autocomplete="current-password" />
+        </div>
+        <div class="field">
+          <label>{{ 'a.pwd.new' | t }}</label>
+          <input type="password" dir="ltr" formControlName="newPassword" autocomplete="new-password" />
+          <div class="hint-text">{{ 'auth.passwordRule' | t }}</div>
+          @if (changeForm.controls.newPassword.touched && changeForm.controls.newPassword.invalid) {
+            <div class="error">{{ 'auth.passwordRule' | t }}</div>
+          }
+        </div>
+        <div class="field">
+          <label>{{ 'a.pwd.confirm' | t }}</label>
+          <input type="password" dir="ltr" formControlName="confirm" autocomplete="new-password" />
+        </div>
+
+        <button class="btn btn-primary block" [disabled]="loading()">{{ (loading() ? 'a.saving' : 'a.pwd.save') | t }}</button>
+        <button type="button" class="btn btn-light block" style="margin-top: .6rem" (click)="auth.logout()">{{ 'a.signOut' | t }}</button>
+      </form>
+    } @else {
+    <p class="muted">{{ 'a.login.subtitle' | t }}</p>
+  
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="field">
+          <label>{{ 'a.login.userOrEmail' | t }}</label>
+          <input type="text" dir="ltr" formControlName="email" autocomplete="username" />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <div class="error">{{ 'a.login.userRequired' | t }}</div>
+          }
+        </div>
+  
+        <div class="field">
+          <label>{{ 'a.login.password' | t }}</label>
+          <input type="password" dir="ltr" formControlName="password" autocomplete="current-password" />
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <div class="error">{{ 'a.login.passwordRequired' | t }}</div>
+          }
+        </div>
+  
+        <button class="btn btn-primary block" [disabled]="loading()">
+          {{ (loading() ? 'a.login.signingIn' : 'a.login.signIn') | t }}
+        </button>
+      </form>
+    }
+
+    @if (!isProduction) {
+      <p class="hint small">{{ 'a.login.dev' | t }}: <code>admin&#64;voltara.com</code> / <code>Admin&#64;12345</code></p>
+    }
+
+  </div>
+</div>

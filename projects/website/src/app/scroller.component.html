@@ -1,0 +1,24 @@
+<div class="scroller" [class.can-prev]="canPrev()" [class.can-next]="canNext()">
+  <button type="button" class="arrow prev" tabindex="-1" aria-label="Previous" (click)="next(-1)"><span class="chev"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg></span></button>
+
+  <div #track class="track" [class.dragging]="dragging"
+       (scroll)="update()"
+       (pointerdown)="down($event)" (pointermove)="move($event)" (pointerup)="up($event)" (pointerleave)="up($event)"
+       (click)="click($event)">
+    @for (item of list(); track item) {
+      <div class="cell">
+        <ng-container *ngTemplateOutlet="template; context: { $implicit: item }"></ng-container>
+      </div>
+    }
+  </div>
+
+  <button type="button" class="arrow next" tabindex="-1" aria-label="Next" (click)="next(1)"><span class="chev flip"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg></span></button>
+</div>
+
+@if (positions().length > 1) {
+  <div class="dots">
+    @for (p of positions(); track p) {
+      <button type="button" class="dot" [class.on]="p === active()" [attr.aria-label]="'Go to ' + (p + 1)" (click)="go(p)"></button>
+    }
+  </div>
+}

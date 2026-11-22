@@ -1,0 +1,11 @@
+.filters-row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: .8rem; }
+.spacer { flex: 1; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .6rem; }
+.sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .6rem; margin-bottom: .4rem; }
+.stat { display: flex; flex-direction: column; gap: .2rem; }
+.stat strong { font-size: 1.3rem; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: .8rem; margin-top: .6rem; }
+.neg { color: #b91c1c; }
+.bad { color: #b91c1c; }
+.btn-sm { padding: .2rem .7rem; font-size: .82rem; }
+.actions { white-space: nowrap; }

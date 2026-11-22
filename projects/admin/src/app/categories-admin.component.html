@@ -1,0 +1,63 @@
+<div class="page-head">
+  <h1>{{ 'a.cat.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="startCreate()">+ {{ 'a.cat.new' | t }}</button>
+</div>
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else {
+    <app-data-table [rows]="categories()" [columns]="columns" [rowTemplate]="row" />
+  }
+</div>
+
+<ng-template #row let-c>
+  <td><img class="thumb thumb-sm" [src]="c.imageUrl | categoryImage: c.slug" alt="" /></td>
+  <td>{{ c.id }}</td>
+  <td><strong>{{ nameOf(c) }}</strong></td>
+  <td><code>{{ c.slug }}</code></td>
+  <td>{{ c.productsCount }}</td>
+  <td>{{ c.sortOrder }}</td>
+  <td>@if (c.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="startEdit(c)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(c)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (formOpen()) {
+  <app-modal [title]="editing() ? ('a.cat.edit' | t: { id: editing()!.id }) : ('a.cat.new' | t)" size="lg" (closed)="formOpen.set(false)">
+    <form id="category-form" [formGroup]="form" (ngSubmit)="save()">
+      <!-- 1. names first, then the slug that is generated from the English name -->
+      <app-translation-fields [group]="form.controls.translations" [fields]="fields" />
+
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'a.slug' | t }} <span class="req">*</span></label>
+          <div class="slug-row">
+            <input dir="ltr" formControlName="slug" placeholder="kitchen-appliances" (input)="slugManual.set(true)" />
+            <button type="button" class="btn btn-light btn-sm" (click)="generateSlug()">{{ 'a.slugFromName' | t }}</button>
+          </div>
+          <div class="hint-text">{{ 'a.slugHint' | t }}</div>
+          @if (form.controls.slug.touched && form.controls.slug.invalid) {
+            <div class="error">{{ 'a.slugError' | t }}</div>
+          }
+        </div>
+        <div class="field narrow-field">
+          <label>{{ 'a.order' | t }}</label>
+          <input type="number" min="0" formControlName="sortOrder" />
+        </div>
+      </div>
+      <div class="hint-text" style="margin: -.4rem 0 1rem">{{ 'a.orderHint' | t }}</div>
+
+      <app-image-field [control]="form.controls.imageUrl" label="a.imageOptional" />
+
+      <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+    </form>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="formOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="category-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

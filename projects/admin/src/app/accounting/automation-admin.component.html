@@ -1,0 +1,54 @@
+<div class="page-head"><h1>{{ 'acc.nav.automation' | t }}</h1></div>
+<app-intro [text]="'acc.auto.intro' | t" />
+
+<div class="card">
+  <h3>{{ 'acc.auto.policies' | t }}</h3>
+  <p class="muted small">{{ 'acc.auto.policiesHint' | t }}</p>
+  @if (settings(); as s) {
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'acc.auto.event' | t }}</th><th>{{ 'acc.auto.makes' | t }}</th><th>{{ 'acc.auto.mode' | t }}</th></tr></thead>
+        <tbody>
+          @for (p of policies; track p.key) {
+            <tr>
+              <td><strong>{{ 'acc.auto.' + p.key | t }}</strong></td>
+              <td class="small">{{ 'acc.auto.' + p.key + '.makes' | t }}</td>
+              <td>
+                <select [ngModel]="s[p.key]" (ngModelChange)="setPolicy(p.key, $event)" [disabled]="!canEdit" style="min-width: 14rem">
+                  <option [ngValue]="true">{{ 'acc.auto.post' | t }}</option>
+                  <option [ngValue]="false">{{ 'acc.auto.review' | t }}</option>
+                </select>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small">{{ 'acc.auto.reviewHint' | t }}</p>
+    @if (canEdit) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="savePolicies()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button> }
+  }
+</div>
+
+<div class="card">
+  <h3>{{ 'acc.auto.paymentMap' | t }}</h3>
+  <p class="muted small">{{ 'acc.auto.paymentMapHint' | t }}</p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'acc.auto.method' | t }}</th><th>{{ 'acc.auto.goesTo' | t }}</th></tr></thead>
+      <tbody>
+        @for (m of map(); track m.method) {
+          <tr>
+            <td><strong>{{ 'pay.' + m.method | t }}</strong></td>
+            <td>
+              <select [ngModel]="m.cashAccountId" (ngModelChange)="setTarget(m.method, $event)" [disabled]="!canEdit" style="min-width: 16rem">
+                <option [ngValue]="null">—</option>
+                @for (c of cash(); track c.id) { <option [ngValue]="c.id">{{ c.name }} ({{ 'acc.cash.' + c.type | t }})</option> }
+              </select>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (canEdit) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveMap()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button> }
+</div>

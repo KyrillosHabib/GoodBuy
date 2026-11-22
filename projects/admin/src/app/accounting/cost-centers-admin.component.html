@@ -1,0 +1,97 @@
+    <div class="page-head"><h1>{{ 'acc.cc.title' | t }}</h1></div>
+    <app-intro [text]="'acc.cc.intro' | t" />
+
+    <div class="tabs">
+      @for (x of tabs; track x) { <button type="button" class="tab" [class.on]="tab() === x" (click)="setTab(x)">{{ 'acc.cc.tab.' + x | t }}</button> }
+    </div>
+
+    @if (tab() === 'centers') {
+      @if (canManage) { <div class="toolbar"><button type="button" class="btn btn-primary" (click)="startEdit(null)">{{ 'acc.cc.new' | t }}</button></div> }
+      <div class="card">
+        @if (centers().length === 0) { <p class="muted">{{ 'acc.cc.empty' | t }}</p> } @else {
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>{{ 'acc.cc.code' | t }}</th><th>{{ 'acc.cc.name' | t }}</th><th>{{ 'acc.cc.parent' | t }}</th><th class="num">{{ 'acc.cc.used' | t }}</th><th>{{ 'acc.cc.active' | t }}</th><th></th></tr></thead>
+              <tbody>
+                @for (c of centers(); track c.id) {
+                  <tr>
+                    <td dir="ltr" class="start"><strong>{{ c.code }}</strong></td>
+                    <td>{{ c.name }} @if (c.nameAr) { <span class="muted small">/ {{ c.nameAr }}</span> }</td>
+                    <td class="muted">{{ c.parentName }}</td>
+                    <td class="num" dir="ltr">{{ c.lines }}</td>
+                    <td>@if (c.isActive) { ✓ } @else { <span class="muted">—</span> }</td>
+                    <td class="actions">
+                      @if (canManage) {
+                        <button type="button" class="btn btn-light btn-sm" (click)="startEdit(c)">{{ 'acc.cc.edit' | t }}</button>
+                        <button type="button" class="btn btn-light btn-sm" (click)="remove(c)">{{ 'acc.cc.delete' | t }}</button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    @if (tab() === 'report') {
+      <div class="filters-row">
+        <label>{{ 'acc.from' | t }} <input type="date" dir="ltr" [ngModel]="from()" (ngModelChange)="from.set($event)" /></label>
+        <label>{{ 'acc.to' | t }} <input type="date" dir="ltr" [ngModel]="to()" (ngModelChange)="to.set($event)" /></label>
+        <button type="button" class="btn btn-primary" (click)="loadReport()">{{ 'acc.cc.show' | t }}</button>
+      </div>
+      @if (report(); as r) {
+        <div class="card">
+          @if (r.rows.length === 0) { <p class="muted">{{ 'acc.cc.reportEmpty' | t }}</p> } @else {
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>{{ 'acc.cc.center' | t }}</th><th class="num">{{ 'acc.cc.revenue' | t }}</th><th class="num">{{ 'acc.cc.expenses' | t }}</th><th class="num">{{ 'acc.cc.net' | t }}</th></tr></thead>
+                <tbody>
+                  @for (x of r.rows; track $index) {
+                    <tr class="clickable" (click)="toggle(x.costCenterId)">
+                      <td><strong>{{ x.costCenterId === null ? ('acc.cc.none' | t) : x.code + ' — ' + x.name }}</strong></td>
+                      <td class="num" dir="ltr">{{ x.revenue | number: '1.2-2' }}</td>
+                      <td class="num" dir="ltr">{{ x.expenses | number: '1.2-2' }}</td>
+                      <td class="num" dir="ltr" [class.neg]="x.net < 0"><strong>{{ x.net | number: '1.2-2' }}</strong></td>
+                    </tr>
+                    @if (open() === (x.costCenterId ?? 0)) {
+                      @for (a of accountsOf(r, x.costCenterId); track a.accountId) {
+                        <tr class="sub"><td class="small">&nbsp;&nbsp;{{ a.accountCode }} {{ a.accountName }}</td>
+                          <td class="num small" dir="ltr">{{ a.type === 'Revenue' ? (a.amount | number: '1.2-2') : '' }}</td>
+                          <td class="num small" dir="ltr">{{ a.type === 'Expense' ? (a.amount | number: '1.2-2') : '' }}</td><td></td></tr>
+                      }
+                    }
+                  }
+                  <tr class="total"><td><strong>{{ 'acc.cc.total' | t }}</strong></td>
+                    <td class="num" dir="ltr"><strong>{{ r.totalRevenue | number: '1.2-2' }}</strong></td>
+                    <td class="num" dir="ltr"><strong>{{ r.totalExpenses | number: '1.2-2' }}</strong></td>
+                    <td class="num" dir="ltr"><strong>{{ r.totalNet | number: '1.2-2' }}</strong></td></tr>
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    @if (editing(); as e) {
+      <app-modal [title]="(e.id ? 'acc.cc.edit' : 'acc.cc.new') | t" (closed)="editing.set(null)">
+        <form id="cc-form" (submit)="$event.preventDefault(); save()">
+          <div class="field"><label>{{ 'acc.cc.code' | t }} *</label><input name="code" dir="ltr" [(ngModel)]="form.code" /></div>
+          <div class="field"><label>{{ 'acc.cc.name' | t }} *</label><input name="name" [(ngModel)]="form.name" /></div>
+          <div class="field"><label>{{ 'acc.cc.nameAr' | t }}</label><input name="nameAr" [(ngModel)]="form.nameAr" /></div>
+          <div class="field"><label>{{ 'acc.cc.parent' | t }}</label>
+            <select name="parent" [ngModel]="form.parentId" (ngModelChange)="form.parentId = $event">
+              <option [ngValue]="null">—</option>
+              @for (c of parentChoices(e); track c.id) { <option [ngValue]="c.id">{{ c.code }} — {{ c.name }}</option> }
+            </select></div>
+          <label class="switch"><input type="checkbox" name="active" [(ngModel)]="form.isActive" /><span></span> {{ 'acc.cc.active' | t }}</label>
+          <div class="field"><label>{{ 'acc.cc.notes' | t }}</label><textarea rows="2" name="notes" [(ngModel)]="form.notes"></textarea></div>
+        </form>
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="editing.set(null)">{{ 'a.cancel' | t }}</button>
+          <button class="btn btn-primary" form="cc-form" [disabled]="saving()">{{ 'acc.cc.save' | t }}</button>
+        </div>
+      </app-modal>
+    }

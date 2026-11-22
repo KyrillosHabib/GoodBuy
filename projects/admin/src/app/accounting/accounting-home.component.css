@@ -1,0 +1,52 @@
+.spacer { flex: 1; }
+.page-head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.head-tools { display: flex; align-items: center; gap: .5rem; }
+.btn-sm { padding: .25rem .8rem; font-size: .85rem; }
+.sec { margin: 1.6rem 0 .7rem; font-size: 1.1rem; font-weight: 800; }
+.tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: .4rem; }
+.top { --c: #177a93; position: relative; display: flex; align-items: flex-start; gap: .8rem; padding: 1rem 1.1rem; margin: 0; color: var(--text); text-decoration: none !important; overflow: hidden; transition: transform .15s, border-color .15s; }
+.top:hover { transform: translateY(-2px); border-color: var(--c); }
+.top.warn { border-color: color-mix(in srgb, #dc2626 45%, var(--border)); }
+.top .ic, .rep .ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: var(--c, var(--primary)); background: color-mix(in srgb, var(--c, var(--primary)) 14%, transparent); }
+.kb { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; }
+.kl { font-size: .85rem; color: var(--muted); }
+.top strong { font-size: 1.55rem; font-weight: 800; line-height: 1.15; }
+.ks { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; font-size: .78rem; }
+.kspark { position: absolute; inset-inline-end: .8rem; bottom: .5rem; width: 80px; opacity: .85; }
+.trend { font-size: .78rem; font-weight: 700; padding: .05rem .4rem; border-radius: 6px; }
+.trend.up { color: #15803d; background: rgba(22, 163, 74, .12); }
+.trend.down { color: #b91c1c; background: rgba(220, 38, 38, .12); }
+.mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.mini { display: flex; flex-direction: column; gap: .2rem; margin: 0; color: var(--text); text-decoration: none !important; }
+a.mini:hover { border-color: var(--primary); }
+.mini strong { font-size: 1.4rem; font-weight: 800; }
+.mini.warn { border-color: color-mix(in srgb, #e08a2e 55%, var(--border)); }
+.mini .trend { align-self: flex-start; }
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.grid > .card { margin: 0; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .5rem; }
+.card-head h3 { margin: 0; }
+.flow { display: flex; gap: .7rem; align-items: baseline; font-size: .9rem; }
+.flow .up { color: #15803d; font-weight: 700; }
+.flow .down { color: #b91c1c; font-weight: 700; }
+.queues { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; }
+.queue { display: flex; flex-direction: column; gap: .15rem; margin: 0; color: var(--text); text-decoration: none !important; }
+.queue:hover { border-color: var(--primary); }
+.queue strong { font-size: 1.6rem; font-weight: 800; }
+.queue.warn { border-color: color-mix(in srgb, #dc2626 50%, var(--border)); }
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows li { display: flex; align-items: center; gap: .7rem; padding: .55rem .2rem; border-bottom: 1px solid var(--border); }
+.rows li:last-child { border-bottom: 0; }
+.dot { width: .65rem; height: .65rem; border-radius: 50%; flex: none; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-warn, .badge-warn { background: rgba(220, 38, 38, .12); color: #b91c1c; padding: .05rem .5rem; border-radius: 6px; font-weight: 700; font-size: .8rem; }
+td.neg { color: #b91c1c; font-weight: 700; }
+th.num, td.num { text-align: end; }
+tr.grp td { background: var(--alt); font-weight: 800; font-size: .85rem; }
+.reports { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.rep { display: flex; align-items: center; gap: .8rem; margin: 0; color: var(--text); text-decoration: none !important; }
+.rep:hover { border-color: var(--primary); }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+.link-card { display: flex; flex-direction: column; gap: .3rem; margin: 0; color: var(--text); text-decoration: none !important; }
+@media (max-width: 900px) { .grid > .card { grid-column: span 12 !important; } }

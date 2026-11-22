@@ -1,0 +1,56 @@
+<div class="page-head">
+  <div>
+    <h1>{{ 'cr.title' | t }}</h1>
+    <p class="muted">{{ 'cr.sub' | t }}</p>
+  </div>
+</div>
+
+<div class="tabs">
+  @for (v of views; track v) {
+    <button type="button" [class.active]="view() === v" (click)="setView(v)">
+      {{ 'cr.tab.' + v | t }}
+      @if (v !== 'all' && badge(v) > 0) { <span class="badge">{{ badge(v) }}</span> }
+    </button>
+  }
+</div>
+
+<div class="filters-row">
+  <input type="search" [placeholder]="'cr.search' | t" [value]="search()" (input)="search.set($any($event.target).value)" (keyup.enter)="load()" />
+  <select (change)="status.set($any($event.target).value); load()">
+    <option value="" [selected]="status() === ''">{{ 'cr.allStatuses' | t }}</option>
+    @for (s of statuses; track s) { <option [value]="s" [selected]="status() === s">{{ 'cr.s.' + s | t }}</option> }
+  </select>
+</div>
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else if ((data()?.items?.length ?? 0) === 0) {
+    <p class="muted">{{ 'cr.none' | t }}</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="tt">
+        <thead>
+          <tr>
+            <th>{{ 'cr.number' | t }}</th><th>{{ 'cr.order' | t }}</th><th>{{ 'cr.customer' | t }}</th><th>{{ 'cr.status' | t }}</th>
+            <th class="num">{{ 'cr.lines' | t }}</th><th class="num">{{ 'cr.units' | t }}</th><th>{{ 'cr.created' | t }}</th><th>{{ 'cr.by' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of data()?.items ?? []; track r.id) {
+            <tr class="row" (click)="open(r.id)">
+              <td dir="ltr"><strong>{{ r.number }}</strong></td>
+              <td dir="ltr">{{ r.orderNumber }}</td>
+              <td>{{ r.customerName }}</td>
+              <td><span [class]="'chip st-' + r.status">{{ 'cr.s.' + r.status | t }}</span></td>
+              <td class="num">{{ r.lines }}</td>
+              <td class="num">{{ r.units }}</td>
+              <td dir="ltr">{{ r.createdAtUtc.slice(0, 10) }}</td>
+              <td>{{ r.createdBy }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

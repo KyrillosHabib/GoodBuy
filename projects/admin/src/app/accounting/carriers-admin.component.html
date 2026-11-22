@@ -1,0 +1,53 @@
+<div class="page-head">
+  <h1>{{ 'acc.nav.carriers' | t }}</h1>
+  @if (canEdit) { <button type="button" class="btn btn-primary" (click)="startEdit(null)">+ {{ 'acc.car.new' | t }}</button> }
+</div>
+<app-intro [text]="'acc.car.intro' | t" />
+
+<div class="card"><app-data-table [rows]="carriers()" [columns]="columns" [rowTemplate]="row" /></div>
+
+<ng-template #row let-c>
+  <td><strong>{{ c.name }}</strong></td>
+  <td>
+    @for (r of c.rates; track $index) {
+      <div class="small"><strong>{{ r.zone || ('acc.car.otherZones' | t) }}</strong>: {{ r.fixedFee | number: '1.2-2' }} + {{ r.percentFee }}%</div>
+    } @empty { <span class="muted">—</span> }
+  </td>
+  <td>@if (c.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+  <td class="actions">@if (canEdit) { <button type="button" class="btn btn-light btn-sm" (click)="startEdit(c)">{{ 'a.edit' | t }}</button> }</td>
+</ng-template>
+
+@if (open()) {
+  <app-modal [title]="(editing() ? 'acc.car.edit' : 'acc.car.new') | t" size="lg" (closed)="open.set(false)">
+    <form id="carrier-form" [formGroup]="form" (ngSubmit)="save()">
+      <div class="form-row" style="direction: ltr">
+        <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input formControlName="name" dir="ltr" /></div>
+        <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }} <span class="req">*</span></label><input formControlName="nameAr" dir="rtl" /></div>
+      </div>
+      <h4>{{ 'acc.car.rates' | t }}</h4>
+      <p class="muted small">{{ 'acc.car.ratesHint' | t }}</p>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'acc.car.zone' | t }}</th><th>{{ 'acc.car.fixed' | t }}</th><th>{{ 'acc.car.percent' | t }}</th><th></th></tr></thead>
+          <tbody>
+            @for (r of rates.controls; track r; let i = $index) {
+              <tr [formGroup]="r">
+                <td><input formControlName="zone" [placeholder]="'acc.car.otherZones' | t" /></td>
+                <td><input type="number" step="0.01" min="0" formControlName="fixedFee" dir="ltr" style="width: 8rem" /></td>
+                <td><input type="number" step="0.01" min="0" max="100" formControlName="percentFee" dir="ltr" style="width: 6rem" /></td>
+                <td><button type="button" class="btn btn-danger btn-sm" (click)="rates.removeAt(i)">×</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="toolbar"><button type="button" class="btn btn-light btn-sm" (click)="rates.push(newRate())">+ {{ 'acc.car.addRate' | t }}</button></div>
+      <div class="field"><label>{{ 'inv.note' | t }}</label><input formControlName="notes" /></div>
+      <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+    </form>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="carrier-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

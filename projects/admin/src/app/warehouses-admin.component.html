@@ -1,0 +1,78 @@
+<div class="page-head">
+  <h1>{{ 'inv.nav.warehouses' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="editWarehouse(null)">+ {{ 'inv.newWarehouse' | t }}</button>
+</div>
+<div class="card"><app-data-table [rows]="warehouses()" [columns]="wColumns" [rowTemplate]="wRow" /></div>
+
+<ng-template #wRow let-w>
+  <td><strong>{{ w.name }}</strong></td>
+  <td dir="ltr"><code>{{ w.code }}</code></td>
+  <td>{{ w.address }}</td>
+  <td>{{ keepersOf(w) }}</td>
+  <td>{{ w.items }}</td>
+  <td>{{ w.units }}</td>
+  <td>@if (w.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="editWarehouse(w)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="removeWarehouse(w)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (wOpen()) {
+  <app-modal [title]="(wEditing() ? 'inv.editWarehouse' : 'inv.newWarehouse') | t" (closed)="wOpen.set(false)">
+    <form id="warehouse-form" [formGroup]="wForm" (ngSubmit)="saveWarehouse()">
+      <!-- Arabic is the main language: required, and on the right; English (optional) is on the left -->
+      <div class="form-row" style="direction: ltr">
+        <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input formControlName="name" dir="ltr" /></div>
+        <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }} <span class="req">*</span></label><input formControlName="nameAr" dir="rtl" /></div>
+      </div>
+      @if (wEditing(); as w) { <p class="muted small">{{ 'inv.code' | t }}: <strong dir="ltr">{{ w.code }}</strong></p> }
+      <div class="field"><label>{{ 'inv.address' | t }}</label><input formControlName="address" /></div>
+      <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+
+      <!-- The keeper of the warehouse: picked here, or made here (no need to go to Users and roles) -->
+      @if (canManageUsers()) {
+        <fieldset class="keeper-box">
+          <legend>{{ 'inv.keeper' | t }}</legend>
+          @if (wEditing()) {
+            <p class="muted small">{{ 'inv.keeper.current' | t }}: {{ keepersOf(wEditing()!) || '—' }}</p>
+          }
+          <div class="form-sub">
+            <div class="field">
+              <select formControlName="keeperMode">
+                <option value="none">{{ 'inv.keeper.none' | t }}</option>
+                <option value="existing">{{ 'inv.keeper.existing' | t }}</option>
+                <option value="new">{{ 'inv.keeper.new' | t }}</option>
+              </select>
+            </div>
+            @if (wForm.controls.keeperMode.value === 'existing') {
+              <div class="field">
+                <select formControlName="keeperUserId">
+                  <option value="">—</option>
+                  @for (u of staff(); track u.id) { <option [value]="u.id">{{ u.fullName }} ({{ u.userName || u.email }})</option> }
+                </select>
+              </div>
+            }
+            @if (wForm.controls.keeperMode.value === 'new') {
+              <div class="form-row">
+                <div class="field"><label>{{ 'auth.fullName' | t }} *</label><input formControlName="keeperFullName" /></div>
+                <div class="field"><label>{{ 'users.username' | t }} *</label><input formControlName="keeperUserName" dir="ltr" autocomplete="off" /></div>
+              </div>
+              <div class="form-row">
+                <div class="field"><label>{{ 'inv.tempPassword' | t }} *</label><input formControlName="keeperPassword" dir="ltr" autocomplete="off" /></div>
+                <div class="field"><label>{{ 'users.role' | t }}</label>
+                  <select formControlName="keeperRole">@for (r of keeperRoles(); track r.name) { <option [value]="r.name">{{ r.name }}</option> }</select>
+                </div>
+              </div>
+              <div class="hint-text">{{ 'inv.keeper.hint' | t }}</div>
+            }
+          </div>
+        </fieldset>
+      }
+    </form>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="wOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="warehouse-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

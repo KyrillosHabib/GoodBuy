@@ -1,0 +1,59 @@
+<div class="qv-back" (click)="closed.emit()">
+  <div class="qv" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <button type="button" class="qv-close" [attr.aria-label]="'common.close' | t" (click)="closed.emit()">✕</button>
+
+    @if (details(); as p) {
+      <div class="qv-grid">
+        <div class="qv-img"><img [src]="image() | productImage: p.slug : p.categorySlug" [alt]="p.name" /></div>
+
+        <div class="qv-info">
+          @if (p.brand) { <div class="qv-brand">{{ p.brand }}</div> }
+          <h3><a [routerLink]="['/products', p.slug]" (click)="closed.emit()">{{ p.name }}</a></h3>
+
+          @if (current(); as v) {
+            <div class="qv-price">
+              <strong>{{ v.price | money }}</strong>
+              @if (v.compareAtPrice) { <s>{{ v.compareAtPrice | money }}</s> }
+              @if (discount(v) > 0) { <span class="qv-off" dir="ltr">-{{ discount(v) }}%</span> }
+            </div>
+          }
+
+          @for (g of groups(); track g.index) {
+            <div class="opt-group">
+              <div class="opt-name">{{ g.name }}<span class="opt-chosen">{{ chosen()[g.index] }}</span></div>
+              <div class="opt-values">
+                @for (o of g.values; track o.value) {
+                  @if (o.colorHex) {
+                    <button type="button" class="opt-swatch" [class.active]="chosen()[g.index] === o.value" [class.unavailable]="!canBuyWith(g.index, o.value)" [title]="o.value" [style.background]="o.colorHex" (click)="choose(g.index, o.value)"></button>
+                  } @else {
+                    <button type="button" class="opt-btn" [class.active]="chosen()[g.index] === o.value" [class.unavailable]="!canBuyWith(g.index, o.value)" (click)="choose(g.index, o.value)">{{ o.value }}</button>
+                  }
+                }
+              </div>
+            </div>
+          }
+
+          <div class="opt-group">
+            <div class="opt-name">{{ 'pd.qty' | t }}</div>
+            <div class="qty">
+              <button type="button" (click)="step(-1)" [disabled]="qty() <= 1">−</button>
+              <span>{{ qty() }}</span>
+              <button type="button" (click)="step(1)" [disabled]="qty() >= max()">+</button>
+            </div>
+          </div>
+
+          @if (current(); as v) {
+            <div class="qv-sub">{{ 'qv.subtotal' | t }}: <strong>{{ v.price * qty() | money }}</strong></div>
+          }
+
+          <div class="qv-actions">
+            <button type="button" class="btn btn-primary qv-add" [disabled]="!current()?.canBuy || adding()" (click)="add()">{{ (current()?.canBuy === false ? 'product.outOfStock' : 'cart.add') | t }}</button>
+            <button type="button" class="qv-heart" [class.on]="fav()" [attr.aria-label]="'qv.wish' | t" (click)="toggleFav()"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [attr.fill]="fav() ? 'currentColor' : 'none'"><path d="M12 20.5s-7.5-4.6-9.2-9.3C1.6 7.7 3.7 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.900 3-3 5-3 3.300 0 5.4 3.200 4.200 6.7-1.7 4.7-9.200 9.300-9.200 9.300Z"/></svg></button>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <p class="muted qv-loading">{{ 'common.loading' | t }}</p>
+    }
+  </div>
+</div>

@@ -1,0 +1,128 @@
+<div class="page-head">
+  <div>
+    <a class="back" routerLink="/products">← {{ 'ps.back' | t }}</a>
+    <h1>{{ data()?.productName }}</h1>
+    <p class="muted">{{ 'ps.sub' | t }}</p>
+  </div>
+</div>
+
+@if (loading()) {
+  <p class="muted">{{ 'common.loading' | t }}</p>
+} @else {
+ @if (data(); as d) {
+  @if (d.isBundle) {
+    <p class="note">{{ 'ps.bundle' | t }}</p>
+  } @else if (d.warehouses.length === 0) {
+    <p class="note">{{ 'ps.noWarehouses' | t }}</p>
+  } @else {
+    <div class="split">
+      <!-- ===== what the warehouses started with ===== -->
+      <section class="card">
+        <h2>{{ 'ps.opening' | t }}</h2>
+        <p class="muted small">{{ 'ps.openingHint' | t }}</p>
+
+        <div class="table-wrap">
+          <table class="st">
+            <thead>
+              <tr>
+                <th>{{ 'ps.item' | t }}</th>
+                <th>{{ 'ps.cost' | t }}</th>
+                @for (w of d.warehouses; track w.id) { <th class="num">{{ w.name }}</th> }
+                <th>{{ 'ps.batch' | t }}</th>
+                <th>{{ 'ps.expiry' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (v of d.variants; track v.id) {
+                <tr>
+                  <td>
+                    <strong>{{ v.label || ('ps.default' | t) }}</strong>
+                    <div class="muted small" dir="ltr">{{ v.sku }}</div>
+                  </td>
+                  <td>
+                    <input type="number" min="0" step="0.01" dir="ltr" class="in-cost" [disabled]="!v.trackStock"
+                           [placeholder]="hint(v)" [value]="entry(v.id).cost" (input)="entry(v.id).cost = val($event)" />
+                  </td>
+                  @for (w of d.warehouses; track w.id) {
+                    <td class="num">
+                      <input type="number" min="0" step="1" dir="ltr" class="in-qty" placeholder="0"
+                             [disabled]="!v.trackStock || !w.canSetOpening" [title]="w.canSetOpening ? '' : ('ps.managerOnly' | t)"
+                             [value]="entry(v.id).qty[w.id] ?? ''" (input)="entry(v.id).qty[w.id] = val($event)" />
+                    </td>
+                  }
+                  <td><input type="text" maxlength="60" dir="ltr" class="in-batch" [placeholder]="'ps.auto' | t" [disabled]="!v.trackStock"
+                             [value]="entry(v.id).batch" (input)="entry(v.id).batch = val($event)" /></td>
+                  <td><input type="date" dir="ltr" [disabled]="!v.trackStock" [value]="entry(v.id).expiry" (change)="entry(v.id).expiry = val($event)" /></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bar">
+          <button type="button" class="btn btn-primary" [disabled]="saving() || units() === 0" (click)="save()">
+            {{ (saving() ? 'a.saving' : 'ps.save') | t }}
+          </button>
+          @if (units() > 0) {
+            <span class="muted small">{{ 'ps.preview' | t }}: <b dir="ltr">{{ units() }}</b> · <b dir="ltr">{{ money(previewValue()) }}</b></span>
+          }
+        </div>
+        <p class="muted small">{{ 'ps.accountingNote' | t }}</p>
+      </section>
+
+      <!-- ===== what is available now ===== -->
+      <section class="card">
+        <h2>{{ 'ps.available' | t }}</h2>
+        <p class="muted small">{{ 'ps.availableHint' | t }}</p>
+
+        <div class="table-wrap">
+          <table class="st">
+            <thead>
+              <tr>
+                <th>{{ 'ps.item' | t }}</th>
+                @for (w of d.warehouses; track w.id) { <th class="num">{{ w.name }}</th> }
+                <th class="num">{{ 'ps.total' | t }}</th>
+                <th class="num">{{ 'ps.reserved' | t }}</th>
+                <th class="num">{{ 'ps.availableQty' | t }}</th>
+                <th class="num">{{ 'ps.value' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (v of d.variants; track v.id) {
+                <tr>
+                  <td>
+                    <strong>{{ v.label || ('ps.default' | t) }}</strong>
+                    @if (v.barcode) { <div class="muted small" dir="ltr">{{ v.barcode }}</div> }
+                  </td>
+                  @for (w of d.warehouses; track w.id) {
+                    <td class="num" [class.zero]="cell(v, w.id).onHand === 0" [title]="cellTitle(v, w.id)">
+                      {{ cell(v, w.id).onHand }}
+                      @if (cell(v, w.id).openingQty > 0) { <span class="tag" title="{{ 'ps.fromOpening' | t }}">●</span> }
+                    </td>
+                  }
+                  <td class="num"><strong>{{ v.totalOnHand }}</strong></td>
+                  <td class="num">{{ v.reserved }}</td>
+                  <td class="num"><strong>{{ v.available }}</strong></td>
+                  <td class="num" dir="ltr">{{ money(v.totalValue) }}</td>
+                </tr>
+              }
+            </tbody>
+            @if (d.variants.length > 1) {
+              <tfoot>
+                <tr>
+                  <th>{{ 'ps.total' | t }}</th>
+                  @for (w of d.warehouses; track w.id) { <th class="num">{{ warehouseTotal(d, w.id) }}</th> }
+                  <th class="num">{{ sum(d, 'totalOnHand') }}</th>
+                  <th class="num">{{ sum(d, 'reserved') }}</th>
+                  <th class="num">{{ sum(d, 'available') }}</th>
+                  <th class="num" dir="ltr">{{ money(sum(d, 'totalValue')) }}</th>
+                </tr>
+              </tfoot>
+            }
+          </table>
+        </div>
+      </section>
+    </div>
+  }
+ }
+}

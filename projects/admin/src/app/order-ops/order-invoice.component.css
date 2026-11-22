@@ -1,0 +1,33 @@
+:host { display: block; background: #eef3f5; min-height: 100vh; padding: 1.2rem 1rem 3rem; color: #12303a; }
+.bar { max-width: 210mm; margin: 0 auto 1rem; display: flex; justify-content: space-between; gap: .6rem; }
+.btn { font: inherit; font-weight: 600; font-size: .92rem; padding: .5rem 1.1rem; border-radius: 10px; border: 1px solid #bcd3da; background: #fff; color: #12303a; cursor: pointer; text-decoration: none; }
+.btn.primary { background: #177a93; border-color: #177a93; color: #fff; }
+.btn:disabled { opacity: .5; cursor: default; }
+.loading { text-align: center; color: #5d7882; }
+.sheet { box-sizing: border-box; width: 210mm; max-width: 100%; min-height: 148mm; margin: 0 auto; background: #fff; padding: 16mm 15mm; border-radius: 6px; box-shadow: 0 2px 14px rgba(0,0,0,.12); font-size: 14px; line-height: 1.6; }
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #12303a; }
+h1 { margin: 0; font-size: 1.5rem; }
+h2 { margin: 0 0 .2rem; font-size: 1.3rem; }
+h3 { margin: 1.6rem 0 .5rem; font-size: 1.05rem; }
+.meta { text-align: end; }
+.muted { color: #5d7882; }
+.small { font-size: .8rem; }
+.bill { margin: 1.1rem 0; }
+.bill .label { color: #5d7882; font-size: .8rem; }
+.bill .name { font-weight: 700; font-size: 1.05rem; }
+table.lines { width: 100%; border-collapse: collapse; }
+.lines th { background: #eef3f5; font-size: .82rem; padding: .5rem .6rem; border-bottom: 1px solid #c9dbe1; }
+.lines td { padding: .55rem .6rem; border-bottom: 1px solid #e3edf0; vertical-align: top; }
+.start { text-align: start; }
+.num { text-align: end; white-space: nowrap; }
+.sums { margin-top: .8rem; margin-inline-start: auto; width: 280px; max-width: 100%; }
+.row { display: flex; justify-content: space-between; padding: .2rem 0; }
+.row.total { font-weight: 700; font-size: 1.05rem; border-top: 1px solid #12303a; margin-top: .3rem; padding-top: .45rem; }
+.pay { margin: 1rem 0 0; color: #5d7882; }
+.thanks { margin-top: 2rem; text-align: center; color: #5d7882; font-size: .85rem; }
+@page { size: A4; margin: 12mm; }
+@media print {
+  :host { background: #fff; padding: 0; min-height: 0; }
+  .bar { display: none; }
+  .sheet { box-shadow: none; border-radius: 0; padding: 0; width: auto; }
+}

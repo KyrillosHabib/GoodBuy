@@ -1,0 +1,171 @@
+<div class="admin" [class.collapsed]="collapsed()" [class.mobile-open]="mobileOpen()">
+  <div class="side-backdrop" (click)="mobileOpen.set(false)"></div>
+
+  <aside class="admin-side">
+    <div class="admin-brand">
+      <span class="logo-mark"><app-icon name="zap" [size]="18" /></span>
+      <span class="label">{{ 'a.brand' | t }}</span>
+    </div>
+
+    <nav (click)="mobileOpen.set(false)">
+      @if (auth.isAdmin()) {
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" [title]="'a.nav.dashboard' | t"><app-icon name="home" [size]="20" /><span class="label">{{ 'a.nav.dashboard' | t }}</span></a>
+      }
+
+      @if (auth.can('products', 'categories', 'brands')) { <button type="button" class="nav-group" [class.open]="isOpen('catalog')" [class.current]="currentGroup() === 'catalog'" (click)="toggleGroup('catalog')"><app-icon name="package" [size]="20" /><span class="label">{{ 'a.nav.catalog' | t }}</span><span class="chev label"></span></button> }
+      <div class="nav-items" [class.closed]="!isOpen('catalog')">
+      @if (auth.can('products')) { <a routerLink="/products" routerLinkActive="active" [title]="'a.nav.products' | t"><app-icon name="package" [size]="20" /><span class="label">{{ 'a.nav.products' | t }}</span></a> }
+      @if (auth.can('products')) { <a routerLink="/packages" routerLinkActive="active" [title]="'pkg.title' | t"><app-icon name="package" [size]="20" /><span class="label">{{ 'pkg.title' | t }}</span></a> }
+      @if (auth.can('categories')) { <a routerLink="/categories" routerLinkActive="active" [title]="'a.nav.categories' | t"><app-icon name="layers" [size]="20" /><span class="label">{{ 'a.nav.categories' | t }}</span></a> }
+      @if (auth.can('brands')) { <a routerLink="/brands" routerLinkActive="active" [title]="'a.nav.brands' | t"><app-icon name="tag" [size]="20" /><span class="label">{{ 'a.nav.brands' | t }}</span></a> }
+
+      </div>
+      @if (auth.can('content', 'company', 'settings')) { <button type="button" class="nav-group" [class.open]="isOpen('website')" [class.current]="currentGroup() === 'website'" (click)="toggleGroup('website')"><app-icon name="globe" [size]="20" /><span class="label">{{ 'a.nav.website' | t }}</span><span class="chev label"></span></button> }
+      <div class="nav-items" [class.closed]="!isOpen('website')">
+      @if (auth.can('content')) { <a routerLink="/content" routerLinkActive="active" [title]="'a.nav.content' | t"><app-icon name="briefcase" [size]="20" /><span class="label">{{ 'a.nav.content' | t }}</span></a> }
+      @if (auth.can('company')) { <a routerLink="/company" routerLinkActive="active" [title]="'a.nav.company' | t"><app-icon name="building" [size]="20" /><span class="label">{{ 'a.nav.company' | t }}</span></a> }
+      @if (auth.can('settings')) { <a routerLink="/storefront" routerLinkActive="active" [title]="'a.nav.storefront' | t"><app-icon name="layers" [size]="20" /><span class="label">{{ 'a.nav.storefront' | t }}</span></a> }
+      @if (auth.can('settings')) { <a routerLink="/settings" routerLinkActive="active" [title]="'a.nav.settings' | t"><app-icon name="settings" [size]="20" /><span class="label">{{ 'a.nav.settings' | t }}</span></a> }
+
+      </div>
+      @if (auth.can('orders', 'orderEmails', 'returnPolicy', 'inquiries', 'discounts', 'promotions', 'coupons', 'auctions', 'wheel', 'reviews')) { <button type="button" class="nav-group" [class.open]="isOpen('sales')" [class.current]="currentGroup() === 'sales'" (click)="toggleGroup('sales')"><app-icon name="shopping-cart" [size]="20" /><span class="label">{{ 'a.nav.customers' | t }}</span><span class="chev label"></span></button> }
+      <div class="nav-items" [class.closed]="!isOpen('sales')">
+      @if (auth.can('orders')) { <a routerLink="/orders" routerLinkActive="active" [title]="'ord.title' | t"><app-icon name="shopping-cart" [size]="20" /><span class="label">{{ 'ord.title' | t }}</span></a> }
+      @if (auth.can('orders') && !auth.can('inventory')) { <a routerLink="/fulfilment" routerLinkActive="active" [title]="'ful.title' | t"><app-icon name="box" [size]="20" /><span class="label">{{ 'ful.title' | t }}</span></a> }
+      @if (auth.can('orders') && !auth.can('inventory')) { <a routerLink="/customer-returns" routerLinkActive="active" [title]="'cr.title' | t"><app-icon name="refresh" [size]="20" /><span class="label">{{ 'cr.title' | t }}</span></a> }
+      @if (auth.can('discounts')) { <a routerLink="/discounts" routerLinkActive="active" [title]="'disc.title' | t"><app-icon name="tag" [size]="20" /><span class="label">{{ 'disc.title' | t }}</span></a> }
+      @if (auth.can('promotions')) { <a routerLink="/promotions" routerLinkActive="active" [title]="'promo.title' | t"><app-icon name="percent" [size]="20" /><span class="label">{{ 'promo.title' | t }}</span></a> }
+      @if (auth.can('auctions')) { <a routerLink="/auctions" routerLinkActive="active" [title]="'auction.admin.title' | t"><app-icon name="clock" [size]="20" /><span class="label">{{ 'auction.admin.title' | t }}</span></a> }
+      @if (auth.can('coupons')) { <a routerLink="/coupons" routerLinkActive="active" [title]="'cpn.title' | t"><app-icon name="gift" [size]="20" /><span class="label">{{ 'cpn.title' | t }}</span></a> }
+      @if (auth.can('wheel')) { <a routerLink="/wheel" routerLinkActive="active" [title]="'wheel.admin.title' | t"><app-icon name="target" [size]="20" /><span class="label">{{ 'wheel.admin.title' | t }}</span></a> }
+      @if (auth.can('reviews')) { <a routerLink="/reviews" routerLinkActive="active" [title]="'perm.reviews' | t"><app-icon name="star" [size]="20" /><span class="label">{{ 'perm.reviews' | t }}</span></a> }
+      @if (auth.can('orderEmails')) { <a routerLink="/order-emails" routerLinkActive="active" [title]="'oem.title' | t"><app-icon name="mail" [size]="20" /><span class="label">{{ 'oem.title' | t }}</span></a> }
+      @if (auth.can('returnPolicy')) { <a routerLink="/return-policy" routerLinkActive="active" [title]="'pol.title' | t"><app-icon name="refresh" [size]="20" /><span class="label">{{ 'pol.title' | t }}</span></a> }
+      @if (auth.can('inquiries')) { <a routerLink="/inquiries" routerLinkActive="active" [title]="'a.nav.inquiries' | t"><app-icon name="mail" [size]="20" /><span class="label">{{ 'a.nav.inquiries' | t }}</span></a> }
+
+      </div>
+      @if (inventorySteps().length > 0 || auth.can('inventory')) { <button type="button" class="nav-group" [class.open]="isOpen('inventory')" [class.current]="currentGroup() === 'inventory'" (click)="toggleGroup('inventory')"><app-icon name="box" [size]="20" /><span class="label">{{ 'inv.nav.group' | t }}</span><span class="chev label"></span></button> }
+      <div class="nav-items" [class.closed]="!isOpen('inventory')">
+      @if (auth.can('inventory.dashboard', 'inventory')) { <a routerLink="/inventory" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" [title]="'inv.nav.overview' | t"><app-icon name="layers" [size]="20" /><span class="label">{{ 'inv.nav.overview' | t }}</span></a> }
+
+      <!-- The steps in the order the data is entered (the number follows the screens this user can open) -->
+      <div class="nav-steps">
+        @for (st of inventorySteps(); track st.path; let i = $index) {
+          <a [routerLink]="st.path" routerLinkActive="active" [title]="st.key | t"><span class="step-no">{{ i + 1 }}</span><span class="label">{{ st.key | t }}</span></a>
+        }
+      </div>
+
+      <!-- Accounting: the daily work, then the settings (each numbered in the order it is used) -->
+      </div>
+      @if (accountingSteps().length > 0 || auth.can('accounting', 'accounting.chart', 'accounting.parties', 'accounting.documents', 'accounting.journal', 'accounting.treasury', 'accounting.settlements', 'accounting.approve', 'accounting.settlements.approve', 'accounting.reports', 'accounting.settings')) { <button type="button" class="nav-group" [class.open]="isOpen('accounting')" [class.current]="currentGroup() === 'accounting'" (click)="toggleGroup('accounting')"><app-icon name="bar-chart" [size]="20" /><span class="label">{{ 'acc.nav.group' | t }}</span><span class="chev label"></span></button> }
+      <div class="nav-items" [class.closed]="!isOpen('accounting')">
+      @if (auth.can('accounting.dashboard')) { <a routerLink="/accounting" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" [title]="'acc.nav.overview' | t"><app-icon name="briefcase" [size]="20" /><span class="label">{{ 'acc.nav.overview' | t }}</span></a> }
+      <div class="nav-steps">
+        @for (st of accountingSteps(); track st.path; let i = $index) {
+          <a [routerLink]="st.path" routerLinkActive="active" [title]="st.key | t"><span class="step-no">{{ i + 1 }}</span><span class="label">{{ st.key | t }}</span></a>
+        }
+      </div>
+
+      </div>
+      @if (accountingSetupSteps().length > 0) { <button type="button" class="nav-group" [class.open]="isOpen('accountingSetup')" [class.current]="currentGroup() === 'accountingSetup'" (click)="toggleGroup('accountingSetup')"><app-icon name="settings" [size]="20" /><span class="label">{{ 'acc.nav.setupGroup' | t }}</span><span class="chev label"></span></button> }
+      <div class="nav-items" [class.closed]="!isOpen('accountingSetup')">
+      <div class="nav-steps">
+        @for (st of accountingSetupSteps(); track st.path; let i = $index) {
+          <a [routerLink]="st.path" routerLinkActive="active" [title]="st.key | t"><span class="step-no">{{ i + 1 }}</span><span class="label">{{ st.key | t }}</span></a>
+        }
+      </div>
+
+      </div>
+      @if (auth.can('users')) {
+        <button type="button" class="nav-group" [class.open]="isOpen('people')" [class.current]="currentGroup() === 'people'" (click)="toggleGroup('people')"><app-icon name="users" [size]="20" /><span class="label">{{ 'a.nav.people' | t }}</span><span class="chev label"></span></button>
+        <div class="nav-items" [class.closed]="!isOpen('people')">
+        <a routerLink="/users" routerLinkActive="active" [title]="'a.nav.users' | t"><app-icon name="users" [size]="20" /><span class="label">{{ 'a.nav.users' | t }}</span></a>
+        </div>
+      }
+    </nav>
+
+    <div class="admin-side-foot">
+      <button type="button" class="btn btn-dark btn-sm" (click)="auth.logout()"><app-icon name="log-out" [size]="16" /><span class="label">{{ 'a.signOut' | t }}</span></button>
+    </div>
+  </aside>
+
+  <section class="admin-main">
+    <header class="topbar">
+      <button type="button" class="menu-btn" [class.on]="sideShown()" [title]="'a.nav.toggle' | t" [attr.aria-expanded]="sideShown()" (click)="onMenu()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+      </button>
+
+      <!-- search: finds the screens of the menu -->
+      <div class="top-search topbar-item">
+        <svg class="top-search-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+        <input type="search" [placeholder]="'a.top.search' | t" [value]="term()" (input)="onSearch($any($event.target).value)" (focus)="onSearch(term())" (keydown.escape)="menu.set(null)" autocomplete="off" />
+        @if (menu() === 'search') {
+          <div class="top-pop top-results">
+            @for (r of results(); track r.href) { <button type="button" (click)="go(r.href)">{{ r.label }}</button> } @empty { <span class="muted small top-empty">{{ 'a.top.noResults' | t }}</span> }
+          </div>
+        }
+      </div>
+
+      <div class="top-actions">
+        <!-- language -->
+        <button type="button" class="top-btn top-btn-text" [title]="(i18n.isRtl() ? 'English' : 'العربية')" (click)="switchLang()"><app-icon name="globe" [size]="18" /><span>{{ i18n.isRtl() ? 'EN' : 'AR' }}</span></button>
+
+        <!-- explanations under the titles -->
+        <button type="button" class="top-btn top-btn-text" [class.on]="help.visible()" [title]="(help.visible() ? 'a.help.hide' : 'a.help.show') | t" (click)="help.toggle()"><span class="help-q">?</span></button>
+
+        <!-- dark / light -->
+        <button type="button" class="top-btn" [title]="(dark() ? 'a.top.lightMode' : 'a.top.darkMode') | t" (click)="toggleTheme()">
+          @if (dark()) { <app-icon name="sun" [size]="18" /> } @else {
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
+          }
+        </button>
+
+        <!-- notifications -->
+        <div class="topbar-item">
+          <button type="button" class="top-btn" [title]="'a.top.notifications' | t" (click)="toggleMenu('bell')">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
+            @if (notes().length > 0) { <span class="top-badge">{{ notes().length }}</span> }
+          </button>
+          @if (menu() === 'bell') {
+            <div class="top-pop top-notes">
+              <div class="top-pop-title">{{ 'a.top.notifications' | t }}</div>
+              @for (n of notes(); track n.text) { <button type="button" [class]="'top-note top-note-' + n.level" (click)="go(n.link)">{{ n.text }}</button> } @empty { <span class="muted small top-empty">{{ 'a.top.noNotifications' | t }}</span> }
+            </div>
+          }
+        </div>
+
+        <!-- the person's own account -->
+        <div class="topbar-item">
+          <button type="button" class="top-user" (click)="toggleMenu('account')">
+            <span class="top-avatar">{{ initials() }}</span>
+            <span class="top-user-text"><strong dir="ltr">{{ userName() }}</strong><span class="muted small">{{ roleName() }}</span></span>
+          </button>
+          @if (menu() === 'account') {
+            <div class="top-pop top-account">
+              <div class="top-pop-title" dir="ltr">{{ userName() }}</div>
+              <button type="button" (click)="openPassword()"><app-icon name="lock" [size]="16" /> {{ 'a.top.changePassword' | t }}</button>
+              <button type="button" class="danger" (click)="auth.logout()"><app-icon name="log-out" [size]="16" /> {{ 'a.signOut' | t }}</button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="admin-content">
+      <router-outlet />
+    </div>
+  </section>
+
+  @if (pwOpen()) {
+    <app-modal [title]="'a.top.changePassword' | t" size="md" (closed)="pwOpen.set(false)">
+      <div class="field"><label>{{ 'a.top.currentPassword' | t }}</label><input type="password" dir="ltr" autocomplete="current-password" [value]="pwCurrent()" (input)="pwCurrent.set($any($event.target).value)" /></div>
+      <div class="field"><label>{{ 'a.top.newPassword' | t }}</label><input type="password" dir="ltr" autocomplete="new-password" [value]="pwNext()" (input)="pwNext.set($any($event.target).value)" /></div>
+      <div class="field"><label>{{ 'a.top.confirmPassword' | t }}</label><input type="password" dir="ltr" autocomplete="new-password" [value]="pwConfirm()" (input)="pwConfirm.set($any($event.target).value)" /></div>
+      <p class="muted small">{{ 'a.top.pwHint' | t }}</p>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" [disabled]="pwBusy() || !pwCurrent() || !pwNext()" (click)="savePassword()">{{ 'a.top.save' | t }}</button>
+        <button type="button" class="btn btn-light" (click)="pwOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      </div>
+    </app-modal>
+  }
+</div>

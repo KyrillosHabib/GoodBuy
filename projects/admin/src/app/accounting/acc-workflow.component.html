@@ -1,0 +1,30 @@
+<div class="card inner wf">
+  <div class="wf-top">
+    <span class="chip st-{{ item.status }}">{{ 'acc.st.' + item.status | t }}</span>
+    @if (kind === 'settlement' && item.status === 'Posted') { <span class="muted small">{{ 'acc.st.issued' | t }}</span> }
+  </div>
+
+  <div class="muted small wf-trail">
+    <span>{{ 'acc.wf.createdBy' | t }}: <strong>{{ item.createdByName ?? '—' }}</strong> ({{ item.createdAtUtc | slice: 0 : 10 }})</span>
+    @if (item.submittedByName) { <span>· {{ 'acc.wf.submittedBy' | t }}: <strong>{{ item.submittedByName }}</strong></span> }
+    @if (item.approvedByName) { <span>· {{ 'acc.wf.approvedBy' | t }}: <strong>{{ item.approvedByName }}</strong> ({{ (item.approvedAtUtc ?? '') | slice: 0 : 10 }})</span> }
+    @if (item.cancelledByName) { <span>· {{ 'acc.wf.cancelledBy' | t }}: <strong>{{ item.cancelledByName }}</strong></span> }
+  </div>
+
+  @if (item.rejectionReason && item.status === 'Rejected') { <p class="text-bad small">{{ 'acc.wf.rejected' | t }}: {{ item.rejectionReason }}</p> }
+  @if (item.cancelReason) { <p class="muted small">{{ 'acc.wf.cancelReason' | t }}: {{ item.cancelReason }}</p> }
+
+  <div class="wf-actions">
+    @if (canSubmit()) {
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="busy()" (click)="run('submit')">{{ 'acc.wf.submit' | t }}</button>
+    }
+    @if (item.status === 'PendingApproval' && auth.can(approvePermission)) {
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="busy() || !canApproveNow()" [title]="canApproveNow() ? '' : ('acc.wf.sameUser' | t)" (click)="run('approve')">{{ (kind === 'settlement' ? 'acc.wf.issue' : 'acc.wf.approve') | t }}</button>
+      <button type="button" class="btn btn-light btn-sm" [disabled]="busy()" (click)="run('reject', true)">{{ 'acc.wf.reject' | t }}</button>
+      @if (!canApproveNow()) { <span class="muted small">{{ 'acc.wf.sameUser' | t }}</span> }
+    }
+    @if (canCancel()) {
+      <button type="button" class="btn btn-danger btn-sm" [disabled]="busy()" (click)="run('cancel', true)">{{ (item.status === 'Posted' ? 'acc.wf.reverse' : 'acc.wf.cancel') | t }}</button>
+    }
+  </div>
+</div>

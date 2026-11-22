@@ -1,0 +1,104 @@
+<div class="page-head">
+  <h1>{{ 'a.inq.title' | t }}</h1>
+</div>
+
+<div class="split">
+  <div class="card">
+    <div class="filters">
+      <label>{{ 'a.inq.status' | t }}</label>
+      <select (change)="setFilter($any($event.target).value)">
+        <option value="">{{ 'a.inq.all' | t }}</option>
+        @for (s of statuses; track s) { <option [value]="s">{{ ('a.status.' + s) | t }}</option> }
+      </select>
+    </div>
+
+    @if (loading()) {
+      <p class="muted">{{ 'common.loading' | t }}</p>
+    } @else {
+      @if (result(); as r) {
+        @if (r.items.length === 0) {
+          <p class="muted">{{ 'a.inq.empty' | t }}</p>
+        } @else {
+          <table class="clickable">
+            <thead>
+              <tr><th>{{ 'a.inq.date' | t }}</th><th>{{ 'a.inq.from' | t }}</th><th>{{ 'a.inq.product' | t }}</th><th>{{ 'a.inq.status' | t }}</th></tr>
+            </thead>
+            <tbody>
+              @for (i of r.items; track i.id) {
+                <tr [class.selected]="selected()?.id === i.id" [class.unread]="i.status === 'New'" (click)="open(i.id)">
+                  <td>{{ date(i.createdAtUtc) | date: 'short' }}</td>
+                  <td>{{ i.name }}<div class="muted small" dir="ltr">{{ i.email }}</div></td>
+                  <td>{{ i.productName }}</td>
+                  <td><span class="chip status-{{ i.status }}">{{ ('a.status.' + i.status) | t }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <app-pager [page]="r.page" [totalPages]="r.totalPages" (pageChange)="goTo($event)" />
+        }
+      }
+    }
+  </div>
+
+  <div class="card">
+    @if (selected(); as i) {
+      <h3>{{ i.name }}</h3>
+
+      <dl class="meta">
+        <dt>{{ 'contact.email' | t }}</dt><dd dir="ltr"><a [href]="'mailto:' + i.email">{{ i.email }}</a></dd>
+        @if (i.phone) { <dt>{{ 'contact.phone' | t }}</dt><dd dir="ltr">{{ i.phone }}</dd> }
+        @if (i.company) { <dt>{{ 'contact.company' | t }}</dt><dd>{{ i.company }}</dd> }
+        @if (i.country) { <dt>{{ 'contact.country' | t }}</dt><dd>{{ i.country }}</dd> }
+        @if (i.productName) { <dt>{{ 'a.inq.product' | t }}</dt><dd>{{ i.productName }}</dd> }
+        <dt>{{ 'a.inq.received' | t }}</dt><dd>{{ date(i.createdAtUtc) | date: 'medium' }}</dd>
+      </dl>
+
+      <div class="message-box">{{ i.message }}</div>
+
+      <!-- reply by e-mail -->
+      @if (i.replyText) {
+        <div class="reply-sent">
+          <strong>{{ 'a.inq.lastReply' | t }}</strong>
+          @if (i.repliedAtUtc) { <span class="muted small"> · {{ date(i.repliedAtUtc) | date: 'medium' }}</span> }
+          <div class="message-box">{{ i.replyText }}</div>
+        </div>
+      }
+
+      @if (replyOpen()) {
+        <form class="reply-box" [formGroup]="replyForm" (ngSubmit)="sendReply(i)">
+          <div class="field"><label>{{ 'a.inq.replySubject' | t }}</label><input formControlName="subject" /></div>
+          <div class="field"><label>{{ 'a.inq.replyMessage' | t }}</label><textarea rows="6" formControlName="message"></textarea></div>
+          <div class="row">
+            <button class="btn btn-primary" [disabled]="replying() || replyForm.invalid">{{ (replying() ? 'a.set.sending' : 'a.inq.sendReply') | t }}</button>
+            <button type="button" class="btn btn-light" (click)="replyOpen.set(false)">{{ 'a.cancel' | t }}</button>
+          </div>
+          <p class="muted small">{{ 'a.inq.replyHint' | t: { email: i.email } }}</p>
+        </form>
+      } @else {
+        <button type="button" class="btn btn-primary" style="margin-bottom: 1rem" (click)="startReply(i)">✉ {{ 'a.inq.reply' | t }}</button>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="field">
+          <label>{{ 'a.inq.status' | t }}</label>
+          <select formControlName="status">
+            @for (s of statuses; track s) { <option [value]="s">{{ ('a.status.' + s) | t }}</option> }
+          </select>
+        </div>
+
+        <div class="field">
+          <label>{{ 'a.inq.note' | t }}</label>
+          <textarea rows="3" formControlName="adminNote"></textarea>
+        </div>
+
+        <div class="row">
+          <button class="btn btn-primary" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+          <button type="button" class="btn btn-danger" (click)="remove(i)">{{ 'a.delete' | t }}</button>
+        </div>
+      </form>
+    } @else {
+      <p class="muted">{{ 'a.inq.select' | t }}</p>
+    }
+  </div>
+</div>

@@ -1,0 +1,99 @@
+<div class="page-head"><h1>{{ 'acc.nav.currencies' | t }}</h1></div>
+<app-intro [text]="'acc.cur.intro' | t" />
+
+@if (auto(); as a) {
+  <div class="card">
+    <h3>{{ 'accs.cur.autoTitle' | t }}</h3>
+    <p class="muted small">{{ 'accs.cur.autoHint' | t }}</p>
+    <label class="check"><input type="checkbox" [(ngModel)]="a.autoUpdate" [disabled]="!canEdit" /> {{ 'accs.cur.autoOn' | t }}</label>
+    <div class="form-row">
+      <div class="field"><label>{{ 'accs.cur.every' | t }}</label><input type="number" min="1" max="168" [(ngModel)]="a.intervalHours" dir="ltr" [disabled]="!canEdit" /></div>
+      <div class="field"><label>{{ 'accs.cur.margin' | t }}</label><input type="number" min="-50" max="100" step="0.1" [(ngModel)]="a.marginPercent" dir="ltr" [disabled]="!canEdit" /></div>
+    </div>
+    <div class="field"><label>{{ 'accs.cur.provider' | t }}</label><input type="text" maxlength="300" [(ngModel)]="a.providerUrl" dir="ltr" [disabled]="!canEdit" /></div>
+    @if (a.lastRunUtc) {
+      <p class="small" [class.text-bad]="a.lastStatus === 'failed'">
+        {{ 'accs.cur.lastRun' | t }}: <span dir="ltr">{{ a.lastRunUtc | slice: 0 : 16 }}</span> — {{ a.lastMessage }}
+      </p>
+    }
+    <p class="muted small">{{ 'accs.cur.credit' | t }} <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">ExchangeRate-API</a></p>
+    @if (canEdit) {
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveAuto(a)">{{ 'a.save' | t }}</button>
+        <button type="button" class="btn btn-light" [disabled]="saving()" (click)="runAuto(a)">{{ 'accs.cur.runNow' | t }}</button>
+      </div>
+    }
+  </div>
+}
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'acc.code' | t }}</th><th>{{ 'a.name' | t }}</th><th>{{ 'acc.cur.symbol' | t }}</th><th>{{ 'acc.cur.places' | t }}</th>
+          <th class="num">{{ 'acc.cur.rate' | t }}</th><th>{{ 'acc.cur.updated' | t }}</th><th>{{ 'acc.cur.offered' | t }}</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of rows(); track c.code) {
+          <tr>
+            <td dir="ltr"><strong>{{ c.code }}</strong> @if (c.isBase) { <span class="chip">{{ 'acc.cur.base' | t }}</span> }</td>
+            <td>{{ c.name }}</td>
+            <td dir="ltr">{{ c.symbol }}</td>
+            <td class="num">{{ c.decimalPlaces }}</td>
+            <td class="num" dir="ltr">
+              @if (c.isBase) { 1 } @else if (c.rateToBase) { {{ c.rateToBase | number: '1.2-6' }} @if (c.isRateManual) { <span class="chip">{{ 'accs.cur.manual' | t }}</span> } } @else { <span class="text-bad">{{ 'acc.cur.noRate' | t }}</span> }
+            </td>
+            <td class="small" dir="ltr">{{ (c.rateUpdatedAtUtc ?? '') | slice: 0 : 16 }} {{ c.rateUpdatedBy }}</td>
+            <td>
+              @if (c.isBase) { <span class="chip">{{ 'acc.cur.always' | t }}</span> }
+              @else if (c.isActive && c.rateToBase) { <span class="chip">{{ 'a.active' | t }}</span> }
+              @else { <span class="muted">{{ c.isActive ? ('acc.cur.waitingRate' | t) : '—' }}</span> }
+            </td>
+            <td class="actions">
+              @if (canEdit) {
+                @if (!c.isBase) { <button type="button" class="btn btn-primary btn-sm" (click)="startRate(c)">{{ 'acc.cur.setRate' | t }}</button> }
+                @if (!c.isBase) { <button type="button" class="btn btn-light btn-sm" (click)="toggle(c)">{{ (c.isActive ? 'acc.cur.switchOff' : 'acc.cur.switchOn') | t }}</button> }
+              }
+              @if (!c.isBase) { <button type="button" class="btn btn-light btn-sm" (click)="showHistory(c)">{{ 'acc.cur.history' | t }}</button> }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">{{ 'acc.cur.hint' | t }}</p>
+</div>
+
+@if (editing(); as c) {
+  <app-modal [title]="('acc.cur.setRate' | t) + ' ' + c.code" (closed)="editing.set(null)">
+    <p>{{ 'acc.cur.rateQuestion' | t: { code: c.code } }}</p>
+    <div class="field">
+      <label>1 {{ c.code }} = </label>
+      <input type="number" step="0.000001" min="0" [ngModel]="rate" (ngModelChange)="rate = +$event" dir="ltr" />
+      <span class="muted small">{{ 'acc.cur.rateExample' | t }}</span>
+    </div>
+    <label class="check"><input type="checkbox" [(ngModel)]="manual" /> {{ 'accs.cur.pin' | t }}</label>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="editing.set(null)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving() || !(rate > 0)" (click)="saveRate(c)">{{ 'a.save' | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (history(); as h) {
+  <app-modal [title]="('acc.cur.history' | t) + ' ' + h.code" (closed)="history.set(null)">
+    <table class="table">
+      <thead><tr><th>{{ 'acc.date' | t }}</th><th class="num">{{ 'acc.cur.rate' | t }}</th><th>{{ 'acc.audit.user' | t }}</th></tr></thead>
+      <tbody>
+        @for (r of h.rows; track $index) {
+          <tr><td dir="ltr">{{ r.createdAtUtc | slice: 0 : 16 }}</td><td class="num" dir="ltr">{{ r.rateToBase | number: '1.2-6' }}</td><td dir="ltr">{{ r.createdByName }}</td></tr>
+        } @empty {
+          <tr><td colspan="3" class="muted">{{ 'acc.audit.empty' | t }}</td></tr>
+        }
+      </tbody>
+    </table>
+    <div modal-footer><button type="button" class="btn btn-light" (click)="history.set(null)">{{ 'a.close' | t }}</button></div>
+  </app-modal>
+}

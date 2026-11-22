@@ -1,0 +1,87 @@
+<div class="head">
+  <div>
+    <h1>{{ 'ord.title' | t }}</h1>
+    <p class="muted">{{ 'ord2.listSub' | t }}</p>
+  </div>
+  <button type="button" class="btn btn-light" (click)="exportCsv()">{{ 'ord2.export' | t }}</button>
+</div>
+
+<div class="kpis">
+  @for (k of kpis(); track k.key) {
+    <button type="button" class="kpi" [class]="'kpi k-' + k.key" [class.on]="kpi() === k.key" (click)="toggleKpi(k.key)">
+      <span class="kpi-label">{{ k.label | t }}</span>
+      <span class="kpi-value">{{ k.value }}</span>
+    </button>
+  }
+</div>
+
+<div class="filters">
+  <input class="f-search" [ngModel]="search()" (ngModelChange)="search.set($event); page.set(1)" [placeholder]="'ord2.searchHint' | t" />
+  <select [ngModel]="stage()" (ngModelChange)="stage.set($event); page.set(1)">
+    <option value="">{{ 'ord2.allStatuses' | t }}</option>
+    @for (s of stageOptions(); track s) { <option [value]="s">{{ s | t }}</option> }
+  </select>
+  <select [ngModel]="method()" (ngModelChange)="method.set($event); page.set(1)">
+    <option value="">{{ 'ord2.allMethods' | t }}</option>
+    @for (m of methodOptions(); track m) { <option [value]="m">{{ 'pay.' + m | t }}</option> }
+  </select>
+  <select [ngModel]="city()" (ngModelChange)="city.set($event); page.set(1)">
+    <option value="">{{ 'ord2.allCities' | t }}</option>
+    @for (c of cityOptions(); track c) { <option [value]="c">{{ c }}</option> }
+  </select>
+  <select [ngModel]="range()" (ngModelChange)="range.set($event); page.set(1)">
+    <option value="today">{{ 'ord2.range.today' | t }}</option>
+    <option value="7">{{ 'ord2.range.7' | t }}</option>
+    <option value="30">{{ 'ord2.range.30' | t }}</option>
+    <option value="all">{{ 'ord2.range.all' | t }}</option>
+  </select>
+</div>
+
+<div class="panel">
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>{{ 'ord2.col.number' | t }}</th>
+        <th>{{ 'inv.date' | t }}</th>
+        <th>{{ 'ord.customerCol' | t }}</th>
+        <th>{{ 'inv.total' | t }}</th>
+        <th>{{ 'ord.paymentCol' | t }}</th>
+        <th>{{ 'inv.status' | t }}</th>
+        <th>{{ 'ord2.col.shipping' | t }}</th>
+        <th class="w-act"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (o of pageRows(); track o.id) {
+        <tr>
+          <td dir="ltr" class="start"><strong>{{ o.number }}</strong></td>
+          <td dir="ltr" class="start small muted">{{ o.createdAtUtc.slice(0, 16).replace('T', ' ') }}</td>
+          <td><strong>{{ o.customerName }}</strong><div class="small muted">{{ o.city }} · <span dir="ltr">{{ o.phone }}</span></div></td>
+          <td dir="ltr" class="start"><strong>{{ o.total }}</strong> {{ o.currency }}</td>
+          <td>
+            <span [class]="'chip ' + payCls(o)">{{ 'ord.pay.' + o.paymentStatus | t }}</span>
+            <div class="small muted">{{ 'pay.' + o.paymentMethod | t }}@if (settleText(o); as st) { · {{ st | t }} }</div>
+          </td>
+          <td><span [class]="'chip ' + stageCls(o)">{{ stageOf(o) | t }}</span></td>
+          <td class="small shipcell">
+            @if (o.shippingCarrierName) { {{ o.shippingCarrierName }}@if (o.trackingNumber) { · <span dir="ltr">{{ o.trackingNumber }}</span> } } @else { — }
+          </td>
+          <td><button type="button" class="btn btn-light btn-sm" (click)="open(o)">{{ 'inv.view' | t }}</button></td>
+        </tr>
+      } @empty {
+        <tr><td colspan="8" class="empty">{{ 'ord2.noOrders' | t }}</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="foot">
+    <span>{{ 'ord2.showing' | t: { from: from(), to: to(), n: filtered().length } }}</span>
+    <span class="pager">
+      <button type="button" class="btn btn-light btn-sm" [disabled]="page() <= 1" (click)="page.set(page() - 1)">{{ 'ord2.prev' | t }}</button>
+      @for (p of pageNumbers(); track p) {
+        <button type="button" class="btn btn-sm" [class.btn-primary]="p === page()" [class.btn-light]="p !== page()" (click)="page.set(p)">{{ p }}</button>
+      }
+      <button type="button" class="btn btn-light btn-sm" [disabled]="page() >= pages()" (click)="page.set(page() + 1)">{{ 'ord2.next' | t }}</button>
+    </span>
+  </div>
+</div>

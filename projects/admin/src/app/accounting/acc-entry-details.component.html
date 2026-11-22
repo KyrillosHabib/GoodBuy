@@ -1,0 +1,49 @@
+@if (current(); as e) {
+  <div class="entry-details">
+    <h4>{{ 'acc.entryDetails' | t }} <span dir="ltr" class="muted small">{{ e.number }}</span></h4>
+
+    <div class="table-wrap">
+      <table class="table entry-table">
+        <thead>
+          <tr>
+            <th class="entry-idx">#</th>
+            <th>{{ 'acc.account' | t }}</th>
+            <th>{{ 'acc.party' | t }}</th>
+            <th>{{ 'acc.rep.category' | t }}</th>
+            <th>{{ 'acc.description' | t }}</th>
+            <th class="num">{{ 'acc.debit' | t }}</th>
+            <th class="num">{{ 'acc.credit' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of lines(); track l.id; let i = $index) {
+            <tr>
+              <td class="entry-idx muted">{{ i + 1 }}</td>
+              <td dir="ltr"><strong>{{ l.accountCode }}</strong> {{ l.accountName }}</td>
+              <td>{{ l.partyName }}</td>
+              <td>{{ l.categoryName }}</td>
+              <td class="small">{{ l.description }}</td>
+              <td class="num" dir="ltr" [class.entry-zero]="!l.debit">{{ l.debit | number: '1.2-2' }}</td>
+              <td class="num" dir="ltr" [class.entry-zero]="!l.credit">{{ l.credit | number: '1.2-2' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="muted">—</td></tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="entry-total">
+            <td colspan="5">{{ 'acc.total' | t }}</td>
+            <td class="num" dir="ltr">{{ debitTotal() | number: '1.2-2' }}</td>
+            <td class="num" dir="ltr">{{ creditTotal() | number: '1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    @if (balanced()) {
+      <p class="entry-status entry-ok">✓ {{ 'acc.entryBalanced' | t }}</p>
+    } @else {
+      <p class="entry-status entry-bad" dir="ltr">✗ {{ 'acc.jr.notBalanced' | t }}: {{ 'acc.jr.difference' | t }} {{ (debitTotal() - creditTotal()) | number: '1.2-2' }}</p>
+    }
+  </div>
+}

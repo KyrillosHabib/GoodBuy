@@ -1,0 +1,86 @@
+<div class="page-head">
+  <div>
+    <a class="back" routerLink="/customer-returns">← {{ 'cr.back' | t }}</a>
+    @if (r(); as ret) {
+      <h1><span dir="ltr">{{ ret.number }}</span> <span [class]="'chip st-' + ret.status">{{ 'cr.s.' + ret.status | t }}</span></h1>
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <p class="muted">{{ 'common.loading' | t }}</p>
+} @else {
+ @if (r(); as ret) {
+  <div class="card sheet">
+    <p class="wait">{{ 'cr.hint.' + ret.status | t }}</p>
+
+    <div class="grid2 info">
+      <div><span class="muted small">{{ 'cr.order' | t }}</span><strong dir="ltr">{{ ret.orderNumber }}</strong></div>
+      <div><span class="muted small">{{ 'cr.customer' | t }}</span><strong>{{ ret.customerName }}</strong></div>
+      @if (ret.reason) { <div class="wide"><span class="muted small">{{ 'cr.reason' | t }}</span>{{ ret.reason }}</div> }
+      @if (ret.note) { <div class="wide"><span class="muted small">{{ 'cr.note' | t }}</span>{{ ret.note }}</div> }
+      <div><span class="muted small">{{ 'cr.requested' | t }}</span>{{ ret.createdBy ?? '—' }} <span dir="ltr" class="muted small">{{ stamp(ret.createdAtUtc) }}</span></div>
+      @if (ret.receivedAtUtc) { <div><span class="muted small">{{ 'cr.received' | t }}</span>{{ ret.receivedBy ?? '—' }} <span dir="ltr" class="muted small">{{ stamp(ret.receivedAtUtc) }}</span></div> }
+      @if (ret.inspectedAtUtc) { <div><span class="muted small">{{ 'cr.checked' | t }}</span>{{ ret.inspectedBy ?? '—' }} <span dir="ltr" class="muted small">{{ stamp(ret.inspectedAtUtc) }}</span></div> }
+      @if (ret.approvedAtUtc) { <div><span class="muted small">{{ 'cr.approved' | t }}</span>{{ ret.approvedBy ?? '—' }} <span dir="ltr" class="muted small">{{ stamp(ret.approvedAtUtc) }}</span></div> }
+      @if (ret.completedAtUtc) { <div><span class="muted small">{{ 'cr.completed' | t }}</span><span dir="ltr">{{ stamp(ret.completedAtUtc) }}</span></div> }
+      @if (ret.rejectionReason) { <div class="wide bad"><span class="small">{{ 'cr.rejectReason' | t }}</span>{{ ret.rejectionReason }}</div> }
+    </div>
+
+    <div class="table-wrap">
+      <table class="lt">
+        <thead>
+          <tr>
+            <th>{{ 'cr.col.item' | t }}</th><th>{{ 'cr.col.warehouse' | t }}</th><th class="num">{{ 'cr.col.qty' | t }}</th>
+            <th>{{ 'cr.col.decision' | t }}</th><th>{{ 'cr.col.condition' | t }}</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of ret.lines; track l.id) {
+            <tr>
+              <td><strong>{{ l.productName }}</strong> <span class="muted small">{{ l.variantLabel }} · <span dir="ltr">{{ l.sku }}</span></span></td>
+              <td>{{ l.warehouse }}</td>
+              <td class="num">{{ l.quantity }}</td>
+              <td>
+                @if (ret.can.inspect) {
+                  <select (change)="setDisposition(l.id, $any($event.target).value)">
+                    <option value="Pending" [selected]="decision(l.id).disposition === 'Pending'">—</option>
+                    @for (d of dispositions; track d) { <option [value]="d" [selected]="decision(l.id).disposition === d">{{ 'cr.disp.' + d | t }}</option> }
+                  </select>
+                } @else {
+                  <span [class]="'chip dp-' + l.disposition">{{ 'cr.disp.' + l.disposition | t }}</span>
+                  @if (l.applied) { <div class="muted small">{{ 'cr.applied' | t }}</div> }
+                }
+              </td>
+              <td>
+                @if (ret.can.inspect) {
+                  <input type="text" maxlength="500" [placeholder]="'cr.conditionHint' | t" [value]="decision(l.id).condition" (input)="setCondition(l.id, $any($event.target).value)" />
+                } @else {
+                  {{ l.condition ?? '' }}
+                }
+              </td>
+              <td class="actions-cell">
+                @if (ret.can.resolve && l.disposition === 'Quarantine' && !l.applied) {
+                  <button type="button" class="btn btn-light btn-sm" [disabled]="saving()" (click)="resolve(l.id, 'Restock')">{{ 'cr.restock' | t }}</button>
+                  <button type="button" class="btn btn-light btn-sm danger" [disabled]="saving()" (click)="resolve(l.id, 'Damaged')">{{ 'cr.writeOff' | t }}</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bar">
+      @if (ret.can.receive) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="receive()">{{ 'cr.receive' | t }}</button> }
+      @if (ret.can.inspect) {
+        <button type="button" class="btn btn-light" [disabled]="saving()" (click)="inspect(false)">{{ 'cr.saveCheck' | t }}</button>
+        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="inspect(true)">{{ 'cr.finishCheck' | t }}</button>
+      }
+      @if (ret.can.approve) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="approve()">{{ 'cr.approve' | t }}</button> }
+      @if (ret.can.reject) { <button type="button" class="btn btn-light danger" [disabled]="saving()" (click)="reject()">{{ 'cr.reject' | t }}</button> }
+      @if (ret.can.cancel) { <button type="button" class="btn btn-light danger" [disabled]="saving()" (click)="cancel()">{{ 'cr.cancel' | t }}</button> }
+    </div>
+  </div>
+ }
+}

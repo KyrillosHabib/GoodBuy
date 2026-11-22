@@ -1,0 +1,9 @@
+<section class="page-banner">
+  @if (banner.kind === 'video') {
+    <video class="page-banner-media" [src]="banner.url | assetUrl" [poster]="banner.posterUrl | assetUrl" autoplay muted loop playsinline preload="metadata"></video>
+  } @else {
+    <img class="page-banner-media" [src]="banner.url | assetUrl" alt="" />
+  }
+  <div class="page-banner-shade"></div>
+  <h2 class="page-banner-title">{{ title }}</h2>
+</section>

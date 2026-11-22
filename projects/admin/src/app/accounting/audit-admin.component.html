@@ -1,0 +1,24 @@
+<div class="page-head"><h1>{{ 'acc.nav.audit' | t }}</h1></div>
+<app-intro [text]="'acc.audit.intro' | t" />
+
+<div class="card">
+  <div class="filters">
+    <select [ngModel]="entityType" (ngModelChange)="entityType = $event; load()">
+      <option value="">{{ 'acc.audit.all' | t }}</option>
+      @for (e of entityTypes; track e) { <option [value]="e">{{ 'acc.ent.' + e | t }}</option> }
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.audit.entity' | t }}</th><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.audit.action' | t }}</th><th>{{ 'acc.audit.user' | t }}</th><th>{{ 'acc.audit.details' | t }}</th></tr></thead>
+      <tbody>
+        @for (r of rows(); track r.id) {
+          <tr>
+            <td dir="ltr">{{ r.atUtc | slice: 0 : 16 }}</td><td>{{ 'acc.ent.' + r.entityType | t }}</td><td dir="ltr">{{ r.number }}</td>
+            <td><span class="chip">{{ 'acc.act.' + r.action | t }}</span></td><td dir="ltr">{{ r.userName }}</td><td class="small">{{ r.details }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,7 @@
+.filters-row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: .8rem; }
+.actions { white-space: nowrap; }
+.btn-sm { padding: .2rem .7rem; font-size: .82rem; }
+.neg { color: #b91c1c; }
+.clickable { cursor: pointer; }
+.sub td { background: rgba(127, 127, 127, .06); }
+.total td { border-top: 2px solid rgba(127, 127, 127, .4); }

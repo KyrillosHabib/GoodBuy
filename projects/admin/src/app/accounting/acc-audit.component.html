@@ -1,0 +1,20 @@
+<h4>{{ 'acc.audit.title' | t }}</h4>
+@if (rows().length === 0) {
+  <p class="muted small">{{ 'acc.audit.empty' | t }}</p>
+} @else {
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.audit.action' | t }}</th><th>{{ 'acc.audit.user' | t }}</th><th>{{ 'acc.audit.details' | t }}</th></tr></thead>
+      <tbody>
+        @for (r of rows(); track r.id) {
+          <tr>
+            <td dir="ltr">{{ r.atUtc | slice: 0 : 16 }}</td>
+            <td><span class="chip">{{ 'acc.act.' + r.action | t }}</span></td>
+            <td dir="ltr">{{ r.userName }}</td>
+            <td class="small">{{ r.details }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

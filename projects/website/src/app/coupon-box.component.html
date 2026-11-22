@@ -1,0 +1,20 @@
+@if (cart.cart().items.length > 0) {
+  @if (cart.cart().couponCode; as code) {
+    <div class="coupon-applied">
+      <span>🏷 <strong dir="ltr">{{ code }}</strong></span>
+      <button type="button" class="link-btn" (click)="remove()">{{ 'cart.couponRemove' | t }}</button>
+    </div>
+    @if (cart.cart().couponError; as err) {
+      <div class="stock-note out">{{ ('cart.couponError.' + err) | t }}</div>
+    } @else if (cart.cart().couponFreeShipping) {
+      <div class="sum-row save"><span>{{ 'cart.couponFreeShipping' | t }}</span><span>✓</span></div>
+    } @else {
+      <div class="sum-row save"><span>{{ 'cart.couponDiscount' | t }}</span><span>- {{ cart.cart().couponDiscount | money }}</span></div>
+    }
+  } @else {
+    <div class="coupon-box">
+      <input [(ngModel)]="code" [placeholder]="'cart.couponPlaceholder' | t" dir="ltr" autocomplete="off" (keyup.enter)="apply()" />
+      <button type="button" class="btn btn-light btn-sm" [disabled]="!code.trim() || cart.busy()" (click)="apply()">{{ 'cart.couponApply' | t }}</button>
+    </div>
+  }
+}

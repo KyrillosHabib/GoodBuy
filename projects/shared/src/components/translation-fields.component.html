@@ -1,0 +1,18 @@
+<div class="lang-grid">
+  @for (lang of languages; track lang) {
+    <fieldset class="lang-box" [formGroup]="langGroup(lang)" [attr.dir]="i18n.isRtl() ? 'rtl' : 'ltr'">
+      <legend>{{ labels[lang] }}</legend>
+
+      @for (f of fields; track f.key) {
+        <div class="field">
+          <label>{{ f.label | t }} ({{ 'a.lang.' + lang | t }})@if (f.required && lang === defaultLanguage) { <span class="req"> *</span> }</label>
+          @if (f.multiline) {
+            <textarea rows="4" [formControlName]="f.key" [attr.dir]="dirOf(lang)"></textarea>
+          } @else {
+            <input [formControlName]="f.key" [attr.dir]="dirOf(lang)" />
+          }
+        </div>
+      }
+    </fieldset>
+  }
+</div>

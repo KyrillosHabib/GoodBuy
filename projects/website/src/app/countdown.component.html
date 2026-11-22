@@ -1,0 +1,25 @@
+@if (left() > 0 && inline) {
+  <div class="cd-inline" dir="ltr">
+    <span><b>{{ pad(days()) }}</b><small>{{ 'offer.days' | t }}</small></span>
+    <span><b>{{ pad(hours()) }}</b><small>{{ 'offer.hours' | t }}</small></span>
+    <span><b>{{ pad(minutes()) }}</b><small>{{ 'offer.minutes' | t }}</small></span>
+    <span>@for (k of [seconds()]; track k) { <b class="tick">{{ pad(k) }}</b> }<small>{{ 'offer.seconds' | t }}</small></span>
+  </div>
+} @else if (left() > 0 && big) {
+  <div class="cd-big" dir="ltr">
+    <div class="cd-unit"><strong>{{ pad(days()) }}</strong><span>{{ 'offer.days' | t }}</span></div>
+    <i>:</i>
+    <div class="cd-unit"><strong>{{ pad(hours()) }}</strong><span>{{ 'offer.hours' | t }}</span></div>
+    <i>:</i>
+    <div class="cd-unit"><strong>{{ pad(minutes()) }}</strong><span>{{ 'offer.minutes' | t }}</span></div>
+    <i>:</i>
+    <div class="cd-unit">@for (k of [seconds()]; track k) { <strong class="tick">{{ pad(k) }}</strong> }<span>{{ 'offer.seconds' | t }}</span></div>
+  </div>
+} @else if (left() > 0) {
+  <div class="countdown" dir="ltr">
+    <div class="cd-box"><strong>{{ pad(days()) }}</strong><span>{{ 'offer.days' | t }}</span></div>
+    <div class="cd-box"><strong>{{ pad(hours()) }}</strong><span>{{ 'offer.hours' | t }}</span></div>
+    <div class="cd-box"><strong>{{ pad(minutes()) }}</strong><span>{{ 'offer.minutes' | t }}</span></div>
+    <div class="cd-box"><strong>{{ pad(seconds()) }}</strong><span>{{ 'offer.seconds' | t }}</span></div>
+  </div>
+}

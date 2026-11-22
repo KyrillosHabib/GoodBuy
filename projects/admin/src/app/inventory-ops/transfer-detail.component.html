@@ -1,0 +1,211 @@
+    <div class="page-head no-print">
+      <div>
+        <a class="back" routerLink="/inventory/transfers">← {{ 'tr.back' | t }}</a>
+        @if (t(); as tr) {
+          <h1><span dir="ltr">{{ tr.number }}</span> <span [class]="'chip st-' + tr.status">{{ 'tr.s.' + tr.status | t }}</span></h1>
+        } @else {
+          <h1>{{ 'tr.newTitle' | t }}</h1>
+        }
+      </div>
+      @if (t()) { <button type="button" class="btn btn-light" (click)="print()">{{ 'tr.print' | t }}</button> }
+    </div>
+
+    @if (loading()) {
+      <p class="muted">{{ 'common.loading' | t }}</p>
+    } @else {
+
+      <!-- ================= new / draft: write the request ================= -->
+      @if (editing()) {
+        <div class="card">
+          @if (!t()) {
+            <label class="check"><input type="checkbox" [checked]="direct()" (change)="setDirect($any($event.target).checked)" /> {{ 'tr.direct' | t }}</label>
+            @if (direct()) { <p class="muted small">{{ 'tr.directHint' | t }}</p> }
+          }
+
+          <div class="grid2">
+            <div class="field">
+              <label>{{ 'tr.fromWh' | t }}</label>
+              <select (change)="fromId.set(+$any($event.target).value)">
+                <option value="0" [selected]="fromId() === 0">—</option>
+                @for (w of fromOptions(); track w.id) { <option [value]="w.id" [selected]="w.id === fromId()">{{ w.name }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label>{{ 'tr.toWh' | t }}</label>
+              <select (change)="toId.set(+$any($event.target).value)">
+                <option value="0" [selected]="toId() === 0">—</option>
+                @for (w of toOptions(); track w.id) { <option [value]="w.id" [selected]="w.id === toId()">{{ w.name }}</option> }
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>{{ 'tr.note' | t }}</label>
+            <textarea rows="2" [value]="note()" (input)="note.set($any($event.target).value)"></textarea>
+          </div>
+
+          <div class="field picker">
+            <label>{{ 'tr.addItem' | t }}</label>
+            <input #itemInput type="text" autocomplete="off" (focus)="typing.next($any($event.target).value)" (input)="typing.next($any($event.target).value)" (keydown.enter)="enter($any($event.target).value, itemInput)" />
+            @if (results().length > 0) {
+              <ul class="picker-list">
+                @for (v of results(); track v.id) {
+                  <li><button type="button" (click)="addVariant(v, itemInput)"><strong>{{ v.productName }}</strong> <span class="muted small">{{ v.label }} · <span dir="ltr">{{ v.sku }}</span></span></button></li>
+                }
+              </ul>
+            }
+          </div>
+
+          @if (lines().length === 0) {
+            <p class="muted">{{ 'tr.noLines' | t }}</p>
+          } @else {
+            <div class="table-wrap">
+              <table class="lt">
+                <thead><tr><th>{{ 'tr.item' | t }}</th><th class="num">{{ 'tr.qty' | t }}</th><th>{{ 'tr.lineNote' | t }}</th><th></th></tr></thead>
+                <tbody>
+                  @for (l of lines(); track l.variantId; let i = $index) {
+                    <tr>
+                      <td><strong>{{ l.name }}</strong><div class="muted small" dir="ltr">{{ l.sku }}</div></td>
+                      <td class="num"><input type="number" min="1" dir="ltr" class="in-qty" [value]="l.quantity" (input)="setQty(i, $any($event.target).value)" /></td>
+                      <td><input type="text" maxlength="500" [value]="l.note" (input)="setLineNote(i, $any($event.target).value)" /></td>
+                      <td><button type="button" class="btn btn-light btn-sm" (click)="removeLine(i)">×</button></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <div class="bar">
+            @if (!direct()) {
+              <button type="button" class="btn btn-light" [disabled]="saving()" (click)="save(false)">{{ 'tr.saveDraft' | t }}</button>
+              <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(true)">{{ 'tr.send' | t }}</button>
+            } @else {
+              <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(true)">{{ 'tr.approve' | t }}</button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ================= an existing transfer ================= -->
+      @if (t(); as tr) {
+        @if (!editing()) {
+          <div class="print-area sheet">
+            <div class="sheet-head">
+              <h2>{{ 'tr.title' | t }} <span dir="ltr">{{ tr.number }}</span></h2>
+              <span [class]="'chip st-' + tr.status">{{ 'tr.s.' + tr.status | t }}</span>
+            </div>
+
+            <div class="grid2 info">
+              <div><span class="muted small">{{ 'tr.from' | t }}</span><strong>{{ tr.fromWarehouse }}</strong></div>
+              <div><span class="muted small">{{ 'tr.to' | t }}</span><strong>{{ tr.toWarehouse }}</strong></div>
+              @if (tr.note) { <div class="wide"><span class="muted small">{{ 'tr.note' | t }}</span>{{ tr.note }}</div> }
+              @if (tr.shippingNote) { <div class="wide"><span class="muted small">{{ 'tr.shipping' | t }}</span>{{ tr.shippingNote }}</div> }
+              @if (tr.rejectionReason) { <div class="wide bad"><span class="small">{{ 'tr.rejectReason' | t }}</span>{{ tr.rejectionReason }}</div> }
+            </div>
+
+            @if (waitText(tr); as w) { <p class="wait no-print">{{ w }}</p> }
+
+            @if (tr.can.approve) { <p class="muted small no-print">{{ 'tr.approveHint' | t }}</p> }
+            @if (tr.can.receive) { <p class="muted small no-print">{{ 'tr.receiveHint' | t }}</p> }
+
+            <div class="table-wrap">
+              <table class="lt">
+                <thead>
+                  <tr>
+                    <th>{{ 'tr.item' | t }}</th>
+                    <th class="num">{{ 'tr.requested' | t }}</th>
+                    @if (tr.can.approve) {
+                      <th class="num">{{ 'tr.free' | t }}</th>
+                      <th class="num">{{ 'tr.atDestination' | t }}</th>
+                      <th class="num">{{ 'tr.approved' | t }}</th>
+                    } @else if (tr.status === 'Approved') {
+                      <th class="num">{{ 'tr.approved' | t }}</th>
+                    } @else if (tr.status === 'InTransit' || tr.status === 'Received') {
+                      <th class="num">{{ 'tr.sent' | t }}</th>
+                      @if (tr.can.receive || tr.status === 'Received') { <th class="num">{{ 'tr.receivedQty' | t }}</th> }
+                      @if (tr.status === 'Received') { <th class="num">{{ 'tr.diff' | t }}</th> }
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (l of tr.lines; track l.id) {
+                    <tr>
+                      <td><strong>{{ l.item }}</strong> <span class="muted small">{{ l.label }}</span><div class="muted small" dir="ltr">{{ l.sku }}</div>@if (l.note) { <div class="muted small">{{ l.note }}</div> }</td>
+                      <td class="num">{{ l.requested }}</td>
+                      @if (tr.can.approve) {
+                        <td class="num" [class.low]="l.availableAtSource < l.requested">{{ l.availableAtSource }}</td>
+                        <td class="num">{{ l.onHandAtDestination }}@if (l.reorderAtDestination > 0) { <span class="muted small"> / {{ l.reorderAtDestination }} {{ 'tr.reorder' | t }}</span> }</td>
+                        <td class="num"><input type="number" min="0" [max]="l.requested" dir="ltr" class="in-qty" [value]="approvedQty()[l.id] ?? ''" (input)="setApproved(l.id, $any($event.target).value)" /></td>
+                      } @else if (tr.status === 'Approved') {
+                        <td class="num"><strong>{{ l.approved }}</strong></td>
+                      } @else if (tr.status === 'InTransit' || tr.status === 'Received') {
+                        <td class="num">{{ l.dispatched }}</td>
+                        @if (tr.can.receive) {
+                          <td class="num"><input type="number" min="0" [max]="l.dispatched" dir="ltr" class="in-qty" [value]="receivedQty()[l.id] ?? ''" (input)="setReceived(l.id, $any($event.target).value)" /></td>
+                        } @else if (tr.status === 'Received') {
+                          <td class="num">{{ l.received }}</td>
+                        }
+                        @if (tr.status === 'Received') { <td class="num" [class.low]="l.received < l.dispatched">{{ l.received - l.dispatched }}</td> }
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            @if (tr.shortageValue > 0) { <p class="bad">{{ 'tr.shortage' | t }}: <strong dir="ltr">{{ money(tr.shortageValue) }}</strong></p> }
+            @if (tr.receiveNote) { <p><span class="muted small">{{ 'tr.receiveNote' | t }}:</span> {{ tr.receiveNote }}</p> }
+
+            <h3>{{ 'tr.history' | t }}</h3>
+            <ul class="history">
+              <li><b>{{ 'tr.h.created' | t }}</b> — {{ tr.createdBy }} <span class="muted" dir="ltr">{{ stamp(tr.createdAtUtc) }}</span></li>
+              @if (tr.requestedAtUtc && !tr.isDirect) { <li><b>{{ 'tr.h.requested' | t }}</b> <span class="muted" dir="ltr">{{ stamp(tr.requestedAtUtc) }}</span></li> }
+              @if (tr.approvedAtUtc) { <li><b>{{ (tr.status === 'Rejected' ? 'tr.h.rejected' : 'tr.h.approved') | t }}</b> — {{ tr.approvedBy }} <span class="muted" dir="ltr">{{ stamp(tr.approvedAtUtc) }}</span></li> }
+              @if (tr.dispatchedAtUtc) { <li><b>{{ 'tr.h.dispatched' | t }}</b> — {{ tr.dispatchedBy }} <span class="muted" dir="ltr">{{ stamp(tr.dispatchedAtUtc) }}</span></li> }
+              @if (tr.receivedAtUtc) { <li><b>{{ 'tr.h.received' | t }}</b> — {{ tr.receivedBy }} <span class="muted" dir="ltr">{{ stamp(tr.receivedAtUtc) }}</span></li> }
+              @if (tr.cancelledAtUtc) { <li><b>{{ 'tr.h.cancelled' | t }}</b> — {{ tr.cancelledBy }} <span class="muted" dir="ltr">{{ stamp(tr.cancelledAtUtc) }}</span></li> }
+            </ul>
+
+            <div class="signatures print-only">
+              <div>{{ 'tr.signGives' | t }}: ........................</div>
+              <div>{{ 'tr.signCarrier' | t }}: ........................</div>
+              <div>{{ 'tr.signReceives' | t }}: ........................</div>
+            </div>
+          </div>
+
+          <!-- ===== the actions of this step ===== -->
+          <div class="card actions no-print">
+            @if (tr.can.approve) {
+              <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="approve(tr)">{{ 'tr.approve' | t }}</button>
+              <button type="button" class="btn btn-light" (click)="rejectOpen.set(!rejectOpen())">{{ 'tr.reject' | t }}</button>
+            }
+
+            @if (rejectOpen() && tr.can.reject) {
+              <div class="inline">
+                <textarea rows="2" [placeholder]="'tr.rejectReason' | t" [value]="rejectReason()" (input)="rejectReason.set($any($event.target).value)"></textarea>
+                <button type="button" class="btn btn-light danger" [disabled]="saving() || !rejectReason().trim()" (click)="reject()">{{ 'tr.reject' | t }}</button>
+              </div>
+            }
+
+            @if (tr.can.dispatch) {
+              <div class="inline">
+                <input type="text" maxlength="500" [placeholder]="'tr.shipping' | t" [value]="shipping()" (input)="shipping.set($any($event.target).value)" />
+                <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="dispatch()">{{ 'tr.dispatch' | t }}</button>
+              </div>
+            }
+
+            @if (tr.can.receive) {
+              <div class="inline">
+                <textarea rows="2" [placeholder]="'tr.receiveNote' | t" [value]="receiveNote()" (input)="receiveNote.set($any($event.target).value)"></textarea>
+                <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="receive(tr)">{{ 'tr.receive' | t }}</button>
+              </div>
+            }
+
+            @if (tr.can.cancel) {
+              <button type="button" class="btn btn-light" [disabled]="saving()" (click)="cancel()">{{ 'tr.cancel' | t }}</button>
+            }
+          </div>
+        }
+      }
+    }

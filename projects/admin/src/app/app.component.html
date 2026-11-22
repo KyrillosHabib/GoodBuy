@@ -1,0 +1,7 @@
+<router-outlet />
+
+<div class="toasts">
+  @for (t of toast.toasts(); track t.id) {
+    <div class="toast toast-{{ t.type }}" (click)="toast.dismiss(t.id)">{{ t.text }}</div>
+  }
+</div>

@@ -1,0 +1,47 @@
+<div class="page-head"><h1>{{ 'acc.nav.inbox' | t }}</h1></div>
+<app-intro [text]="'acc.inbox.intro' | t" />
+
+@if (dash(); as d) {
+  <div class="card">
+    <h3>{{ 'acc.inbox.waiting' | t }}</h3>
+    <div class="chips">
+      <a class="chip-btn" routerLink="/accounting/sales">{{ 'acc.nav.sales' | t }} / {{ 'acc.nav.purchases' | t }}: <strong>{{ d.documents }}</strong></a>
+      <a class="chip-btn" routerLink="/accounting/treasury">{{ 'acc.nav.treasury' | t }}: <strong>{{ d.vouchers + d.transfers + d.carrierSettlements + (d.gatewaySettlements ?? 0) }}</strong></a>
+      <a class="chip-btn" routerLink="/accounting/journal">{{ 'acc.nav.journal' | t }}: <strong>{{ d.journal }}</strong></a>
+      <a class="chip-btn" routerLink="/accounting/settlements">{{ 'acc.nav.settlements' | t }}: <strong>{{ d.settlements }}</strong></a>
+    </div>
+  </div>
+}
+
+<div class="tabs">
+  <button type="button" class="tab" [class.on]="!resolved()" (click)="setResolved(false)">{{ 'acc.inbox.open' | t }}</button>
+  <button type="button" class="tab" [class.on]="resolved()" (click)="setResolved(true)">{{ 'acc.inbox.all' | t }}</button>
+</div>
+
+<div class="card">
+  @if (issues().length === 0) {
+    <p class="muted">{{ 'acc.inbox.empty' | t }}</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.inbox.kind' | t }}</th><th>{{ 'acc.inbox.about' | t }}</th><th>{{ 'acc.inbox.what' | t }}</th><th></th></tr></thead>
+        <tbody>
+          @for (i of issues(); track i.id) {
+            <tr [class.muted]="i.resolvedAtUtc">
+              <td dir="ltr">{{ i.createdAtUtc | slice: 0 : 16 }}</td>
+              <td><span class="chip" [class.st-Rejected]="i.kind === 'error' && !i.resolvedAtUtc" [class.st-PendingApproval]="i.kind === 'attention' && !i.resolvedAtUtc">{{ 'acc.inbox.' + i.kind | t }}</span></td>
+              <td>{{ 'acc.inbox.src.' + i.sourceType | t }} <strong dir="ltr">{{ i.sourceNumber }}</strong><br /><span class="muted small">{{ 'acc.inbox.ev.' + i.eventKey | t }}</span></td>
+              <td class="small">{{ i.message }}</td>
+              <td class="actions">
+                @if (!i.resolvedAtUtc) {
+                  @if (i.kind === 'error' && retryable(i)) { <button type="button" class="btn btn-primary btn-sm" [disabled]="busy()" (click)="retry(i)">{{ 'acc.inbox.retry' | t }}</button> }
+                  <button type="button" class="btn btn-light btn-sm" [disabled]="busy()" (click)="resolve(i)">{{ 'acc.inbox.done' | t }}</button>
+                } @else { <span class="muted small">{{ i.resolvedByName }}</span> }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

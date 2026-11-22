@@ -1,0 +1,166 @@
+<div class="page-head"><h1>{{ 'acc.nav.banks' | t }}</h1></div>
+<app-intro [text]="'accs.bank.intro' | t" />
+
+<div class="tabs">
+  <button type="button" class="tab" [class.on]="tab() === 'banks'" (click)="tab.set('banks')">{{ 'accs.bank.tabBanks' | t }}</button>
+  <button type="button" class="tab" [class.on]="tab() === 'branches'" (click)="tab.set('branches')">{{ 'accs.bank.tabBranches' | t }}</button>
+  <button type="button" class="tab" [class.on]="tab() === 'accounts'" (click)="tab.set('accounts')">{{ 'accs.bank.tabAccounts' | t }}</button>
+</div>
+
+<!-- ================= banks ================= -->
+@if (tab() === 'banks') {
+  <div class="toolbar">@if (canEdit) { <button type="button" class="btn btn-primary" (click)="startBank(null)">+ {{ 'accs.bank.newBank' | t }}</button> }</div>
+  <div class="card"><div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'a.name' | t }}</th><th>SWIFT</th><th>{{ 'accs.bank.country' | t }}</th><th>{{ 'accs.bank.branches' | t }}</th><th>{{ 'a.status' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (b of banks(); track b.id) {
+          <tr>
+            <td><strong>{{ b.name }}</strong></td><td dir="ltr">{{ b.swiftCode }}</td><td>{{ b.country }}</td><td class="num">{{ b.branches.length }}</td>
+            <td><span class="chip" [class.chip-bad]="!b.isActive">{{ (b.isActive ? 'a.active' : 'accs.inactive') | t }}</span></td>
+            <td class="actions">
+              @if (canEdit) {
+                <button type="button" class="btn btn-light btn-sm" (click)="startBank(b)">{{ 'a.edit' | t }}</button>
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteBank(b)">{{ 'a.delete' | t }}</button>
+              }
+            </td>
+          </tr>
+        } @empty { <tr><td colspan="6" class="muted">—</td></tr> }
+      </tbody>
+    </table>
+  </div></div>
+}
+
+<!-- ================= branches ================= -->
+@if (tab() === 'branches') {
+  <div class="toolbar">@if (canEdit) { <button type="button" class="btn btn-primary" (click)="startBranch(null)">+ {{ 'accs.bank.newBranch' | t }}</button> }</div>
+  <div class="card"><div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'accs.bank.bank' | t }}</th><th>{{ 'accs.bank.branch' | t }}</th><th>{{ 'accs.bank.code' | t }}</th><th>{{ 'accs.bank.address' | t }}</th><th class="num">{{ 'accs.bank.accounts' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (r of branchRows(); track r.branch.id) {
+          <tr>
+            <td>{{ r.bank.name }}</td><td><strong>{{ r.branch.name }}</strong> @if (!r.branch.isActive) { <span class="chip chip-bad">{{ 'accs.inactive' | t }}</span> }</td>
+            <td dir="ltr">{{ r.branch.code }}</td><td class="small">{{ r.branch.address }}</td><td class="num">{{ r.branch.accountsCount }}</td>
+            <td class="actions">
+              @if (canEdit) {
+                <button type="button" class="btn btn-light btn-sm" (click)="startBranch(r.branch)">{{ 'a.edit' | t }}</button>
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteBranch(r.branch)">{{ 'a.delete' | t }}</button>
+              }
+            </td>
+          </tr>
+        } @empty { <tr><td colspan="6" class="muted">—</td></tr> }
+      </tbody>
+    </table>
+  </div></div>
+}
+
+<!-- ================= bank accounts ================= -->
+@if (tab() === 'accounts') {
+  <div class="toolbar">@if (canEdit) { <button type="button" class="btn btn-primary" (click)="startAccount(null)">+ {{ 'accs.bank.newAccount' | t }}</button> }</div>
+  <div class="card"><div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'a.name' | t }}</th><th>{{ 'accs.bank.branch' | t }}</th><th>{{ 'accs.bank.holder' | t }}</th><th>{{ 'acc.tr.accountNumber' | t }}</th><th>{{ 'accs.cash.currency' | t }}</th><th class="num">{{ 'acc.balance' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (c of bankAccounts(); track c.id) {
+          <tr>
+            <td><strong>{{ c.name }}</strong> @if (!c.isActive) { <span class="chip chip-bad">{{ 'accs.inactive' | t }}</span> }</td>
+            <td>{{ c.bankBranchName ?? c.bankName }}</td><td>{{ c.accountHolder }}</td>
+            <td dir="ltr">{{ c.accountNumber }}<br /><span class="muted small">{{ c.iban }}</span></td><td dir="ltr">{{ c.currencyCode }}</td>
+            <td class="num" dir="ltr">{{ c.balance | number: '1.2-2' }}</td>
+            <td class="actions">@if (canEdit) { <button type="button" class="btn btn-light btn-sm" (click)="startAccount(c)">{{ 'a.edit' | t }}</button> }</td>
+          </tr>
+        } @empty { <tr><td colspan="7" class="muted">—</td></tr> }
+      </tbody>
+    </table>
+  </div></div>
+}
+
+@if (bankForm(); as f) {
+  <app-modal [title]="(f.id ? 'accs.bank.editBank' : 'accs.bank.newBank') | t" (closed)="bankForm.set(null)">
+    <div class="form-row">
+      <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input [(ngModel)]="f.name" dir="ltr" /></div>
+      <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }}</label><input [(ngModel)]="f.nameAr" dir="rtl" /></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>SWIFT</label><input [(ngModel)]="f.swiftCode" dir="ltr" maxlength="20" /></div>
+      <div class="field"><label>{{ 'accs.bank.country' | t }}</label><input [(ngModel)]="f.country" /></div>
+      <div class="field"><label>{{ 'accs.phone' | t }}</label><input [(ngModel)]="f.phone" dir="ltr" /></div>
+    </div>
+    <label class="check"><input type="checkbox" [(ngModel)]="f.isActive" /> {{ 'a.active' | t }}</label>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="bankForm.set(null)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveBank(f)">{{ 'a.save' | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (branchForm(); as f) {
+  <app-modal [title]="(f.id ? 'accs.bank.editBranch' : 'accs.bank.newBranch') | t" (closed)="branchForm.set(null)">
+    <div class="field">
+      <label>{{ 'accs.bank.bank' | t }} <span class="req">*</span></label>
+      <select [(ngModel)]="f.bankId"><option [ngValue]="null">—</option>@for (b of banks(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }</select>
+    </div>
+    <div class="form-row">
+      <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input [(ngModel)]="f.name" dir="ltr" /></div>
+      <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }}</label><input [(ngModel)]="f.nameAr" dir="rtl" /></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>{{ 'accs.bank.code' | t }}</label><input [(ngModel)]="f.code" dir="ltr" /></div>
+      <div class="field"><label>{{ 'accs.phone' | t }}</label><input [(ngModel)]="f.phone" dir="ltr" /></div>
+    </div>
+    <div class="field"><label>{{ 'accs.bank.address' | t }}</label><input [(ngModel)]="f.address" /></div>
+    <label class="check"><input type="checkbox" [(ngModel)]="f.isActive" /> {{ 'a.active' | t }}</label>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="branchForm.set(null)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveBranch(f)">{{ 'a.save' | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (accountForm(); as f) {
+  <app-modal [title]="(f.id ? 'accs.bank.editAccount' : 'accs.bank.newAccount') | t" size="lg" (closed)="accountForm.set(null)">
+    <div class="form-row">
+      <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input [(ngModel)]="f.name" dir="ltr" /></div>
+      <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }} <span class="req">*</span></label><input [(ngModel)]="f.nameAr" dir="rtl" /></div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>{{ 'accs.bank.branch' | t }} <span class="req">*</span></label>
+        <select [(ngModel)]="f.bankBranchId"><option [ngValue]="null">—</option>@for (r of branchRows(); track r.branch.id) { <option [ngValue]="r.branch.id">{{ r.bank.name }} — {{ r.branch.name }}</option> }</select>
+      </div>
+      <div class="field">
+        <label>{{ 'acc.tr.ledgerAccount' | t }} <span class="req">*</span></label>
+        <select [(ngModel)]="f.accountId"><option [ngValue]="null">—</option>@for (a of ledgerChoices(f); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }</select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>{{ 'accs.bank.holder' | t }}</label><input [(ngModel)]="f.accountHolder" /></div>
+      <div class="field">
+        <label>{{ 'accs.bank.kind' | t }}</label>
+        <select [(ngModel)]="f.bankAccountKind">
+          <option value="">—</option>
+          <option value="Current">{{ 'accs.bank.kind.Current' | t }}</option><option value="Savings">{{ 'accs.bank.kind.Savings' | t }}</option><option value="Other">{{ 'accs.bank.kind.Other' | t }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>{{ 'acc.tr.accountNumber' | t }}</label><input [(ngModel)]="f.accountNumber" dir="ltr" /></div>
+      <div class="field"><label>IBAN</label><input [(ngModel)]="f.iban" dir="ltr" maxlength="40" /></div>
+      <div class="field"><label>{{ 'accs.cash.currency' | t }}</label><input [(ngModel)]="f.currencyCode" dir="ltr" maxlength="3" placeholder="EGP" /></div>
+    </div>
+    <div class="field"><label>{{ 'accs.cash.responsible' | t }}</label><input [(ngModel)]="f.responsibleName" /></div>
+    <div class="field">
+      <label>{{ 'accs.cash.allowed' | t }}</label>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        @for (m of methods; track m) { <label class="check"><input type="checkbox" [checked]="f.allowed.includes(m)" (change)="toggle(f, m, $any($event.target).checked)" /> {{ 'acc.method.' + m | t }}</label> }
+      </div>
+      <span class="muted small">{{ 'accs.cash.allowedHint' | t }}</span>
+    </div>
+    <label class="check"><input type="checkbox" [(ngModel)]="f.isActive" /> {{ 'a.active' | t }}</label>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="accountForm.set(null)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveAccount(f)">{{ 'a.save' | t }}</button>
+    </div>
+  </app-modal>
+}

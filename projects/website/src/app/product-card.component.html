@@ -1,0 +1,34 @@
+<a class="product-card" [routerLink]="['/products', product.slug]">
+  <div class="product-img">
+    <img [src]="product.mainImageUrl | productImage: product.slug : product.categorySlug" [alt]="product.name" loading="lazy" />
+    @if (discount() > 0) { <span class="sale-tag">{{ 'product.sale' | t }}</span> } @else if (product.isFeatured) { <span class="ribbon">★</span> }
+    @if (product.isBundle) { <span class="bundle-tag">📦 {{ 'bundle.tag' | t }}</span> }
+    @if (product.price !== null && !product.inStock && product.variantCount > 0) { <span class="stock-tag">{{ 'product.outOfStock' | t }}</span> }
+
+    @if (product.purchasable || (product.variantCount > 1 && product.inStock)) {
+      <button type="button" class="quick-add" [attr.aria-label]="'qv.show' | t" [title]="'qv.show' | t" (click)="show($event)">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1 12H5L6 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></svg>
+      </button>
+    }
+  </div>
+
+  <div class="product-body">
+    <h3>{{ product.name }}</h3>
+
+    @if (product.price !== null) {
+      <div class="price-row" [class.on-sale]="discount() > 0">
+        @if (product.compareAtPrice) { <s class="old-price">{{ product.compareAtPrice | money }}</s> }
+        <span class="price">@if (product.priceFrom) { <small class="price-from">{{ 'product.from' | t }}</small> }<span class="price-now">{{ product.price | money }}</span></span>
+        @if (discount() > 0) { <span class="off" dir="ltr">(-{{ discount() }}%)</span> }
+      </div>
+    }
+
+    @if (product.colors && product.colors.length > 0) {
+      <div class="swatches">
+        @for (c of product.colors; track c) { <i class="swatch" [style.background]="c"></i> }
+      </div>
+    }
+  </div>
+</a>
+
+@if (open()) { <app-quick-view [product]="product" (closed)="open.set(false)" /> }

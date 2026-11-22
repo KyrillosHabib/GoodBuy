@@ -1,0 +1,265 @@
+<div class="page-head">
+  <h1>{{ 'acc.title' | t }}</h1>
+  <span class="spacer"></span>
+  <span class="head-tools">
+    <label class="muted small">{{ 'acc.an.months' | t }}</label>
+    <select class="pill-select" (change)="setMonths(+$any($event.target).value)">
+      @for (m of monthOptions; track m) { <option [value]="m" [selected]="m === months()">{{ m }}</option> }
+    </select>
+    <button type="button" class="btn btn-light btn-sm" (click)="load()">{{ 'acc.an.refresh' | t }}</button>
+  </span>
+</div>
+
+@if (failed()) { <div class="card warn-card"><span>{{ 'acc.an.error' | t }}</span></div> }
+
+<!-- the five numbers -->
+@if (tops().length > 0) {
+  <div class="tops">
+    @for (k of tops(); track k.id) {
+      <a class="card top" [class.warn]="k.warn" [routerLink]="k.link" [style.--c]="k.color">
+        <span class="ic"><app-icon [name]="k.icon" [size]="22" /></span>
+        <span class="kb">
+          <span class="kl">{{ k.label | t }}</span>
+          <strong dir="ltr">{{ k.value | number: '1.0-0' }}</strong>
+          <span class="ks">
+            @if (k.showChange) { <span class="trend" [class.up]="(k.change ?? 0) >= 0" [class.down]="(k.change ?? 0) < 0" dir="ltr">{{ pct(k.change) }}</span> }
+            <span class="muted">{{ k.sub }}</span>
+          </span>
+        </span>
+        @if (k.spark.length > 1) { <span class="kspark"><app-sparkline [values]="k.spark" [color]="k.color" /></span> }
+      </a>
+    }
+  </div>
+}
+
+@if (a(); as an) {
+  <!-- 1. the main financial indicators -->
+  <h2 class="sec">{{ 'a.accdash.s.main' | t }}</h2>
+  <div class="mini-grid">
+    <div class="card mini"><span class="muted">{{ 'a.accdash.m.revenue' | t }}</span><strong dir="ltr">{{ an.totalRevenue | number: '1.0-0' }}</strong>
+      <span class="trend" [class.up]="(an.changes.revenue.changePct ?? 0) >= 0" [class.down]="(an.changes.revenue.changePct ?? 0) < 0" dir="ltr">{{ pct(an.changes.revenue.changePct) }}</span></div>
+    <div class="card mini"><span class="muted">{{ 'a.accdash.m.expenses' | t }}</span><strong dir="ltr">{{ an.totalExpenses | number: '1.0-0' }}</strong>
+      <span class="trend" [class.up]="(an.changes.expenses.changePct ?? 0) <= 0" [class.down]="(an.changes.expenses.changePct ?? 0) > 0" dir="ltr">{{ pct(an.changes.expenses.changePct) }}</span></div>
+    <div class="card mini"><span class="muted">{{ 'a.accdash.m.margin' | t }}</span><strong dir="ltr">{{ an.grossMarginPct | number: '1.0-1' }}%</strong></div>
+    <div class="card mini"><span class="muted">{{ 'a.accdash.m.vat' | t }}</span><strong dir="ltr">{{ an.vat.payable | number: '1.0-0' }}</strong></div>
+  </div>
+  <p class="muted small">{{ 'acc.an.vsLast' | t }}</p>
+
+  <!-- 2. cash boxes and banks -->
+  <h2 class="sec">{{ 'a.accdash.s.cash' | t }}</h2>
+  <div class="grid">
+    <div class="card" style="grid-column: span 5">
+      <div class="card-head"><h3>{{ 'a.accdash.c.balances' | t }}</h3><strong dir="ltr">{{ balanceTotal() | number: '1.0-0' }}</strong></div>
+      <app-donut-chart [items]="balanceTypeItems()" [emptyText]="'acc.an.empty' | t" [title]="'a.accdash.c.balances' | t" />
+      <app-hbar-chart [items]="balanceItems()" [color]="c0" [emptyText]="'acc.an.empty' | t" />
+    </div>
+    <div class="card" style="grid-column: span 7">
+      <div class="card-head">
+        <h3>{{ 'acc.an.c.cash' | t }}</h3>
+        <span class="flow">
+          <span class="up" dir="ltr">+{{ sum(an.monthly.cashIn) | number: '1.0-0' }}</span>
+          <span class="down" dir="ltr">−{{ sum(an.monthly.cashOut) | number: '1.0-0' }}</span>
+          <strong dir="ltr">{{ sum(an.monthly.cashIn) - sum(an.monthly.cashOut) | number: '1.0-0' }}</strong>
+        </span>
+      </div>
+      <app-bar-chart [labels]="an.monthly.months" [series]="cashSeries(an)" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.cash' | t" />
+    </div>
+  </div>
+
+  <!-- 3. debts and obligations -->
+  <h2 class="sec">{{ 'a.accdash.s.debts' | t }}</h2>
+  <div class="mini-grid">
+    <div class="card mini"><span class="muted">{{ 'a.accdash.d.customers' | t }}</span><strong dir="ltr">{{ an.receivables.total | number: '1.0-0' }}</strong><span class="muted small">{{ 'a.accdash.d.overdue' | t }}: <b dir="ltr">{{ (dash()?.overdueReceivables ?? 0) | number: '1.0-0' }}</b></span></div>
+    <div class="card mini"><span class="muted">{{ 'a.accdash.d.suppliers' | t }}</span><strong dir="ltr">{{ an.payables.total | number: '1.0-0' }}</strong><span class="muted small">{{ 'a.accdash.d.overdue' | t }}: <b dir="ltr">{{ (dash()?.overduePayables ?? 0) | number: '1.0-0' }}</b></span></div>
+    <a class="card mini" routerLink="/accounting/settlements-hub"><span class="muted">{{ 'a.accdash.d.carriers' | t }}</span><strong dir="ltr">{{ (dash()?.dueFromCarriers ?? 0) | number: '1.0-0' }}</strong></a>
+    <a class="card mini" routerLink="/accounting/settlements-hub"><span class="muted">{{ 'a.accdash.d.unsettled' | t }}</span><strong dir="ltr">{{ an.unsettled.custody + an.unsettled.gateway | number: '1.0-0' }}</strong><span class="muted small">{{ 'acc.an.u.carriers' | t }} {{ an.unsettled.custody | number: '1.0-0' }} · {{ 'acc.an.u.gateways' | t }} {{ an.unsettled.gateway | number: '1.0-0' }}</span></a>
+  </div>
+  <div class="grid">
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'acc.an.c.aging' | t }}</h3>
+      <app-bar-chart [labels]="agingLabels()" [series]="agingSeries(an)" [stacked]="true" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.aging' | t" />
+    </div>
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'a.accdash.c.accrued' | t }}</h3>
+      <app-donut-chart [items]="items(an.expensesByAccount)" [emptyText]="'acc.an.empty' | t" [title]="'a.accdash.c.accrued' | t" />
+    </div>
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'acc.an.c.topCustomers' | t }}</h3>
+      <app-hbar-chart [items]="items(an.topCustomers)" [color]="c0" [emptyText]="'acc.an.empty' | t" />
+    </div>
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'acc.an.c.topSuppliers' | t }}</h3>
+      <app-hbar-chart [items]="items(an.topSuppliers)" [color]="c1" [emptyText]="'acc.an.empty' | t" />
+    </div>
+  </div>
+
+  <!-- 6. financial performance -->
+  <h2 class="sec">{{ 'a.accdash.s.perf' | t }}</h2>
+  <div class="grid">
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'acc.an.c.revExp' | t }}</h3>
+      <app-bar-chart [labels]="an.monthly.months" [series]="revExpSeries(an)" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.revExp' | t" />
+    </div>
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'a.accdash.c.profitMargin' | t }}</h3>
+      <app-line-chart [labels]="an.monthly.months" [series]="profitSeries(an)" [area]="true" [emptyText]="'acc.an.empty' | t" [title]="'a.accdash.c.profitMargin' | t" />
+      <app-line-chart [labels]="an.monthly.months" [series]="marginSeries(an)" [emptyText]="'acc.an.empty' | t" [title]="'a.accdash.m.margin' | t" />
+    </div>
+    <div class="card" style="grid-column: span 5">
+      <h3>{{ 'a.accdash.c.cogs' | t }}</h3>
+      <app-bar-chart [labels]="an.monthly.months" [series]="cogsSeries(an)" [emptyText]="'acc.an.empty' | t" [title]="'a.accdash.c.cogs' | t" />
+    </div>
+    <div class="card" style="grid-column: span 7">
+      <h3>{{ 'a.accdash.c.compare' | t }}</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th></th><th class="num">{{ 'a.accdash.cmp.cur' | t }}</th><th class="num">{{ 'a.accdash.cmp.prev' | t }}</th><th class="num">%</th></tr></thead>
+          <tbody>
+            @for (g of compare(an); track g.title) {
+              <tr class="grp"><td colspan="4">{{ g.title | t }}</td></tr>
+              @for (r of g.rows; track r.label) {
+                <tr>
+                  <td>{{ r.label | t }}</td>
+                  <td class="num" dir="ltr">{{ r.cur }}</td>
+                  <td class="num muted" dir="ltr">{{ r.prev }}</td>
+                  <td class="num"><span class="trend" [class.up]="r.change !== null && r.good" [class.down]="r.change !== null && !r.good" dir="ltr">{{ pct(r.change) }}</span></td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+}
+
+@if (c(); as ctl) {
+  <!-- 4. settlements -->
+  <h2 class="sec">{{ 'a.accdash.s.settle' | t }}</h2>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th></th><th class="num">{{ 'a.accdash.st.count' | t }}</th><th class="num">{{ 'a.accdash.st.pending' | t }}</th><th class="num">{{ 'a.accdash.st.received' | t }}</th><th class="num">{{ 'a.accdash.st.fees' | t }}</th><th class="num">{{ 'a.accdash.st.diff' | t }}</th></tr></thead>
+        <tbody>
+          @for (s of ctl.settlements; track s.key) {
+            <tr>
+              <td><strong>{{ 'a.accdash.st.' + s.key | t }}</strong></td>
+              <td class="num" dir="ltr">{{ s.count }}</td>
+              <td class="num" dir="ltr"><span [class.badge-warn]="s.pending > 0">{{ s.pending }}</span></td>
+              <td class="num" dir="ltr">{{ s.received | number: '1.0-0' }}</td>
+              <td class="num" dir="ltr">{{ s.fees | number: '1.0-0' }}</td>
+              <td class="num" dir="ltr" [class.neg]="s.difference !== 0">{{ s.difference | number: '1.0-0' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small">{{ 'a.accdash.st.hint' | t: { n: ctl.days } }}</p>
+  </div>
+
+  <!-- 5. review and approvals -->
+  <h2 class="sec">{{ 'a.accdash.s.approvals' | t }}</h2>
+  <div class="queues">
+    @for (q of ctl.queues; track q.key) {
+      <a class="card queue" [class.warn]="q.oldestDays >= 3" [routerLink]="link(q.key)">
+        <span class="muted">{{ 'a.accdash.q.' + q.key | t }}</span>
+        <strong dir="ltr">{{ q.pending }}</strong>
+        <span class="muted small">
+          @if (q.pending > 0) { {{ 'a.accdash.q.oldest' | t: { n: q.oldestDays } }} }
+          @if (q.drafts > 0) { <span> · {{ 'a.accdash.q.drafts' | t: { n: q.drafts } }}</span> }
+          @if (q.pending === 0 && q.drafts === 0) { {{ 'a.accdash.q.none' | t }} }
+        </span>
+      </a>
+    }
+  </div>
+
+  <!-- 7. control -->
+  <h2 class="sec">{{ 'a.accdash.s.control' | t }}</h2>
+  <div class="mini-grid">
+    <a class="card mini" routerLink="/accounting/journal" [class.warn]="draftEntries(ctl) > 0"><span class="muted">{{ 'a.accdash.k.unposted' | t }}</span><strong dir="ltr">{{ draftEntries(ctl) + queueOf(ctl, 'journal').pending }}</strong><span class="muted small">{{ 'a.accdash.k.unpostedHint' | t }}</span></a>
+    <a class="card mini" routerLink="/accounting/periods" [class.warn]="ctl.openPeriods > 0"><span class="muted">{{ 'a.accdash.k.openPeriods' | t }}</span><strong dir="ltr">{{ ctl.openPeriods }}</strong></a>
+    <a class="card mini" routerLink="/accounting/settlements-hub" [class.warn]="unsettledAccounts() > 0"><span class="muted">{{ 'a.accdash.k.needSettle' | t }}</span><strong dir="ltr">{{ unsettledAccounts() }}</strong></a>
+    <a class="card mini" routerLink="/accounting/inbox" [class.warn]="issues() > 0"><span class="muted">{{ 'a.accdash.k.issues' | t }}</span><strong dir="ltr">{{ issues() }}</strong></a>
+  </div>
+  <div class="grid">
+    <div class="card" style="grid-column: span 5">
+      <div class="card-head"><h3>{{ 'a.accdash.c.periods' | t }}</h3><a routerLink="/accounting/periods">{{ 'a.dash2.c.all' | t }}</a></div>
+      @if (ctl.periods.length === 0) { <p class="muted">{{ 'a.accdash.c.noPeriods' | t }}</p> } @else {
+        <ul class="rows">
+          @for (p of ctl.periods; track p.name + p.startDate) {
+            <li>
+              <span class="dot" [style.background]="p.overdue ? '#dc2626' : '#3f9e6a'"></span>
+              <span class="main"><strong>{{ p.name }}</strong><span class="muted small" dir="ltr">{{ p.startDate | date: 'dd/MM/yyyy' }} → {{ p.endDate | date: 'dd/MM/yyyy' }}</span></span>
+              @if (p.overdue) { <span class="tag-warn">{{ 'a.accdash.c.shouldClose' | t }}</span> }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="card" style="grid-column: span 7">
+      <div class="card-head"><h3>{{ 'a.accdash.c.audit' | t }}</h3><a routerLink="/accounting/audit">{{ 'a.dash2.c.all' | t }}</a></div>
+      @if (ctl.audit.length === 0) { <p class="muted">{{ 'acc.an.empty' | t }}</p> } @else {
+        <ul class="rows">
+          @for (r of ctl.audit; track r.atUtc + r.action + (r.number ?? '')) {
+            <li>
+              <span class="dot" [style.background]="actionColor(r.action)"></span>
+              <span class="main"><strong>{{ r.action }} · {{ r.entityType }} <span dir="ltr">{{ r.number }}</span></strong><span class="muted small">{{ r.userName }} · <span dir="ltr">{{ r.atUtc | date: 'dd/MM HH:mm' }}</span></span></span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+
+  <!-- 8. the accounting team -->
+  <h2 class="sec">{{ 'a.accdash.s.team' | t }}</h2>
+  <div class="grid">
+    <div class="card" style="grid-column: span 7">
+      <h3>{{ 'a.accdash.c.teamChart' | t: { n: ctl.days } }}</h3>
+      <app-bar-chart [labels]="teamLabels(ctl)" [series]="teamSeries(ctl)" [emptyText]="'acc.an.empty' | t" [title]="'a.accdash.s.team' | t" />
+    </div>
+    <div class="card" style="grid-column: span 5">
+      <h3>{{ 'a.accdash.c.teamTable' | t }}</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'a.accdash.t.name' | t }}</th><th class="num">{{ 'a.accdash.t.created' | t }}</th><th class="num">{{ 'a.accdash.t.approved' | t }}</th><th class="num">{{ 'a.accdash.t.rejected' | t }}</th><th class="num">{{ 'a.accdash.t.late' | t }}</th></tr></thead>
+          <tbody>
+            @for (m of ctl.team; track m.name) {
+              <tr>
+                <td><strong>{{ m.name }}</strong></td>
+                <td class="num" dir="ltr">{{ m.created }}</td>
+                <td class="num" dir="ltr">{{ m.approved }}</td>
+                <td class="num" dir="ltr">{{ m.rejected }}</td>
+                <td class="num" dir="ltr"><span [class.badge-warn]="m.late > 0">{{ m.late }}</span></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="muted">{{ 'acc.an.empty' | t }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="muted small">{{ 'a.accdash.t.hint' | t }}</p>
+    </div>
+  </div>
+}
+
+<!-- 9. quick reports -->
+<h2 class="sec">{{ 'a.accdash.s.reports' | t }}</h2>
+<div class="reports">
+  @for (r of reports; track r.tab) {
+    <a class="card rep" routerLink="/accounting/reports" [queryParams]="{ tab: r.tab }">
+      <span class="ic"><app-icon [name]="r.icon" [size]="20" /></span>
+      <strong>{{ 'acc.rep.' + r.tab | t }}</strong>
+    </a>
+  }
+</div>
+
+<div class="grid-4">
+  @for (l of links(); track l.path) {
+    <a class="card link-card" [routerLink]="l.path">
+      <app-icon [name]="l.icon" [size]="22" />
+      <strong>{{ l.key | t }}</strong>
+      <span class="muted small">{{ l.key + '.hint' | t }}</span>
+    </a>
+  }
+</div>

@@ -1,0 +1,116 @@
+<div class="page-head">
+  <h1>{{ 'a.content.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="startCreate()">+ {{ 'a.content.new' | t }}</button>
+</div>
+<app-intro [text]="'a.content.intro' | t" />
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else {
+    <app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" />
+  }
+</div>
+
+<ng-template #row let-i>
+  <td>
+    @if (i.imageUrl) {
+      <img class="thumb thumb-sm" [src]="i.imageUrl | assetUrl" alt="" />
+    } @else if (i.icon) {
+      <span class="thumb thumb-sm thumb-empty"><app-icon [name]="i.icon" [size]="22" /></span>
+    } @else {
+      <span class="muted">—</span>
+    }
+  </td>
+  <td>{{ i.id }}</td>
+  <td><span class="chip">{{ ('a.type.' + i.type) | t }}</span></td>
+  <td><strong>{{ titleOf(i) }}</strong></td>
+  <td>{{ i.value }}</td>
+  <td>{{ i.sortOrder }}</td>
+  <td>@if (i.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="startEdit(i)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(i)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (formOpen()) {
+  <app-modal [title]="editing() ? ('a.content.edit' | t: { id: editing()!.id }) : ('a.content.new' | t)" size="lg" (closed)="formOpen.set(false)">
+    <form id="content-form" [formGroup]="form" (ngSubmit)="save()">
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'a.content.type' | t }}</label>
+          <select formControlName="type">
+            @for (t of types; track t) { <option [value]="t">{{ ('a.type.' + t) | t }}</option> }
+          </select>
+          <div class="hint-text">{{ config().hint | t }}</div>
+        </div>
+        <div class="field narrow-field">
+          <label>{{ 'a.order' | t }}</label>
+          <input type="number" min="0" formControlName="sortOrder" />
+        </div>
+      </div>
+
+      <!-- only the fields this kind of item really uses -->
+      <app-translation-fields [group]="form.controls.translations" [fields]="fields()" />
+
+      @if (config().value) {
+        <div class="field">
+          <label>{{ 'a.content.value' | t }} <span class="req">*</span></label>
+          <input dir="ltr" formControlName="value" placeholder="14+" />
+          @if (valueMissing()) { <div class="error">{{ 'contact.required' | t }}</div> }
+        </div>
+      }
+
+      @if (config().country) {
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'a.content.marketKind' | t }}</label>
+            <div class="segmented">
+              <button type="button" [class.on]="marketKind() === 'country'" (click)="setMarketKind('country')">{{ 'a.content.country' | t }}</button>
+              <button type="button" [class.on]="marketKind() === 'continent'" (click)="setMarketKind('continent')">{{ 'a.content.continent' | t }}</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>{{ 'a.content.marketRole' | t }}</label>
+            <select formControlName="marketRole">
+              <option value="none">{{ 'a.content.role.none' | t }}</option>
+              <option value="export">{{ 'a.content.role.export' | t }}</option>
+              <option value="import">{{ 'a.content.role.import' | t }}</option>
+              <option value="both">{{ 'a.content.role.both' | t }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>{{ (marketKind() === 'country' ? 'a.content.country' : 'a.content.continent') | t }} <span class="req">*</span></label>
+          <select formControlName="marketCode" (change)="onCountry($any($event.target).value)">
+            <option value="">{{ 'a.content.pickCountry' | t }}</option>
+            @if (marketKind() === 'country') {
+              @for (c of countries; track c.code) { <option [value]="c.code">{{ c.en }} — {{ c.ar }}</option> }
+            } @else {
+              @for (c of continents; track c.code) { <option [value]="c.code">{{ c.en }} — {{ c.ar }}</option> }
+            }
+          </select>
+          <div class="hint-text">{{ 'a.content.countryHint' | t }}</div>
+          @if (valueMissing()) { <div class="error">{{ 'contact.required' | t }}</div> }
+        </div>
+      }
+
+      @if (config().icon) {
+        <app-icon-picker [control]="form.controls.icon" label="a.content.icon" />
+      }
+
+      @if (config().image) {
+        <app-image-field [control]="form.controls.imageUrl" label="a.imageOptional" />
+      }
+
+      <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+    </form>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="formOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="content-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

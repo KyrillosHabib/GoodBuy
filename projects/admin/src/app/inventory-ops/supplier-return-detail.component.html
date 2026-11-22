@@ -1,0 +1,201 @@
+    <div class="page-head no-print">
+      <div>
+        <a class="back" routerLink="/inventory/returns">← {{ 'sr.back' | t }}</a>
+        @if (t(); as tr) {
+          <h1><span dir="ltr">{{ tr.number }}</span> <span [class]="'chip st-' + tr.status">{{ 'sr.s.' + tr.status | t }}</span></h1>
+        } @else {
+          <h1>{{ 'sr.newTitle' | t }}</h1>
+        }
+      </div>
+      @if (t()) { <button type="button" class="btn btn-light" (click)="print()">{{ 'sr.print' | t }}</button> }
+    </div>
+
+    @if (loading()) {
+      <p class="muted">{{ 'common.loading' | t }}</p>
+    } @else {
+
+      <!-- ================= new / draft ================= -->
+      @if (editing()) {
+        <div class="card">
+          <div class="grid2">
+            <div class="field">
+              <label>{{ 'sr.whLabel' | t }}</label>
+              <select (change)="setWarehouse(+$any($event.target).value)">
+                <option value="0" [selected]="warehouseId() === 0">—</option>
+                @for (w of lookups().warehouses; track w.id) { <option [value]="w.id" [selected]="w.id === warehouseId()">{{ w.name }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label>{{ 'sr.supLabel' | t }}</label>
+              <select (change)="supplierId.set(+$any($event.target).value)">
+                <option value="0" [selected]="supplierId() === 0">—</option>
+                @for (s of lookups().suppliers; track s.id) { <option [value]="s.id" [selected]="s.id === supplierId()">{{ s.name }}</option> }
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>{{ 'sr.note' | t }}</label>
+            <textarea rows="2" [value]="note()" (input)="note.set($any($event.target).value)"></textarea>
+          </div>
+
+          <div class="field picker">
+            <label>{{ 'sr.addItem' | t }}</label>
+            <input #itemInput type="text" autocomplete="off" (focus)="typing.next($any($event.target).value)" (input)="typing.next($any($event.target).value)" (keydown.enter)="enter($any($event.target).value, itemInput)" />
+            @if (results().length > 0) {
+              <ul class="picker-list">
+                @for (v of results(); track v.id) {
+                  <li><button type="button" (click)="addVariant(v, itemInput)"><strong>{{ v.productName }}</strong> <span class="muted small">{{ v.label }} · <span dir="ltr">{{ v.sku }}</span></span></button></li>
+                }
+              </ul>
+            }
+          </div>
+
+          @if (lines().length === 0) {
+            <p class="muted">{{ 'sr.noLines' | t }}</p>
+          } @else {
+            <div class="table-wrap">
+              <table class="lt">
+                <thead>
+                  <tr>
+                    <th>{{ 'sr.item' | t }}</th><th class="num">{{ 'sr.qty' | t }}</th><th>{{ 'sr.reason' | t }}</th><th>{{ 'sr.batch' | t }}</th><th>{{ 'sr.lineNote' | t }}</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (l of lines(); track l.variantId; let i = $index) {
+                    <tr>
+                      <td><strong>{{ l.name }}</strong><div class="muted small" dir="ltr">{{ l.sku }}</div></td>
+                      <td class="num"><input type="number" min="1" dir="ltr" class="in-qty" [value]="l.quantity" (input)="patch(i, { quantity: $any($event.target).value })" /></td>
+                      <td>
+                        <select (change)="patch(i, { reason: $any($event.target).value })">
+                          @for (r of reasons; track r) { <option [value]="r" [selected]="r === l.reason">{{ 'sr.reason.' + r | t }}</option> }
+                        </select>
+                      </td>
+                      <td>
+                        <select (change)="patch(i, { batchId: $any($event.target).value })">
+                          <option value="" [selected]="l.batchId === ''">{{ 'sr.batchAuto' | t }}</option>
+                          @for (b of l.batches; track b.id) {
+                            <option [value]="b.id" [selected]="'' + b.id === l.batchId">{{ batchText(b) }}</option>
+                          }
+                        </select>
+                      </td>
+                      <td><input type="text" maxlength="500" [value]="l.note" (input)="patch(i, { note: $any($event.target).value })" /></td>
+                      <td><button type="button" class="btn btn-light btn-sm" (click)="removeLine(i)">×</button></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <div class="bar">
+            <button type="button" class="btn btn-light" [disabled]="saving()" (click)="save(false)">{{ 'sr.saveDraft' | t }}</button>
+            <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(true)">{{ 'sr.send' | t }}</button>
+          </div>
+        </div>
+      }
+
+      <!-- ================= an existing return ================= -->
+      @if (t(); as tr) {
+        @if (!editing()) {
+          <div class="print-area sheet">
+            <div class="sheet-head">
+              <h2>{{ 'sr.title' | t }} <span dir="ltr">{{ tr.number }}</span></h2>
+              <span [class]="'chip st-' + tr.status">{{ 'sr.s.' + tr.status | t }}</span>
+            </div>
+
+            <div class="grid2 info">
+              <div><span class="muted small">{{ 'sr.warehouse' | t }}</span><strong>{{ tr.warehouse }}</strong></div>
+              <div><span class="muted small">{{ 'sr.supplier' | t }}</span><strong>{{ tr.supplier }}</strong></div>
+              @if (tr.note) { <div class="wide"><span class="muted small">{{ 'sr.note' | t }}</span>{{ tr.note }}</div> }
+              @if (tr.supplierDocument) { <div class="wide"><span class="muted small">{{ 'sr.supplierDoc' | t }}</span><span dir="ltr">{{ tr.supplierDocument }}</span></div> }
+              @if (tr.rejectionReason) { <div class="wide bad"><span class="small">{{ 'sr.rejectReason' | t }}</span>{{ tr.rejectionReason }}</div> }
+            </div>
+
+            @if (waitText(tr); as w) { <p class="wait no-print">{{ w }}</p> }
+
+            <div class="table-wrap">
+              <table class="lt">
+                <thead>
+                  <tr>
+                    <th>{{ 'sr.item' | t }}</th>
+                    <th class="num">{{ 'sr.qty' | t }}</th>
+                    <th>{{ 'sr.reason' | t }}</th>
+                    @if (tr.status === 'Completed') {
+                      <th>{{ 'sr.taken' | t }}</th>
+                      <th class="num">{{ 'sr.cost' | t }}</th>
+                    } @else {
+                      <th>{{ 'sr.batch' | t }}</th>
+                      <th class="num">{{ 'sr.onHand' | t }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (l of tr.lines; track l.id) {
+                    <tr>
+                      <td><strong>{{ l.item }}</strong> <span class="muted small">{{ l.label }}</span><div class="muted small" dir="ltr">{{ l.sku }}</div>@if (l.note) { <div class="muted small">{{ l.note }}</div> }</td>
+                      <td class="num">{{ l.quantity }}</td>
+                      <td>{{ 'sr.reason.' + l.reason | t }}</td>
+                      @if (tr.status === 'Completed') {
+                        <td>@for (b of l.taken; track $index) { <div><span dir="ltr">{{ b.batchNumber }}</span> × {{ b.quantity }}@if (b.expiryDate) { <span class="muted small"> · {{ 'sr.exp' | t }} {{ b.expiryDate.slice(0, 10) }}</span> }</div> }</td>
+                        <td class="num" dir="ltr">@for (b of l.taken; track $index) { <div>{{ money(b.unitCost) }}</div> }</td>
+                      } @else {
+                        <td><span dir="ltr">{{ l.batchNumber ?? '' }}</span>@if (!l.batchNumber) { <span class="muted small">{{ 'sr.batchAuto' | t }}</span> }</td>
+                        <td class="num" [class.low]="l.onHand < l.quantity">{{ l.onHand }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            @if (tr.status === 'Completed') { <p>{{ 'sr.totalCost' | t }}: <strong dir="ltr">{{ money(tr.totalCost) }}</strong></p> }
+
+            <h3>{{ 'sr.history' | t }}</h3>
+            <ul class="history">
+              <li><b>{{ 'sr.h.created' | t }}</b> — {{ tr.createdBy }} <span class="muted" dir="ltr">{{ stamp(tr.createdAtUtc) }}</span></li>
+              @if (tr.submittedAtUtc) { <li><b>{{ 'sr.h.submitted' | t }}</b> <span class="muted" dir="ltr">{{ stamp(tr.submittedAtUtc) }}</span></li> }
+              @if (tr.approvedAtUtc) { <li><b>{{ (tr.status === 'Rejected' ? 'sr.h.rejected' : 'sr.h.approved') | t }}</b> — {{ tr.approvedBy }} <span class="muted" dir="ltr">{{ stamp(tr.approvedAtUtc) }}</span></li> }
+              @if (tr.returnedAtUtc) { <li><b>{{ 'sr.h.returned' | t }}</b> — {{ tr.returnedBy }} <span class="muted" dir="ltr">{{ stamp(tr.returnedAtUtc) }}</span></li> }
+              @if (tr.cancelledAtUtc) { <li><b>{{ 'sr.h.cancelled' | t }}</b> — {{ tr.cancelledBy }} <span class="muted" dir="ltr">{{ stamp(tr.cancelledAtUtc) }}</span></li> }
+            </ul>
+
+            <div class="signatures print-only">
+              <div>{{ 'sr.signKeeper' | t }}: ........................</div>
+              <div>{{ 'sr.signManager' | t }}: ........................</div>
+              <div>{{ 'sr.signSupplier' | t }}: ........................</div>
+            </div>
+          </div>
+
+          <div class="card actions no-print">
+            @if (tr.can.submit) {
+              <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="act(api.submitSupplierReturn(tr.id), 'sr.ok.submitted')">{{ 'sr.send' | t }}</button>
+            }
+
+            @if (tr.can.approve) {
+              <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="act(api.approveSupplierReturn(tr.id), 'sr.ok.approved')">{{ 'sr.approve' | t }}</button>
+              <button type="button" class="btn btn-light" (click)="rejectOpen.set(!rejectOpen())">{{ 'sr.reject' | t }}</button>
+            }
+
+            @if (rejectOpen() && tr.can.reject) {
+              <div class="inline">
+                <textarea rows="2" [placeholder]="'sr.rejectReason' | t" [value]="rejectReason()" (input)="rejectReason.set($any($event.target).value)"></textarea>
+                <button type="button" class="btn btn-light danger" [disabled]="saving() || !rejectReason().trim()" (click)="act(api.rejectSupplierReturn(tr.id, rejectReason().trim()), 'sr.ok.rejected')">{{ 'sr.reject' | t }}</button>
+              </div>
+            }
+
+            @if (tr.can.execute) {
+              <div class="inline">
+                <input type="text" maxlength="100" [placeholder]="'sr.supplierDoc' | t" [value]="supplierDoc()" (input)="supplierDoc.set($any($event.target).value)" />
+                <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="act(api.executeSupplierReturn(tr.id, supplierDoc().trim() || null), 'sr.ok.executed')">{{ 'sr.execute' | t }}</button>
+              </div>
+              <p class="muted small inline">{{ 'sr.executeHint' | t }}</p>
+            }
+
+            @if (tr.can.cancel) {
+              <button type="button" class="btn btn-light" [disabled]="saving()" (click)="cancel(tr.id)">{{ 'sr.cancel' | t }}</button>
+            }
+          </div>
+        }
+      }
+    }

@@ -1,0 +1,87 @@
+<div class="page-head">
+  <h1>{{ 'disc.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="edit(null)">+ {{ 'disc.new' | t }}</button>
+</div>
+<app-intro [text]="'disc.intro' | t" />
+
+<div class="card"><app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" /></div>
+
+<ng-template #row let-d>
+  <td><strong>{{ d.name }}</strong></td>
+  <td dir="ltr">{{ summary(d) }}</td>
+  <td>{{ coverage(d) }}</td>
+  <td class="small" dir="ltr">{{ period(d) }}</td>
+  <td><span class="chip" [class.chip-off]="d.status !== 'active'">{{ ('disc.status.' + d.status) | t }}</span></td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="edit(d)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(d)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (open()) {
+  <app-modal [title]="(editing() ? 'disc.edit' : 'disc.new') | t" (closed)="open.set(false)">
+    <div class="field"><label>{{ 'disc.name' | t }} *</label><input [(ngModel)]="f.name" [placeholder]="'disc.nameHint' | t" /></div>
+
+    <div class="form-row">
+      <div class="field">
+        <label>{{ 'disc.type' | t }} *</label>
+        <select [(ngModel)]="f.type" (ngModelChange)="typeChanged()">
+          <option value="Percent">{{ 'disc.type.Percent' | t }}</option>
+          <option value="FixedAmount">{{ 'disc.type.FixedAmount' | t }}</option>
+          <option value="SetPrice">{{ 'disc.type.SetPrice' | t }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ ('disc.value.' + f.type) | t }} *</label>
+        <input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.value" />
+      </div>
+    </div>
+    <div class="hint-text">{{ ('disc.hint.' + f.type) | t }}</div>
+
+    <div class="field">
+      <label>{{ 'disc.scope' | t }} *</label>
+      <select [(ngModel)]="f.scope" (ngModelChange)="scopeChanged()">
+        @if (f.type !== 'SetPrice') {
+          <option value="AllProducts">{{ 'disc.scope.AllProducts' | t }}</option>
+          <option value="Category">{{ 'disc.scope.Category' | t }}</option>
+          <option value="Product">{{ 'disc.scope.Product' | t }}</option>
+        }
+        <option value="Variant">{{ 'disc.scope.Variant' | t }}</option>
+      </select>
+    </div>
+
+    @if (f.scope === 'Category') {
+      <div class="field">
+        <label>{{ 'disc.category' | t }} *</label>
+        <select [(ngModel)]="f.categoryId">
+          <option [ngValue]="null">—</option>
+          @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ categoryName(c) }}</option> }
+        </select>
+      </div>
+    }
+
+    @if (f.scope === 'Product' || f.scope === 'Variant') {
+      <div class="field">
+        <label>{{ (f.scope === 'Product' ? 'disc.product' : 'disc.variant') | t }} *</label>
+        @if (targetLabel(); as label) {
+          <div class="picker-chosen"><span><strong>{{ label }}</strong></span><button type="button" class="btn btn-light btn-sm" (click)="clearTarget()">✕</button></div>
+        } @else {
+          <app-variant-picker [includeBundles]="true" (picked)="pick($event)" />
+        }
+      </div>
+    }
+
+    <div class="form-row">
+      <div class="field"><label>{{ 'disc.starts' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="starts" /></div>
+      <div class="field"><label>{{ 'disc.ends' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="ends" /></div>
+    </div>
+    <div class="hint-text">{{ 'disc.periodHint' | t }}</div>
+
+    <label class="switch"><input type="checkbox" [(ngModel)]="f.isActive" /><span></span> {{ 'a.active' | t }}</label>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

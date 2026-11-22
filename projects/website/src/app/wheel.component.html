@@ -1,0 +1,70 @@
+@if (data(); as w) {
+  @if (w.enabled && state() !== 'gone') {
+    <!-- A dock on the side of the screen (the left in Arabic, the right in English): two thirds of the wheel peek out of the
+         edge to invite a spin; pressing it opens the panel; the small x tucks it into the edge, but it never disappears. -->
+    <div class="wheel-dock" [class.peek]="state() === 'peek'" [class.open]="state() === 'open'" [class.tucked]="state() === 'tucked'">
+      @if (state() === 'open') {
+        <aside class="wheel-panel" role="dialog" [attr.aria-label]="'wheel.title' | t">
+          <button type="button" class="wheel-x" [attr.aria-label]="'common.close' | t" (click)="collapse()">✕</button>
+          <h2>{{ 'wheel.title' | t }}</h2>
+          <p class="muted">{{ 'wheel.subtitle' | t }}</p>
+
+          <div class="wheel-stage">
+            <div class="wheel-pointer"></div>
+            <svg class="wheel-svg" viewBox="-110 -110 220 220" [style.transform]="'rotate(' + rotation() + 'deg)'" [style.transition]="spinning() ? 'transform 5.5s cubic-bezier(.12,.62,.1,1)' : 'none'" (transitionend)="finished()">
+              @for (s of slices(); track s.id) {
+                <g>
+                  <path [attr.d]="s.path" [style.fill]="s.color" stroke="rgba(0,0,0,.28)" stroke-width="1" />
+                  <text [attr.transform]="s.textTransform" text-anchor="middle" [style.fill]="s.textColor" font-size="9" font-weight="700">{{ s.label }}</text>
+                </g>
+              }
+              <circle r="105" fill="none" stroke="#111" stroke-width="3" />
+              <circle r="13" fill="#111" stroke="#fff" stroke-width="3" />
+            </svg>
+          </div>
+
+          @if (result(); as r) {
+            <div class="wheel-result">
+              @if (r.coupon) {
+                <h3>🎉 {{ 'wheel.won' | t }} {{ r.label }}</h3>
+                <p class="muted small">{{ 'wheel.couponHint' | t }}</p>
+                <div class="wheel-code"><code dir="ltr">{{ r.coupon.code }}</code><button type="button" class="btn btn-light btn-sm" (click)="copy(r.coupon.code)">{{ (copied() ? 'wheel.copied' : 'wheel.copy') | t }}</button></div>
+                <p class="muted small">{{ 'wheel.validUntil' | t }} {{ date(r.coupon.expiresAtUtc) }}</p>
+                <button type="button" class="btn btn-primary" (click)="useCoupon(r.coupon.code)">{{ 'wheel.use' | t }}</button>
+              } @else {
+                <h3>{{ 'wheel.noPrize' | t }}</h3>
+              }
+              @if (r.spinsLeft > 0) { <button type="button" class="btn btn-light" (click)="again()">{{ 'wheel.again' | t }}</button> }
+            </div>
+          } @else if (w.lastCoupon && !spinning() && w.spinsLeft <= 0) {
+            <div class="wheel-result">
+              <h3>{{ 'wheel.yourCoupon' | t }}</h3>
+              <div class="wheel-code"><code dir="ltr">{{ w.lastCoupon.code }}</code></div>
+              <button type="button" class="btn btn-primary" (click)="useCoupon(w.lastCoupon.code)">{{ 'wheel.use' | t }}</button>
+            </div>
+          } @else {
+            @if (w.needsEmail) {
+              <input class="wheel-email" type="email" dir="ltr" [(ngModel)]="email" [placeholder]="'wheel.email' | t" [disabled]="spinning()" />
+            }
+            <button type="button" class="btn btn-primary btn-lg" [disabled]="spinning() || w.spinsLeft <= 0" (click)="spin()">{{ (spinning() ? 'wheel.spinning' : 'wheel.spin') | t }}</button>
+            @if (error()) { <div class="stock-note out">{{ error() }}</div> }
+          }
+        </aside>
+      } @else if (state() === 'peek') {
+        <!-- Two thirds of the wheel are visible; the third inside the edge of the screen -->
+        <button type="button" class="wheel-peek" [attr.aria-label]="'wheel.title' | t" (click)="expand()">
+          <svg viewBox="-110 -110 220 220" class="wheel-mini">
+            @for (s of slices(); track s.id) { <path [attr.d]="s.path" [style.fill]="s.color" stroke="rgba(0,0,0,.28)" stroke-width="1.5" /> }
+            <circle r="105" fill="none" stroke="#111" stroke-width="3" />
+            <circle r="15" fill="#111" stroke="#fff" stroke-width="3" />
+          </svg>
+          <span class="wheel-peek-label">{{ 'wheel.launcher' | t }}</span>
+        </button>
+        <button type="button" class="wheel-x wheel-x-peek" [attr.aria-label]="'common.close' | t" (click)="collapse()">✕</button>
+      } @else {
+        <!-- Tucked: only a small tab is left on the edge -->
+        <button type="button" class="wheel-tab" [attr.aria-label]="'wheel.title' | t" (click)="expand()">🎡</button>
+      }
+    </div>
+  }
+}

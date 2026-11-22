@@ -1,0 +1,118 @@
+<div class="page-head">
+  <h1>{{ 'inv.nav.stock' | t }}</h1>
+  <div class="head-actions">
+    @if (auth.can('inventory.approve')) {
+      <button type="button" class="btn btn-light" [title]="'inv.receive.hint' | t" (click)="open('receive')">{{ 'inv.receive' | t }}</button>
+    }
+    <button type="button" class="btn btn-primary" (click)="open('transfer')">{{ 'inv.transfer' | t }}</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <select [value]="warehouseId() ?? ''" (change)="pickWarehouse($event)">
+      <option value="">{{ 'inv.allWarehouses' | t }}</option>
+      @for (w of warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+    </select>
+    <label class="switch"><input type="checkbox" [checked]="lowOnly()" (change)="toggleLow($event)" /><span></span> {{ 'inv.lowOnly' | t }}</label>
+  </div>
+
+  @if (loading()) { <p class="muted">{{ 'common.loading' | t }}</p> } @else {
+    <app-data-table [rows]="rows()" [columns]="columns" [rowTemplate]="row" />
+  }
+</div>
+
+<ng-template #row let-r>
+  <td>{{ r.warehouseName }}</td>
+  <td><strong>{{ r.productName }}</strong><div class="muted small">{{ r.label }}</div></td>
+  <td dir="ltr"><code>{{ r.sku }}</code></td>
+  <td [class.text-bad]="r.isLow"><strong>{{ r.onHand }}</strong></td>
+  <td>{{ r.reorderLevel || '—' }}</td>
+  <td dir="ltr">{{ r.averageCost }}</td>
+  <td dir="ltr">{{ r.value }}</td>
+  <td dir="ltr">{{ r.price }}</td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="open('adjust', r)">{{ 'inv.adjust' | t }}</button>
+    <button type="button" class="btn btn-light btn-sm" (click)="open('level', r)">{{ 'inv.reorderLevel' | t }}</button>
+  </td>
+</ng-template>
+
+@if (dialog(); as d) {
+  <app-modal [title]="('inv.dlg.' + d) | t" (closed)="close()">
+    <form id="stock-form" [formGroup]="form" (ngSubmit)="submit()">
+      @if (!target()) {
+        <div class="field">
+          <label>{{ 'inv.item' | t }} *</label>
+          <app-variant-picker (picked)="onPick($event)" />
+        </div>
+      } @else {
+        <p><strong>{{ target()!.productName }}</strong> {{ target()!.label }} <code>{{ target()!.sku }}</code></p>
+      }
+
+      @if (d === 'transfer') {
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'inv.from' | t }} *</label>
+            <select formControlName="warehouseId">@for (w of warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }</select>
+          </div>
+          <div class="field">
+            <label>{{ 'inv.to' | t }} *</label>
+            <select formControlName="toWarehouseId">@for (w of allActive(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }</select>
+          </div>
+        </div>
+      } @else if (!stockRow()) {
+        <div class="field">
+          <label>{{ 'inv.warehouse' | t }} *</label>
+          <select formControlName="warehouseId">@for (w of warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }</select>
+        </div>
+      }
+
+      @switch (d) {
+        @case ('receive') {
+          <div class="form-row">
+            <div class="field"><label>{{ 'inv.quantity' | t }} *</label><input type="number" min="1" formControlName="quantity" dir="ltr" /></div>
+            <div class="field"><label>{{ 'inv.unitCost' | t }} *</label><input type="number" min="0" step="0.01" formControlName="unitCost" dir="ltr" /></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>{{ 'inv.batch' | t }}</label><input formControlName="batchNumber" dir="ltr" [placeholder]="'inv.batchAuto' | t" /></div>
+            <div class="field"><label>{{ 'inv.expiry' | t }}</label><input type="date" formControlName="expiryDate" dir="ltr" [min]="today" /></div>
+          </div>
+          @if (suppliers().length > 0) {
+            <div class="field">
+              <label>{{ 'inv.supplier' | t }}</label>
+              <select formControlName="supplierId"><option value="">—</option>@for (s of suppliers(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }</select>
+            </div>
+          }
+        }
+        @case ('adjust') {
+          <div class="form-row">
+            <div class="field"><label>{{ 'inv.delta' | t }} *</label><input type="number" formControlName="delta" dir="ltr" /><div class="hint-text">{{ 'inv.deltaHint' | t }}</div></div>
+            <div class="field">
+              <label>{{ 'inv.reason' | t }} *</label>
+              <select formControlName="reason">
+                <option value="adjustment">{{ 'inv.reason.adjustment' | t }}</option>
+                <option value="damage">{{ 'inv.reason.damage' | t }}</option>
+                <option value="return">{{ 'inv.reason.return' | t }}</option>
+              </select>
+            </div>
+          </div>
+        }
+        @case ('transfer') {
+          <div class="field"><label>{{ 'inv.quantity' | t }} *</label><input type="number" min="1" formControlName="quantity" dir="ltr" /></div>
+        }
+        @case ('level') {
+          <div class="field"><label>{{ 'inv.reorderLevel' | t }} *</label><input type="number" min="0" formControlName="level" dir="ltr" /><div class="hint-text">{{ 'inv.levelHint' | t }}</div></div>
+        }
+      }
+
+      @if (d !== 'level') {
+        <div class="field"><label>{{ 'inv.note' | t }}@if (d === 'adjust' || d === 'receive') { * }</label><input formControlName="note" /></div>
+      }
+    </form>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="close()">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="stock-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

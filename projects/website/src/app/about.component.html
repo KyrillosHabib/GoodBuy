@@ -1,0 +1,138 @@
+@if (site.home(); as h) {
+  <!-- the same head as the shop pages: the path, then the name of the page -->
+  <div class="container shop-page">
+    <header class="shop-head">
+      <div class="shop-head-top">
+        <nav class="crumbs" aria-label="breadcrumb">
+          <a routerLink="/" class="crumb-home" [attr.aria-label]="'nav.home' | t"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></a>
+          <i>›</i><b>{{ 'home.about' | t }}</b>
+        </nav>
+      </div>
+      <h1 class="shop-title">{{ 'home.about' | t }}</h1>
+    </header>
+  </div>
+
+  @for (b of blocks(); track b.id) {
+    @switch (b.kind) {
+      @case ('story') {
+    <!-- ================= 01 our story ================= -->
+    <section id="about" class="ab-story" [style.background]="b.bg || null">
+      <div class="container ab-story-grid">
+        <div class="ab-story-pic" appReveal>
+          <img [src]="cfg().about.images.story | imageOr: 'about'" alt="" loading="lazy" />
+          @if (since()) { <span class="ab-cap">{{ 'about.since' | t }} {{ since() }}</span> }
+        </div>
+        <div class="ab-story-text" appReveal>
+          <span class="ab-label"><b>{{ no(b.id) }}</b> {{ 'about.story' | t }}</span>
+          @if (since()) { <div class="ab-year" aria-hidden="true">{{ since() }}</div> }
+          <h2 class="ab-h2">{{ a('storyTitle') }}</h2>
+          <p class="ab-text">{{ a('story1') }}</p>
+          <p class="ab-text">{{ a('story2') }}</p>
+          <p class="ab-text strong">{{ a('story3') }}</p>
+        </div>
+      </div>
+    </section>
+
+      }
+      @case ('stats') {
+    <!-- ================= the numbers ================= -->
+    @if (h.statistics.length > 0) {
+      <section class="ab-stats">
+        <div class="container"><div class="ab-stats-row" [style.background]="b.bg || null">
+          @for (s of h.statistics; track s.id; let idx = $index) {
+            <div class="ab-stat" [appReveal]="idx * 120">
+              <strong [appCountUp]="s.value"></strong>
+              <span>{{ s.title }}</span>
+            </div>
+          }
+        </div></div>
+      </section>
+    }
+
+      }
+      @case ('values') {
+    <!-- ================= 02 what we believe in ================= -->
+    <section class="ab-values" [style.background]="b.bg || null">
+      <div class="container">
+        <div class="ab-head">
+          <span class="ab-label"><b>{{ no(b.id) }}</b> {{ a('valuesLabel') }}</span>
+          <h2 class="ab-h2">{{ a('valuesTitle') }}</h2>
+        </div>
+        <div class="ab-values-grid">
+          @for (n of valueNos; track n) {
+            <article class="ab-value" [appReveal]="n * 90">
+              <span class="ab-value-no">0{{ n }}</span>
+              <h3>{{ a('v' + n + 't') }}</h3>
+              <p>{{ a('v' + n) }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+      }
+      @case ('journey') {
+    <!-- ================= the journey: a line down the page, a stop for every year ================= -->
+    @if (timeline().length > 0) {
+      <section id="journey" class="section journey" [style.background]="b.bg || null">
+        <div class="container">
+          <div class="ab-head center"><span class="ab-label"><b>{{ no(b.id) }}</b> {{ 'about.journeyLabel' | t }}</span><h2 class="ab-h2">{{ 'about.journey' | t }}</h2></div>
+
+          <ol class="tl">
+            @for (it of timeline(); track it; let i = $index) {
+              <li class="tl-item" [class.alt]="i % 2 === 1" [appReveal]="60">
+                <span class="tl-dot"></span>
+                <div class="tl-card">
+                  @if (it.year) { <span class="tl-year">{{ it.year }}</span> }
+                  @if (t(it.title)) { <h3>{{ t(it.title) }}</h3> }
+                  @if (t(it.text)) { <p>{{ t(it.text) }}</p> }
+                  @if (it.videoUrl) {
+                    <video class="tl-media" [src]="it.videoUrl | assetUrl" controls [muted]="true" playsinline preload="metadata"></video>
+                  } @else if (it.imageUrl) {
+                    <img class="tl-media" [src]="it.imageUrl | assetUrl" [alt]="t(it.title)" loading="lazy" />
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        </div>
+      </section>
+    }
+
+      }
+      @case ('closing') {
+    <!-- ================= closing ================= -->
+    <section class="ab-cta" [style.background]="b.bg || null">
+      <div class="container">
+        <span class="ab-label">{{ a('closeKicker') }}</span>
+        <h2>{{ a('closeTitle') }}</h2>
+        <p>{{ a('closeText') }}</p>
+        <strong class="ab-ready">{{ a('closeReady') }}</strong>
+        <a class="btn btn-primary btn-lg" routerLink="/products">{{ 'home.cta' | t }}</a>
+      </div>
+    </section>
+      }
+      @case ('custom') {
+    <!-- ================= a block the owner wrote ================= -->
+    <section class="ab-custom" [class.text-only]="b.custom.layout === 'textOnly'" [class.pic-end]="b.custom.layout === 'imageEnd'" [style.background]="b.bg || null">
+      <div class="container ab-custom-grid">
+        @if (b.custom.layout !== 'textOnly' && b.custom.imageUrl) {
+          <div class="ab-custom-pic" appReveal><img [src]="b.custom.imageUrl | assetUrl" [alt]="t(b.custom.title)" loading="lazy" /></div>
+        }
+        <div class="ab-custom-text" appReveal>
+          @if (t(b.custom.title)) { <h2 class="ab-h2">{{ t(b.custom.title) }}</h2> }
+          @if (t(b.custom.text)) { <p class="ab-text">{{ t(b.custom.text) }}</p> }
+          @if (t(b.custom.buttonLabel) && b.custom.buttonUrl) {
+            <a class="btn btn-primary" [routerLink]="b.custom.buttonUrl">{{ t(b.custom.buttonLabel) }}</a>
+          }
+        </div>
+      </div>
+    </section>
+      }
+    }
+  }
+} @else if (site.loading()) {
+  <p class="container state">{{ 'common.loading' | t }}</p>
+} @else {
+  <p class="container state">{{ 'common.error' | t }}</p>
+}

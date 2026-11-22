@@ -1,0 +1,189 @@
+<div class="card">
+  <h3>{{ 'inv.var.title' | t }}</h3>
+  <div class="hint-text" style="margin-bottom: 1rem">{{ 'inv.var.hint' | t }}</div>
+
+  @if (bundle) {
+    <!-- A package: ONE item with its own price, made of other items. It has no stock of its own. -->
+    <h4>1. {{ 'bundle.contains' | t }}</h4>
+    <div class="hint-text">{{ 'bundle.stepItems' | t }}</div>
+    <table class="table">
+      <thead><tr><th>{{ 'inv.item' | t }}</th><th>{{ 'bundle.unit' | t }}</th><th>{{ 'inv.quantity' | t }}</th><th>{{ 'bundle.line' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (b of bundleItems; track b.variantId; let i = $index) {
+          <tr>
+            <td>{{ b.label }}</td>
+            <td dir="ltr">{{ b.price ?? '—' }}</td>
+            <td><input type="number" min="1" max="1000" dir="ltr" class="count-input" [value]="b.quantity" (input)="b.quantity = num($event) ?? 1" /></td>
+            <td dir="ltr">{{ (b.price ?? 0) * b.quantity }}</td>
+            <td><button type="button" class="btn btn-light btn-sm" (click)="bundleItems.splice(i, 1)">✕</button></td>
+          </tr>
+        }
+        <tr class="entry-row">
+          <td colspan="5"><app-variant-picker #vp [placeholder]="'bundle.addItem' | t" (picked)="addBundleItem($event); vp.reset()" /></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="hint-text">{{ 'bundle.stockHint' | t }}</div>
+
+    <h4 style="margin-top: 1.4rem">2. {{ 'bundle.stepPrice' | t }}</h4>
+    <div class="hint-text">{{ 'bundle.priceHint' | t }}</div>
+    <p class="pkg-total">{{ 'bundle.total' | t }}: <strong dir="ltr">{{ itemsTotal() }}</strong></p>
+    <div class="table-wrap">
+      <table class="table var-table">
+        <thead><tr><th>{{ 'bundle.price' | t }} *</th><th>{{ 'bundle.discPct' | t }}</th><th [title]="'inv.var.help.compare' | t">{{ 'a.prod.comparePrice' | t }}</th><th>{{ 'a.active' | t }}</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><input type="number" min="0" step="0.01" dir="ltr" [value]="rows[0].price || ''" (input)="rows[0].price = num($event) ?? 0" /></td>
+            <td><input type="number" min="0" max="99" step="0.5" dir="ltr" [placeholder]="'bundle.discPh' | t" (input)="applyDiscount(num($event))" /></td>
+            <td><input type="number" min="0" step="0.01" dir="ltr" [value]="rows[0].compareAtPrice ?? ''" (input)="rows[0].compareAtPrice = num($event)" /></td>
+            <td><input type="checkbox" [checked]="rows[0].isActive" (change)="rows[0].isActive = chk($event)" /></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pkg-actions">
+      <button type="button" class="btn btn-light btn-sm" [disabled]="itemsTotal() <= 0" (click)="rows[0].compareAtPrice = itemsTotal()">{{ 'bundle.useTotalAsOld' | t }}</button>
+      @if (itemsTotal() > 0 && rows[0].price > 0) {
+        @if (rows[0].price < itemsTotal()) {
+          <span class="pkg-save">{{ 'bundle.saving' | t }}: <strong dir="ltr">{{ round2(itemsTotal() - rows[0].price) }} ({{ round2((itemsTotal() - rows[0].price) * 100 / itemsTotal()) }}%)</strong></span>
+        } @else {
+          <span class="pkg-warn">{{ 'bundle.noSaving' | t }}</span>
+        }
+      }
+    </div>
+  } @else {
+  <!-- Step 1: what does this product come in? Nothing = a simple product with one price -->
+  @if (options.length === 0) {
+    <div class="var-ask">
+      <strong>{{ 'inv.var.ask' | t }}</strong>
+      <p class="muted small">{{ 'inv.var.askHint' | t }}</p>
+    </div>
+  }
+
+  @for (o of options; track o; let oi = $index) {
+    <div class="var-option">
+      <div class="var-row lang-ltr">
+        @for (lang of languages; track lang) {
+          <input [placeholder]="('inv.var.optionName' | t) + ' (' + (lang === 'ar' ? 'عربي' : 'English') + ')'" [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'"
+                 [value]="text(o.name, lang)" (input)="o.name[lang] = txt($event)" />
+        }
+        <button type="button" class="btn btn-light btn-sm" (click)="removeOption(oi)">✕</button>
+      </div>
+
+      @if (presetOf(o); as p) {
+        <!-- Ready-made values: tick the ones this product comes in -->
+        <div class="chip-pick">
+          @for (v of p.values; track v.en) {
+            <button type="button" class="pick-chip" [class.on]="isOn(o, v)" (click)="toggle(o, v)">
+              @if (p.kind === 'color') { <span class="swatch" [style.background]="v.hex"></span> }
+              {{ label(v) }}
+            </button>
+          }
+          @for (v of extras(o, p); track v.text['en'] + v.text['ar']) {
+            <button type="button" class="pick-chip on" (click)="removeValue(o, v)">
+              @if (v.colorHex) { <span class="swatch" [style.background]="v.colorHex"></span> }
+              {{ pickText(v.text) }} ✕
+            </button>
+          }
+        </div>
+
+        <!-- Another value that is not in the list -->
+        @if (p.kind === 'unit') {
+          <div class="var-row lang-ltr add-line">
+            <input type="number" min="0" step="any" dir="ltr" [placeholder]="'inv.var.amount' | t" #amount />
+            <select #unit>
+              @for (u of p.units ?? []; track u.en) { <option [value]="u.en">{{ lang() === 'ar' ? u.ar : u.en }}</option> }
+            </select>
+            <button type="button" class="btn btn-light btn-sm" (click)="addUnitValue(o, p, amount, unit)">+ {{ 'inv.var.otherValue' | t }}</button>
+          </div>
+        } @else if (p.kind === 'color') {
+          <div class="var-row lang-ltr add-line">
+            <input [placeholder]="'inv.var.colorEn' | t" dir="ltr" #cen />
+            <input [placeholder]="'inv.var.colorAr' | t" dir="rtl" #car />
+            <input type="color" class="var-color" value="#2563eb" #hex [title]="'inv.var.color' | t" />
+            <button type="button" class="btn btn-light btn-sm" (click)="addColor(o, cen, car, hex)">+ {{ 'inv.var.otherColor' | t }}</button>
+          </div>
+        } @else {
+          <div class="var-row lang-ltr add-line">
+            <input [placeholder]="'inv.var.otherValue' | t" dir="ltr" #free />
+            <button type="button" class="btn btn-light btn-sm" (click)="addFree(o, free)">+</button>
+          </div>
+        }
+      } @else {
+        <!-- A free option: every value is typed in both languages -->
+        @for (v of o.values; track v; let vi = $index) {
+          <div class="var-row var-value lang-ltr">
+            @for (lang of languages; track lang) {
+              <input [placeholder]="('inv.var.value' | t) + ' (' + (lang === 'ar' ? 'عربي' : 'English') + ')'" [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'"
+                     [value]="text(v.text, lang)" (input)="v.text[lang] = txt($event)" />
+            }
+            <button type="button" class="btn btn-light btn-sm" (click)="o.values.splice(vi, 1)">✕</button>
+          </div>
+        }
+        <button type="button" class="btn btn-light btn-sm" (click)="o.values.push({ text: {}, colorHex: '' })">+ {{ 'inv.var.addValue' | t }}</button>
+      }
+    </div>
+  }
+
+  <div class="var-actions">
+    @if (options.length < 3) {
+      <span class="muted small">{{ 'inv.var.addOption' | t }}:</span>
+      @for (p of presets; track p.id) {
+        <button type="button" class="btn btn-light btn-sm" (click)="addPreset(p)">+ {{ lang() === 'ar' ? p.name.ar : p.name.en }}</button>
+      }
+      <button type="button" class="btn btn-light btn-sm" (click)="addCustom()">+ {{ 'inv.var.customOption' | t }}</button>
+    }
+    @if (options.length > 0) {
+      <button type="button" class="btn btn-primary btn-sm" (click)="generate()">{{ 'inv.var.generate' | t }}</button>
+    }
+  </div>
+
+  <div class="table-wrap" style="margin-top: 1rem">
+    <table class="table var-table">
+      <thead>
+        <tr>
+          <th>{{ 'inv.var.variant' | t }}</th>
+          <th [title]="'inv.var.skuHint' | t">{{ 'inv.var.sku' | t }}</th>
+          <th [title]="'inv.var.barcodeHint' | t">{{ 'inv.var.barcode' | t }}</th>
+          <th>{{ 'a.prod.price' | t }}</th>
+          <th [title]="'inv.var.help.compare' | t">{{ 'a.prod.comparePrice' | t }}</th>
+          <th>{{ 'a.active' | t }}</th>
+          <th>{{ 'inv.var.track' | t }}</th>
+          <th>{{ 'inv.var.preorder' | t }}</th>
+          <th [title]="'inv.var.help.low' | t">{{ 'inv.var.lowLevel' | t }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows; track r; let i = $index) {
+          <tr>
+            <td><strong>{{ labelOf(r) || ('inv.var.default' | t) }}</strong></td>
+            <td>@if (r.sku) { <code dir="ltr">{{ r.sku }}</code> } @else { <span class="muted small">{{ 'inv.var.skuAuto' | t }}</span> }</td>
+            <td><input type="text" style="min-width: 150px" dir="ltr" maxlength="64" [placeholder]="'inv.var.barcodeAuto' | t" [value]="r.barcode ?? ''" (input)="r.barcode = codeOf($event)" /></td>
+            <td><input type="number" min="0" step="0.01" dir="ltr" [value]="r.price || ''" (input)="r.price = num($event) ?? 0" /></td>
+            <td><input type="number" min="0" step="0.01" dir="ltr" [value]="r.compareAtPrice ?? ''" (input)="r.compareAtPrice = num($event)" /></td>
+            <td><input type="checkbox" [checked]="r.isActive" (change)="r.isActive = chk($event)" /></td>
+            <td><input type="checkbox" [checked]="r.trackStock" (change)="r.trackStock = chk($event)" /></td>
+            <td>
+              <input type="checkbox" [checked]="r.allowPreorder" (change)="r.allowPreorder = chk($event)" />
+              @if (r.allowPreorder) {
+                <input type="number" min="1" max="365" class="var-days" dir="ltr" [placeholder]="'inv.var.days' | t" [value]="r.preorderLeadDays ?? ''" (input)="r.preorderLeadDays = num($event)" />
+              }
+            </td>
+            <td><input type="number" min="0" class="var-days" dir="ltr" [placeholder]="'inv.var.lowLevelAuto' | t" [value]="r.lowStockThreshold || ''" (input)="r.lowStockThreshold = num($event) ?? 0" /></td>
+            <td>
+              @if (rows.length > 1) { <button type="button" class="btn btn-light btn-sm" (click)="rows.splice(i, 1)">✕</button> }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="hint-text">{{ 'inv.var.stockHint' | t }}</div>
+  <ul class="hint-text" style="margin: .4rem 0 0; padding-inline-start: 1.2rem">
+    <li>{{ 'inv.var.help.sku' | t }}</li>
+    <li>{{ 'inv.var.help.compare' | t }}</li>
+    <li>{{ 'inv.var.help.low' | t }}</li>
+  </ul>
+  }
+</div>

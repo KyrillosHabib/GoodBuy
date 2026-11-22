@@ -1,0 +1,11 @@
+@if (items.length === 0) { <p class="muted empty">{{ emptyText }}</p> } @else {
+  <ul class="rows">
+    @for (i of items; track $index) {
+      <li [title]="i.label + ': ' + i.value.toLocaleString('en')">
+        <span class="name">{{ i.label }}</span>
+        <span class="track"><span class="fill" [style.width.%]="pct(i.value)" [style.background]="i.color ?? color"></span></span>
+        <b dir="ltr">{{ fmt(i.value) }}</b>
+      </li>
+    }
+  </ul>
+}

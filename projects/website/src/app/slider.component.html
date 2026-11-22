@@ -1,0 +1,12 @@
+<div #viewport class="slider-viewport" [class.static]="!looping()"
+     (pointerenter)="enter()" (pointerleave)="leave()"
+     (pointerdown)="down($event)" (pointermove)="move($event)" (pointerup)="up($event)" (pointercancel)="up($event)"
+     (click)="click($event)">
+  <div #track class="slider-track">
+    @for (entry of entries(); track entry.key) {
+      <div class="slide">
+        <ng-container *ngTemplateOutlet="template; context: { $implicit: entry.item }"></ng-container>
+      </div>
+    }
+  </div>
+</div>

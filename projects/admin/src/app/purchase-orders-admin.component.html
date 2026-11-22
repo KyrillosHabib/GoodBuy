@@ -1,0 +1,117 @@
+<div class="page-head">
+  <h1>{{ 'inv.nav.purchaseOrders' | t }}</h1>
+  @if (auth.can('purchaseOrders.manage')) { <button type="button" class="btn btn-primary" (click)="newOrder()">+ {{ 'inv.newPo' | t }}</button> }
+</div>
+<app-intro [text]="'inv.po.flow' | t" />
+<div class="card"><app-data-table [rows]="orders()" [columns]="columns" [rowTemplate]="row" /></div>
+
+<ng-template #row let-o>
+  <td dir="ltr"><strong>{{ o.number }}</strong></td>
+  <td>{{ o.supplierName }}</td>
+  <td>{{ o.warehouseName }}</td>
+  <td><span class="chip">{{ ('inv.po.' + o.status) | t }}</span></td>
+  <td dir="ltr">{{ o.total }}</td>
+  <td dir="ltr">{{ o.createdAtUtc.slice(0, 10) }}</td>
+  <td class="actions">
+    @if (o.status === 'Draft' && auth.can('purchaseOrders.manage')) {
+      <button type="button" class="btn btn-light btn-sm" (click)="edit(o)">{{ 'a.edit' | t }}</button>
+      <button type="button" class="btn btn-primary btn-sm" [title]="'inv.po.sendHint' | t" (click)="send(o)">{{ 'inv.sendPo' | t }}</button>
+    }
+    @if (o.status === 'Ordered' || o.status === 'PartiallyReceived') {
+      <button type="button" class="btn btn-primary btn-sm" [title]="'inv.po.receiveHint' | t" (click)="openReceive(o)">{{ 'inv.receiveGoods' | t }}</button>
+    }
+    @if (o.status === 'Received' || o.status === 'Cancelled') {
+      <button type="button" class="btn btn-light btn-sm" (click)="openReceive(o)">{{ 'inv.view' | t }}</button>
+    }
+    @if (auth.can('purchaseOrders.manage') && o.status !== 'Received' && o.status !== 'Cancelled') {
+      <button type="button" class="btn btn-danger btn-sm" (click)="cancel(o)">{{ 'inv.cancelPo' | t }}</button>
+    }
+  </td>
+</ng-template>
+
+<!-- ===== create / edit a draft ===== -->
+@if (editing()) {
+  <app-modal [title]="(editId ? 'inv.editPo' : 'inv.newPo') | t" (closed)="editing.set(false)">
+    <div class="form-row">
+      <div class="field">
+        <label>{{ 'inv.supplier' | t }} *</label>
+        <select [(ngModel)]="supplierId">
+          <option [ngValue]="null">—</option>
+          @for (s of suppliers(); track s.id) { <option [ngValue]="s.id">{{ s.name }}</option> }
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ 'inv.deliverTo' | t }} *</label>
+        <select [(ngModel)]="warehouseId">
+          <option [ngValue]="null">—</option>
+          @for (w of warehouses(); track w.id) { <option [ngValue]="w.id">{{ w.name }}</option> }
+        </select>
+      </div>
+      <div class="field"><label>{{ 'inv.expectedAt' | t }}</label><input type="date" [(ngModel)]="expectedAt" dir="ltr" [min]="today" /></div>
+    </div>
+    <div class="field"><label>{{ 'inv.note' | t }}</label><input [(ngModel)]="notes" /></div>
+
+    <!-- The items: the last row is always ready for the next one, so several items go in without closing anything -->
+    <table class="table po-lines">
+      <thead><tr><th>{{ 'inv.item' | t }}</th><th>{{ 'inv.quantity' | t }}</th><th>{{ 'inv.unitCost' | t }} *</th><th>{{ 'inv.total' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (l of lines; track l; let i = $index) {
+          <tr>
+            <td>{{ l.text }}</td>
+            <td><input type="number" min="1" dir="ltr" class="count-input" [(ngModel)]="l.quantity" /></td>
+            <td><input type="number" min="0" step="0.01" dir="ltr" class="count-input" [class.bad]="!(l.unitCost > 0)" [(ngModel)]="l.unitCost" /></td>
+            <td dir="ltr">{{ (l.quantity || 0) * (l.unitCost || 0) }}</td>
+            <td><button type="button" class="btn btn-light btn-sm" (click)="lines.splice(i, 1)">✕</button></td>
+          </tr>
+        }
+        <tr class="entry-row">
+          <td><app-variant-picker #vp (picked)="draftPick = $event" /></td>
+          <td><input type="number" min="1" dir="ltr" class="count-input" [(ngModel)]="draftQty" [placeholder]="'inv.quantity' | t" /></td>
+          <td><input type="number" min="0" step="0.01" dir="ltr" class="count-input" [(ngModel)]="draftCost" [placeholder]="'inv.unitCost' | t" (keyup.enter)="addDraft(vp)" /></td>
+          <td></td>
+          <td><button type="button" class="btn btn-primary btn-sm" [title]="'inv.addItem' | t" (click)="addDraft(vp)">+</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="muted small">{{ 'inv.po.linesHint' | t }}</p>
+    <p class="strong">{{ 'inv.total' | t }}: <span dir="ltr">{{ total() }}</span></p>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="editing.set(false)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+<!-- ===== receive goods / view ===== -->
+@if (receiving(); as po) {
+  <app-modal [title]="po.number + ' · ' + po.supplierName" (closed)="receiving.set(null)">
+    <p class="muted">{{ po.warehouseName }} · <span class="chip">{{ ('inv.po.' + po.status) | t }}</span></p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'inv.item' | t }}</th><th>{{ 'inv.ordered' | t }}</th><th>{{ 'inv.receivedQty' | t }}</th>
+          @if (canReceive(po)) { <th>{{ 'inv.receiveNow' | t }}</th><th>{{ 'inv.batch' | t }}</th><th>{{ 'inv.expiry' | t }}</th> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of receiveRows; track r.lineId; let i = $index) {
+          <tr>
+            <td>{{ r.text }}</td>
+            <td>{{ po.lines[i].quantityOrdered }}</td>
+            <td>{{ po.lines[i].quantityReceived }}</td>
+            @if (canReceive(po)) {
+              <td><input type="number" min="0" [max]="r.remaining" dir="ltr" class="count-input" [(ngModel)]="r.quantity" /></td>
+              <td><input dir="ltr" class="count-input wide" [(ngModel)]="r.batchNumber" [placeholder]="'inv.batchAuto' | t" /></td>
+              <td><input type="date" dir="ltr" [min]="today" [(ngModel)]="r.expiryDate" /></td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="receiving.set(null)">{{ 'a.cancel' | t }}</button>
+      @if (canReceive(po)) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="receive(po)">{{ 'inv.confirmReceive' | t }}</button> }
+    </div>
+  </app-modal>
+}

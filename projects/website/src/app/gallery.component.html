@@ -1,0 +1,52 @@
+<div class="gal">
+  <div class="gal-main"
+       (mousemove)="onMove($event)" (mouseleave)="zoom.set(null)"
+       (pointerdown)="down($event)" (pointerup)="up($event)" (pointercancel)="cancel()">
+    <div class="gal-track" [style.transform]="'translateX(' + offset() + '%)'">
+      @for (url of images; track url; let i = $index) {
+        <div class="gal-slide">
+          <img [src]="url | assetUrl" [alt]="alt" draggable="false" loading="lazy"
+               [style.transform]="zoom() && i === index() ? 'scale(2.2)' : null"
+               [style.transform-origin]="zoom() ? zoom()!.x + '% ' + zoom()!.y + '%' : null" />
+        </div>
+      }
+    </div>
+
+    @if (featured) { <span class="ribbon">★</span> }
+
+    @if (images.length > 1) {
+      <span class="gal-count">{{ index() + 1 }} / {{ images.length }}</span>
+    }
+
+    <button type="button" class="gal-expand" aria-label="Zoom" (click)="open(); $event.stopPropagation()" (pointerdown)="$event.stopPropagation()">⤢</button>
+  </div>
+
+  @if (images.length > 1) {
+    <div class="gal-thumbs">
+      @for (url of images; track url; let i = $index) {
+        <button type="button" class="thumb-btn" [class.on]="i === index()" (click)="index.set(i)">
+          <img [src]="url | assetUrl" alt="" loading="lazy" />
+        </button>
+      }
+    </div>
+  }
+</div>
+
+@if (lightbox()) {
+  <div class="lightbox" (click)="close()">
+    <button type="button" class="lb-close" aria-label="Close" (click)="close()">✕</button>
+
+    @if (images.length > 1) {
+      <button type="button" class="gal-arrow prev lb-arrow" aria-label="Previous" (click)="go(-1); $event.stopPropagation()"><span>‹</span></button>
+      <button type="button" class="gal-arrow next lb-arrow" aria-label="Next" (click)="go(1); $event.stopPropagation()"><span>›</span></button>
+    }
+
+    <div class="lb-stage" [class.zoomed]="lbZoom()" (click)="toggleLbZoom($event)" (mousemove)="onLbMove($event)">
+      <img [src]="images[index()] | assetUrl" [alt]="alt"
+           [style.transform]="lbZoom() ? 'scale(2.4)' : null"
+           [style.transform-origin]="lbOrigin()" draggable="false" />
+    </div>
+
+    <span class="lb-count">{{ index() + 1 }} / {{ images.length }}</span>
+  </div>
+}

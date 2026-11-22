@@ -1,0 +1,39 @@
+    <div class="page-head">
+      <h1>{{ 'oem.title' | t }}</h1>
+      <button type="button" class="btn btn-primary" [disabled]="saving() || !data()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+    <app-intro [text]="'oem.intro' | t" />
+
+    <div class="card">
+      <strong>{{ 'oem.placeholders' | t }}</strong>
+      <p class="muted small" dir="ltr">{{ placeholders }}</p>
+      <p class="muted small">{{ 'oem.placeholdersHint' | t }}</p>
+    </div>
+
+    @if (data(); as d) {
+      @for (s of statuses; track s) {
+        <div class="card">
+          <div class="spread row">
+            <h3>{{ ('order.status.' + s) | t }}</h3>
+            <label class="switch"><input type="checkbox" [(ngModel)]="d.templates[s].enabled" /><span></span> {{ 'oem.enabled' | t }}</label>
+          </div>
+
+          <div class="form-row" style="direction: ltr">
+            @for (l of langs; track l) {
+              <div class="field" [attr.dir]="l === 'ar' ? 'rtl' : 'ltr'">
+                <label>{{ 'oem.subject' | t }} ({{ l === 'en' ? 'English' : 'العربية' }})</label>
+                <input [(ngModel)]="d.templates[s].subject[l]" [attr.dir]="l === 'ar' ? 'rtl' : 'ltr'" />
+              </div>
+            }
+          </div>
+          <div class="form-row" style="direction: ltr">
+            @for (l of langs; track l) {
+              <div class="field" [attr.dir]="l === 'ar' ? 'rtl' : 'ltr'">
+                <label>{{ 'oem.body' | t }} ({{ l === 'en' ? 'English' : 'العربية' }})</label>
+                <textarea rows="7" [(ngModel)]="d.templates[s].body[l]" [attr.dir]="l === 'ar' ? 'rtl' : 'ltr'"></textarea>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }

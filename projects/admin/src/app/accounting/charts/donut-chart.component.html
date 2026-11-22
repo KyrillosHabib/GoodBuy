@@ -1,0 +1,16 @@
+@if (total() <= 0) { <p class="muted empty">{{ emptyText }}</p> } @else {
+  <div class="wrap">
+    <svg viewBox="0 0 120 120" style="width:160px;height:160px;flex:none" role="img" [attr.aria-label]="title" (mouseleave)="hi.set(null)">
+      @for (a of arcs(); track a.label; let i = $index) {
+        <circle cx="60" cy="60" r="42" fill="none" [attr.stroke]="a.color" [attr.stroke-width]="hi() === i ? 22 : 18" [attr.stroke-dasharray]="a.dash" [attr.stroke-dashoffset]="a.offset" transform="rotate(-90 60 60)" [attr.opacity]="hi() === null || hi() === i ? 1 : .4" style="transition: stroke-width .12s, opacity .12s" (mouseenter)="hi.set(i)" />
+      }
+      @if (hi() !== null && arcs()[hi()!]; as h) {
+        <text x="60" y="57" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" style="direction:ltr">{{ h.value.toLocaleString('en') }}</text>
+        <text x="60" y="71" text-anchor="middle" font-size="9" fill="currentColor" opacity=".7">{{ h.pct }}%</text>
+      } @else {
+        <text x="60" y="64" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor" style="direction:ltr">{{ fmt(total()) }}</text>
+      }
+    </svg>
+    <ul class="lg">@for (a of arcs(); track a.label; let i = $index) { <li [class.on]="hi() === i" (mouseenter)="hi.set(i)" (mouseleave)="hi.set(null)"><i [style.background]="a.color"></i><span class="lbl">{{ a.label }}</span><b dir="ltr">{{ a.pct }}%</b></li> }</ul>
+  </div>
+}

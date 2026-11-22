@@ -1,0 +1,11 @@
+@if (totalPages > 1) {
+  <div class="pager">
+    <button type="button" class="btn btn-light btn-sm" [disabled]="page <= 1" (click)="pageChange.emit(page - 1)">
+      {{ 'common.prev' | t }}
+    </button>
+    <span>{{ page }} / {{ totalPages }}</span>
+    <button type="button" class="btn btn-light btn-sm" [disabled]="page >= totalPages" (click)="pageChange.emit(page + 1)">
+      {{ 'common.next' | t }}
+    </button>
+  </div>
+}

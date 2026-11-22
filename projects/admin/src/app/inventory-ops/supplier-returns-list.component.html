@@ -1,0 +1,64 @@
+<div class="page-head">
+  <div>
+    <h1>{{ 'sr.title' | t }}</h1>
+    <p class="muted">{{ 'sr.sub' | t }}</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/inventory/returns/new">+ {{ 'sr.new' | t }}</a>
+</div>
+
+<div class="tabs">
+  <button type="button" [class.active]="view() === 'all'" (click)="setView('all')">{{ 'sr.tab.all' | t }}</button>
+  <button type="button" [class.active]="view() === 'toApprove'" (click)="setView('toApprove')">
+    {{ 'sr.tab.toApprove' | t }} @if ((data()?.counts?.toApprove ?? 0) > 0) { <span class="badge">{{ data()?.counts?.toApprove }}</span> }
+  </button>
+  <button type="button" [class.active]="view() === 'toReturn'" (click)="setView('toReturn')">
+    {{ 'sr.tab.toReturn' | t }} @if ((data()?.counts?.toReturn ?? 0) > 0) { <span class="badge">{{ data()?.counts?.toReturn }}</span> }
+  </button>
+</div>
+
+<div class="filters-row">
+  <input type="search" [placeholder]="'sr.search' | t" [value]="search()" (input)="search.set($any($event.target).value)" (keyup.enter)="load()" />
+  <select (change)="supplierId.set($any($event.target).value); load()">
+    <option value="" [selected]="supplierId() === ''">{{ 'sr.allSuppliers' | t }}</option>
+    @for (s of lookups().suppliers; track s.id) { <option [value]="s.id" [selected]="supplierId() === '' + s.id">{{ s.name }}</option> }
+  </select>
+  <select (change)="status.set($any($event.target).value); load()">
+    <option value="" [selected]="status() === ''">{{ 'tr.allStatuses' | t }}</option>
+    @for (s of statuses; track s) { <option [value]="s" [selected]="status() === s">{{ 'sr.s.' + s | t }}</option> }
+  </select>
+</div>
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else if ((data()?.items?.length ?? 0) === 0) {
+    <p class="muted">{{ 'sr.none' | t }}</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="tt">
+        <thead>
+          <tr>
+            <th>{{ 'sr.number' | t }}</th><th>{{ 'sr.warehouse' | t }}</th><th>{{ 'sr.supplier' | t }}</th><th>{{ 'tr.status' | t }}</th>
+            <th class="num">{{ 'tr.lines' | t }}</th><th class="num">{{ 'tr.units' | t }}</th><th class="num">{{ 'sr.total' | t }}</th>
+            <th>{{ 'tr.created' | t }}</th><th>{{ 'tr.by' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of data()?.items ?? []; track r.id) {
+            <tr class="row" (click)="open(r.id)">
+              <td dir="ltr"><strong>{{ r.number }}</strong></td>
+              <td>{{ r.warehouse }}</td>
+              <td>{{ r.supplier }}</td>
+              <td><span [class]="'chip st-' + r.status">{{ 'sr.s.' + r.status | t }}</span></td>
+              <td class="num">{{ r.lines }}</td>
+              <td class="num">{{ r.units }}</td>
+              <td class="num" dir="ltr">{{ r.totalCost > 0 ? money(r.totalCost) : '' }}</td>
+              <td dir="ltr">{{ r.createdAtUtc.slice(0, 10) }}</td>
+              <td>{{ r.createdBy }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

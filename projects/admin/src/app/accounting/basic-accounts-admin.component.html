@@ -1,0 +1,56 @@
+<div class="page-head"><h1>{{ 'acc.nav.basic' | t }}</h1></div>
+<app-intro [text]="'accs.basic.intro' | t" />
+
+<div class="card">
+  <h3>{{ 'accs.basic.roles' | t }}</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'accs.basic.role' | t }}</th><th>{{ 'accs.basic.account' | t }}</th></tr></thead>
+      <tbody>
+        @for (r of roles(); track r.key) {
+          <tr>
+            <td><strong>{{ r.name }}</strong></td>
+            <td>
+              <select [ngModel]="r.accountId" (ngModelChange)="setRole(r, $event)" [disabled]="!canEdit">
+                @for (a of eligible(r); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+              </select>
+              @if (r.lockedWhenUsed) { <span class="muted small">{{ 'accs.basic.locked' | t }}</span> }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h3>{{ 'accs.cat.title' | t }}</h3>
+  <p class="muted small">{{ 'accs.cat.hint' | t }}</p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'accs.cat.category' | t }}</th><th>{{ 'accs.cat.sales' | t }}</th><th>{{ 'accs.cat.stock' | t }}</th></tr></thead>
+      <tbody>
+        @for (c of cats(); track c.categoryId) {
+          <tr>
+            <td><strong>{{ c.categoryName }}</strong></td>
+            <td>
+              <select [(ngModel)]="c.salesAccountId" [disabled]="!canEdit">
+                <option [ngValue]="null">{{ 'accs.cat.default' | t }}</option>
+                @for (a of revenue(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+              </select>
+            </td>
+            <td>
+              <select [(ngModel)]="c.inventoryAccountId" [disabled]="!canEdit">
+                <option [ngValue]="null">{{ 'accs.cat.default' | t }}</option>
+                @for (a of stock(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+              </select>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3" class="muted">—</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (canEdit) { <div class="toolbar"><button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveCategories()">{{ 'a.save' | t }}</button></div> }
+</div>

@@ -1,0 +1,76 @@
+<div class="page-head"><h1>{{ 'acc.nav.periods' | t }}</h1></div>
+<app-intro [text]="'accs.per.intro' | t" />
+
+@if (overview(); as o) {
+  @if (o.years.length > 0 && !o.todayCovered) {
+    <div class="alert alert-warn">{{ 'accs.per.todayMissing' | t }}</div>
+  }
+  @if (o.years.length === 0) {
+    <div class="alert">{{ 'accs.per.none' | t }}</div>
+  }
+
+  <div class="toolbar">
+    @if (canEdit) { <button type="button" class="btn btn-primary" (click)="startYear()">+ {{ 'accs.per.newYear' | t }}</button> }
+  </div>
+
+  @for (y of o.years; track y.id) {
+    <div class="card">
+      <div class="year-head">
+        <h3>
+          {{ y.name }}
+          <span class="muted small" dir="ltr">{{ y.startDate | slice: 0 : 10 }} → {{ y.endDate | slice: 0 : 10 }}</span>
+          <span class="chip" [class.chip-bad]="y.isClosed">{{ (y.isClosed ? 'accs.per.yearClosed' : 'accs.per.yearOpen') | t }}</span>
+        </h3>
+        <div>
+          @if (y.isClosed && y.closingEntryId) {
+            <button type="button" class="btn btn-light btn-sm" (click)="toggleClosing(y)">{{ 'accs.per.closingEntry' | t }}</button>
+          }
+          @if (canEdit && !y.isClosed) {
+            <button type="button" class="btn btn-danger btn-sm" [disabled]="busy()" (click)="closeYear(y)">{{ 'accs.per.closeYear' | t }}</button>
+          }
+        </div>
+      </div>
+
+      @if (closingShown() === y.id && y.closingEntryId) { <app-acc-entry-details [entryId]="y.closingEntryId" /> }
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'accs.per.period' | t }}</th><th>{{ 'accs.per.from' | t }}</th><th>{{ 'accs.per.to' | t }}</th><th>{{ 'a.status' | t }}</th><th></th></tr></thead>
+          <tbody>
+            @for (p of y.periods; track p.id) {
+              <tr>
+                <td><strong>{{ p.name }}</strong></td>
+                <td dir="ltr">{{ p.startDate | slice: 0 : 10 }}</td><td dir="ltr">{{ p.endDate | slice: 0 : 10 }}</td>
+                <td>
+                  <span class="chip" [class.chip-bad]="p.isClosed">{{ (p.isClosed ? 'accs.per.closed' : 'accs.per.open') | t }}</span>
+                  @if (p.isClosed && p.closedByName) { <span class="muted small">{{ p.closedByName }} · {{ (p.closedAtUtc ?? '') | slice: 0 : 10 }}</span> }
+                </td>
+                <td class="actions">
+                  @if (canEdit && !y.isClosed) {
+                    <button type="button" class="btn btn-light btn-sm" [disabled]="busy()" (click)="setClosed(p, !p.isClosed)">{{ (p.isClosed ? 'accs.per.reopen' : 'accs.per.close') | t }}</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+}
+
+@if (yearForm(); as f) {
+  <app-modal [title]="'accs.per.newYear' | t" (closed)="yearForm.set(null)">
+    <p class="muted small">{{ 'accs.per.newHint' | t }}</p>
+    <div class="field"><label>{{ 'a.name' | t }}</label><input [(ngModel)]="f.name" maxlength="60" /></div>
+    <div class="field"><label>{{ 'accs.per.start' | t }}</label><input type="date" [(ngModel)]="f.startDate" dir="ltr" /></div>
+    <div class="field">
+      <label>{{ 'accs.per.split' | t }}</label>
+      <select [(ngModel)]="f.split"><option value="Month">{{ 'accs.per.months' | t }}</option><option value="Quarter">{{ 'accs.per.quarters' | t }}</option></select>
+    </div>
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="yearForm.set(null)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="busy() || !f.startDate" (click)="createYear(f)">{{ 'a.save' | t }}</button>
+    </div>
+  </app-modal>
+}

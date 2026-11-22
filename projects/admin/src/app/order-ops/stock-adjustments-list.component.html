@@ -1,0 +1,61 @@
+<div class="page-head">
+  <div>
+    <h1>{{ 'adj.title' | t }}</h1>
+    <p class="muted">{{ 'adj.sub' | t }}</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/inventory/adjustments/new">+ {{ 'adj.new' | t }}</a>
+</div>
+
+<div class="tabs">
+  <button type="button" [class.active]="view() === 'all'" (click)="setView('all')">{{ 'adj.tab.all' | t }}</button>
+  <button type="button" [class.active]="view() === 'toApprove'" (click)="setView('toApprove')">
+    {{ 'adj.tab.toApprove' | t }} @if ((data()?.toApprove ?? 0) > 0) { <span class="badge">{{ data()?.toApprove }}</span> }
+  </button>
+</div>
+
+<div class="filters-row">
+  <input type="search" [placeholder]="'adj.search' | t" [value]="search()" (input)="search.set($any($event.target).value)" (keyup.enter)="load()" />
+  <select (change)="warehouseId.set($any($event.target).value); load()">
+    <option value="" [selected]="warehouseId() === ''">{{ 'adj.allWarehouses' | t }}</option>
+    @for (w of warehouses(); track w.id) { <option [value]="w.id" [selected]="warehouseId() === '' + w.id">{{ w.name }}</option> }
+  </select>
+  <select (change)="status.set($any($event.target).value); load()">
+    <option value="" [selected]="status() === ''">{{ 'adj.allStatuses' | t }}</option>
+    @for (s of statuses; track s) { <option [value]="s" [selected]="status() === s">{{ 'adj.s.' + s | t }}</option> }
+  </select>
+</div>
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else if ((data()?.items?.length ?? 0) === 0) {
+    <p class="muted">{{ 'adj.none' | t }}</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="tt">
+        <thead>
+          <tr>
+            <th>{{ 'adj.number' | t }}</th><th>{{ 'adj.warehouse' | t }}</th><th>{{ 'adj.source' | t }}</th><th>{{ 'adj.status' | t }}</th>
+            <th class="num">{{ 'adj.lines' | t }}</th><th class="num">{{ 'adj.net' | t }}</th>
+            <th>{{ 'adj.created' | t }}</th><th>{{ 'adj.by' | t }}</th><th>{{ 'adj.approvedBy' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of data()?.items ?? []; track r.id) {
+            <tr class="row" (click)="open(r.id)">
+              <td dir="ltr"><strong>{{ r.number }}</strong></td>
+              <td>{{ r.warehouse }}</td>
+              <td><span class="chip src">{{ 'adj.src.' + r.source | t }}</span></td>
+              <td><span [class]="'chip st-' + r.status">{{ 'adj.s.' + r.status | t }}</span></td>
+              <td class="num">{{ r.lines }}</td>
+              <td class="num" dir="ltr" [class.neg]="r.netUnits < 0" [class.pos]="r.netUnits > 0">{{ signed(r.netUnits) }}</td>
+              <td dir="ltr">{{ r.createdAtUtc.slice(0, 10) }}</td>
+              <td>{{ r.createdBy }}</td>
+              <td>{{ r.approvedBy }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

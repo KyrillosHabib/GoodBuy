@@ -1,0 +1,249 @@
+<div class="dash-head">
+  <div>
+    <h1>{{ 'a.dash.title' | t }}</h1>
+    <p class="muted">{{ 'a.dash2.welcome' | t }}</p>
+  </div>
+  <span class="spacer"></span>
+  <span class="live-pill" [class.off]="!live.connected()"><span class="dot"></span>{{ (live.connected() ? 'a.dash2.live' : 'a.dash2.offline') | t }}</span>
+  <button type="button" class="btn btn-light" (click)="reloadAll()">{{ 'a.dash2.refresh' | t }}</button>
+</div>
+
+@if (failed()) { <div class="banner banner-warn">{{ 'a.dash2.error' | t }}</div> }
+
+<!-- the 8 numbers the owner opens the dashboard for -->
+@if (kpis().length > 0) {
+  <div class="kpis">
+    @for (k of kpis(); track k.id) {
+      <a class="card kpi" [class.warn]="k.warn" [routerLink]="k.link" [style.--c]="k.color">
+        <span class="ic"><app-icon [name]="k.icon" [size]="22" /></span>
+        <span class="kb">
+          <span class="kl">{{ k.label | t }}</span>
+          <strong dir="ltr">{{ k.value | number: '1.0-0' }}</strong>
+          <span class="ks">
+            @if (k.showChange) { <span class="trend" [class.up]="(k.change ?? 0) >= 0" [class.down]="(k.change ?? 0) < 0" dir="ltr">{{ pct(k.change) }}</span> }
+            <span class="muted">{{ k.sub }}</span>
+          </span>
+        </span>
+        @if (k.spark.length > 1) { <span class="kspark"><app-sparkline [values]="k.spark" [color]="k.color" /></span> }
+      </a>
+    }
+  </div>
+} @else if (loading()) {
+  <div class="card"><p class="muted">{{ 'a.dash2.loading' | t }}</p></div>
+}
+
+<div class="card">
+  <h3>{{ 'a.dash2.work' | t }}</h3>
+  @if (work().length === 0) { <p class="muted">{{ 'a.dash2.w.none' | t }}</p> } @else {
+    <div class="chips">
+      @for (w of work(); track w.key) {
+        <a class="chip-btn" [class.warn]="w.warn" [routerLink]="w.link">{{ w.key | t }}: <strong dir="ltr">{{ w.count }}</strong></a>
+      }
+    </div>
+  }
+</div>
+
+<!-- sales and performance -->
+@if (ov(); as o) {
+  <div class="dash-grid">
+    <div class="card" style="grid-column: span 8">
+      <div class="dash-card-head">
+        <h3>{{ (salesTab() === 'sales' ? 'a.dash2.c.sales' : 'a.dash3.c.ordersTrend') | t }}</h3>
+        <span class="head-tools">
+          <span class="seg">
+            <button type="button" [class.on]="salesTab() === 'sales'" (click)="salesTab.set('sales')">{{ 'a.dash3.tab.sales' | t }}</button>
+            <button type="button" [class.on]="salesTab() === 'orders'" (click)="salesTab.set('orders')">{{ 'a.dash3.tab.orders' | t }}</button>
+          </span>
+          <select class="pill-select" (change)="setMonths(+$any($event.target).value)">
+            @for (m of monthOptions; track m) { <option [value]="m" [selected]="m === months()">{{ m }} {{ 'a.dash2.c.months' | t }}</option> }
+          </select>
+        </span>
+      </div>
+      @if (salesTab() === 'sales') {
+        <app-bar-chart [labels]="o.months" [series]="salesSeries(o)" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash2.c.sales' | t" />
+      } @else {
+        <app-line-chart [labels]="o.months" [series]="orderSeries(o)" [area]="true" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash3.c.ordersTrend' | t" />
+      }
+    </div>
+    <div class="card" style="grid-column: span 4">
+      <h3>{{ 'a.dash2.c.status' | t }}</h3>
+      <app-donut-chart [items]="statusItems(o)" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash2.c.status' | t" />
+    </div>
+
+    <div class="card" style="grid-column: span 12">
+      <h3>{{ 'a.dash3.c.kpi' | t }}</h3>
+      <div class="perf">
+        @for (p of perf(); track p.label) {
+          <div class="perf-item">
+            <span class="muted">{{ p.label | t }}</span>
+            <strong dir="ltr">{{ p.value }}</strong>
+            @if (p.change !== undefined) { <span class="trend" [class.up]="(p.change ?? 0) >= 0" [class.down]="(p.change ?? 0) < 0" dir="ltr">{{ pct(p.change ?? null) }}</span> }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 4">
+      <h3>{{ 'a.dash2.c.top' | t }}</h3>
+      @if (o.topProducts.length === 0) { <p class="muted">{{ 'a.dash2.empty' | t }}</p> } @else {
+        <ul class="dash-top">
+          @for (p of o.topProducts; track p.name) {
+            <li>
+              @if (p.imageUrl) { <img class="dash-thumb" [src]="p.imageUrl" alt="" /> } @else { <span class="dash-thumb"></span> }
+              <span class="dash-top-name"><strong>{{ p.name }}</strong><span class="muted small" dir="ltr">{{ p.price | number: '1.0-0' }}</span></span>
+              <span class="dash-top-val" dir="ltr">{{ p.units }} {{ 'a.dash2.c.units' | t }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="card" style="grid-column: span 8">
+      <div class="dash-card-head">
+        <h3>{{ 'a.dash2.c.recent' | t }}</h3>
+        <a routerLink="/orders">{{ 'a.dash2.c.all' | t }}</a>
+      </div>
+      <div class="table-wrap">
+        <table class="data dash-orders">
+          <thead><tr><th>{{ 'a.dash2.t.number' | t }}</th><th>{{ 'a.dash2.t.customer' | t }}</th><th>{{ 'a.dash2.t.items' | t }}</th><th>{{ 'a.dash2.t.total' | t }}</th><th>{{ 'a.dash2.t.status' | t }}</th><th>{{ 'a.dash2.t.payment' | t }}</th><th>{{ 'a.dash2.t.when' | t }}</th></tr></thead>
+          <tbody>
+            @for (r of o.recent; track r.id) {
+              <tr>
+                <td><a [routerLink]="['/orders', r.id]">{{ r.number }}</a></td>
+                <td>{{ r.customer }}</td>
+                <td>
+                  <div class="dash-item">
+                    @if (r.imageUrl) { <img class="dash-thumb" [src]="r.imageUrl" alt="" /> }
+                    <span>{{ r.firstItem }}@if (r.items > 1) { <span class="muted"> +{{ r.items - 1 }}</span> }</span>
+                  </div>
+                </td>
+                <td dir="ltr">{{ r.total | number: '1.0-0' }} {{ r.currency }}</td>
+                <td><span class="pill">{{ statusLabel(r.status) }}</span></td>
+                <td>{{ payLabel(r.paymentStatus) }} · <span class="muted">{{ methodLabel(r.paymentMethod) }}</span></td>
+                <td class="muted" dir="ltr">{{ r.createdAtUtc | date: 'dd/MM HH:mm' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="muted">{{ 'a.dash2.empty' | t }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'a.dash2.c.places' | t }}</h3>
+      <app-donut-chart [items]="placeItems(o)" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash2.c.places' | t" />
+    </div>
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'a.dash2.c.methods' | t }}</h3>
+      <app-hbar-chart [items]="methodItems(o)" [color]="c0" [emptyText]="'a.dash2.empty' | t" />
+    </div>
+  </div>
+}
+
+<!-- money: profit, cash flow, balances of the cash boxes and banks, what we owe and what we are owed -->
+@if (an(); as a) {
+  <h2 class="dash-sec">{{ 'a.dash2.c.accounts' | t }}</h2>
+  <div class="dash-grid">
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'a.dash2.c.profit' | t }}</h3>
+      <app-line-chart [labels]="a.monthly.months" [series]="profitSeries(a)" [area]="true" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash2.c.profit' | t" />
+    </div>
+    <div class="card" style="grid-column: span 6">
+      <h3>{{ 'a.dash2.c.cash' | t }}</h3>
+      <app-bar-chart [labels]="a.monthly.months" [series]="cashSeries(a)" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash2.c.cash' | t" />
+    </div>
+    @if (balanceItems().length > 0) {
+      <div class="card" style="grid-column: span 6">
+        <div class="dash-card-head"><h3>{{ 'a.dash3.c.balances' | t }}</h3><strong dir="ltr">{{ balanceTotal() | number: '1.0-0' }}</strong></div>
+        <app-donut-chart [items]="balanceTypeItems()" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash3.c.balances' | t" />
+        <app-hbar-chart [items]="balanceItems()" [color]="c0" [emptyText]="'a.dash2.empty' | t" />
+      </div>
+    }
+    <div class="card" [style.grid-column]="balanceItems().length > 0 ? 'span 6' : 'span 12'">
+      <h3>{{ 'a.dash2.c.aging' | t }}</h3>
+      <app-bar-chart [labels]="agingLabels()" [series]="agingSeries(a)" [stacked]="true" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash2.c.aging' | t" />
+    </div>
+  </div>
+}
+
+<!-- stock -->
+@if (st(); as s) {
+  <h2 class="dash-sec">{{ 'a.dash2.c.inventory' | t }}</h2>
+  <div class="dash-grid">
+    <div class="card" style="grid-column: span 8">
+      <h3>{{ 'a.dash2.c.moves' | t }}</h3>
+      <app-line-chart [labels]="stockDays(s)" [series]="stockSeries(s)" [area]="true" [emptyText]="'a.dash2.empty' | t" [title]="'a.dash2.c.moves' | t" />
+    </div>
+    <div class="card" style="grid-column: span 4">
+      <h3>{{ 'a.dash2.c.warehouses' | t }}</h3>
+      <app-hbar-chart [items]="warehouseItems(s)" [color]="c3" [emptyText]="'a.dash2.empty' | t" />
+    </div>
+    @if (s.lowStock.length > 0) {
+      <div class="card" style="grid-column: span 12">
+        <div class="dash-card-head"><h3>{{ 'a.dash2.c.lowStock' | t }}</h3><a routerLink="/inventory/stock">{{ 'a.dash2.c.all' | t }}</a></div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>{{ 'a.dash3.t.product' | t }}</th><th>{{ 'a.dash3.t.warehouse' | t }}</th><th>{{ 'a.dash3.t.level' | t }}</th><th class="num">{{ 'a.dash3.t.onHand' | t }}</th><th class="num">{{ 'a.dash3.t.reorder' | t }}</th></tr></thead>
+            <tbody>
+              @for (l of s.lowStock; track l.warehouseName + l.productName + l.label) {
+                <tr>
+                  <td><strong>{{ l.productName }}</strong> <span class="muted">{{ l.label }}</span></td>
+                  <td>{{ l.warehouseName }}</td>
+                  <td class="lvl"><span class="lvl-track"><span class="lvl-fill" [class.zero]="l.onHand <= 0" [style.width.%]="levelPct(l.onHand, l.reorderLevel)"></span></span></td>
+                  <td class="num" dir="ltr"><strong>{{ l.onHand }}</strong></td>
+                  <td class="num muted" dir="ltr">{{ l.reorderLevel }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- the latest money entries and the latest stock movements -->
+@if (journal().length > 0 || moves().length > 0) {
+  <h2 class="dash-sec">{{ 'a.dash3.c.latest' | t }}</h2>
+  <div class="dash-grid">
+    @if (journal().length > 0) {
+      <div class="card" [style.grid-column]="moves().length > 0 ? 'span 6' : 'span 12'">
+        <div class="dash-card-head"><h3>{{ 'a.dash3.c.journal' | t }}</h3><a routerLink="/accounting/journal">{{ 'a.dash2.c.all' | t }}</a></div>
+        <ul class="rows">
+          @for (e of journal(); track e.id) {
+            <li>
+              <span class="r-dot" [style.background]="e.isReversed ? '#dc2626' : e.status === 'Posted' ? '#3f9e6a' : '#e08a2e'"></span>
+              <span class="r-main"><strong>{{ e.description || e.number }}</strong><span class="muted small">{{ ('acc.src.' + e.source) | t }} · <span dir="ltr">{{ e.number }}</span> · <span dir="ltr">{{ e.entryDate | date: 'dd/MM' }}</span></span></span>
+              <span class="r-val" dir="ltr">{{ e.totalAmount | number: '1.0-0' }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+    @if (moves().length > 0) {
+      <div class="card" [style.grid-column]="journal().length > 0 ? 'span 6' : 'span 12'">
+        <div class="dash-card-head"><h3>{{ 'a.dash3.c.movements' | t }}</h3><a routerLink="/inventory/history">{{ 'a.dash2.c.all' | t }}</a></div>
+        <ul class="rows">
+          @for (m of moves(); track m.id) {
+            <li>
+              <span class="r-dot" [style.background]="m.quantity >= 0 ? '#3f9e6a' : '#dc2626'"></span>
+              <span class="r-main"><strong>{{ m.productName }} <span class="muted">{{ m.label }}</span></strong><span class="muted small">{{ moveType(m.type) }} · {{ m.warehouseName }} · <span dir="ltr">{{ m.createdAtUtc | date: 'dd/MM HH:mm' }}</span></span></span>
+              <span class="r-val" [class.neg]="m.quantity < 0" dir="ltr">{{ m.quantity > 0 ? '+' : '' }}{{ m.quantity }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+}
+
+<div class="card">
+  <h3>{{ 'a.dash2.c.feed' | t }}</h3>
+  @if (feed().length === 0) { <p class="muted">{{ 'a.dash2.c.feedEmpty' | t }}</p> } @else {
+    <ul class="dash-timeline">
+      @for (f of feed(); track f.at.getTime() + f.kind) {
+        <li><span class="dash-tl-dot" [style.background]="areaColor(f.area)"></span><div class="dash-tl-body"><strong>{{ ('a.dash2.area.' + f.area) | t }}</strong> · {{ f.kind }}</div><span class="muted small" dir="ltr">{{ f.at | date: 'HH:mm:ss' }}</span></li>
+      }
+    </ul>
+  }
+</div>

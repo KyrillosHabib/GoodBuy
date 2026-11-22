@@ -1,0 +1,216 @@
+<app-modal [title]="packageMode ? (productId ? ('pkg.edit' | t) : ('pkg.new' | t)) : (productId ? ('a.prod.edit' | t: { id: productId }) : ('a.prod.new' | t))" size="xl" (closed)="cancelled.emit()">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else {
+    <form id="product-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <!-- The steps: fill one, press Next, it is checked before the next one opens -->
+      <ol class="stepper">
+        @for (title of stepTitles(); track title; let i = $index) {
+          <li [class.active]="step() === i + 1" [class.done]="i + 1 < step()">
+            <button type="button" [disabled]="i + 1 > maxStep()" (click)="goTo(i + 1)">
+              <span class="no">{{ i + 1 < step() ? '✓' : i + 1 }}</span><span class="t">{{ title | t }}</span>
+            </button>
+          </li>
+        }
+      </ol>
+
+      <!-- ============ 1. classification ============ -->
+      <div class="form-section" [hidden]="step() !== 1">
+        <h3>{{ 'a.prod.sectionGeneral' | t }}</h3>
+        <div class="section-body">
+          @if (!packageMode) {
+          <div class="form-row">
+            <div class="field">
+              <label>{{ 'a.prod.category' | t }} <span class="req">*</span></label>
+              <select formControlName="categoryId">
+                <option [ngValue]="0" disabled>{{ 'a.prod.selectCategory' | t }}</option>
+                @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ categoryName(c) }}</option> }
+              </select>
+              @if (form.controls.categoryId.touched && form.controls.categoryId.invalid) {
+                <div class="error">{{ 'a.prod.categoryRequired' | t }}</div>
+              }
+            </div>
+
+            <div class="field">
+              <label>{{ 'a.prod.brand' | t }}</label>
+              <select formControlName="brandId">
+                <option [ngValue]="null">{{ 'a.prod.noBrand' | t }}</option>
+                @for (b of brands(); track b.id) { <option [ngValue]="b.id">{{ brandName(b) }}</option> }
+              </select>
+              <div class="hint-text">{{ 'a.prod.brandHint' | t }}</div>
+            </div>
+          </div>
+
+          }
+
+          <div class="form-row">
+            <div class="field">
+              <label>{{ 'a.prod.sku' | t }}</label>
+              <div class="sku-row">
+                <div class="segmented">
+                  <button type="button" [class.on]="skuMode() === 'auto'" (click)="setSkuMode('auto')">{{ 'a.prod.skuAuto' | t }}</button>
+                  <button type="button" [class.on]="skuMode() === 'manual'" (click)="setSkuMode('manual')">{{ 'a.prod.skuManual' | t }}</button>
+                </div>
+                @if (skuMode() === 'manual') {
+                  <input dir="ltr" formControlName="sku" placeholder="VT-AF-5" />
+                } @else {
+                  <input dir="ltr" disabled [value]="skuPlaceholder()" />
+                }
+              </div>
+              <div class="hint-text">{{ (skuMode() === 'auto' ? 'a.prod.skuAutoHint' : 'a.prod.skuManualHint') | t }}</div>
+            </div>
+
+            <div class="field narrow-field">
+              <label>{{ 'a.order' | t }}</label>
+              <input type="number" min="0" formControlName="sortOrder" />
+            </div>
+          </div>
+          <div class="hint-text" style="margin: -.4rem 0 1rem">{{ 'a.orderHint' | t }}</div>
+
+          <div class="row" style="gap: 2rem">
+            <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.prod.isActive' | t }}</label>
+            @if (!packageMode) { <label class="switch"><input type="checkbox" formControlName="isFeatured" /><span></span> {{ 'a.prod.isFeatured' | t }}</label> }
+          </div>
+          @if (packageMode) { <div class="hint-text">{{ 'bundle.hint' | t }}</div> }
+          @if (form.controls.isFeatured.value) {
+            <div class="hint-text">{{ 'a.prod.featuredHint' | t: { limit: featuredLimit() } }}</div>
+          }
+        </div>
+      </div>
+
+      <!-- ============ 2. names, description, slug, main image ============ -->
+      <div class="form-section" [hidden]="step() !== 1">
+        <h3>{{ 'a.prod.sectionDetails' | t }}</h3>
+        <div class="section-body">
+          <app-translation-fields [group]="form.controls.translations" [fields]="fields" />
+
+          <div class="field">
+            <label>{{ 'a.slug' | t }} <span class="req">*</span></label>
+            <div class="slug-row">
+              <input dir="ltr" formControlName="slug" placeholder="air-fryer-5l" (input)="slugManual.set(true)" />
+              <button type="button" class="btn btn-light btn-sm" (click)="generateSlug()">{{ 'a.slugFromName' | t }}</button>
+            </div>
+            <div class="hint-text">{{ 'a.slugHint' | t }}</div>
+            @if (form.controls.slug.touched && form.controls.slug.invalid) { <div class="error">{{ 'a.slugError' | t }}</div> }
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============ 3. specifications (one small form, rows go into the table) ============ -->
+      <div class="form-section" [hidden]="step() !== 3">
+        <h3>{{ 'a.prod.specs' | t }}</h3>
+        <div class="section-body">
+          <div class="spec-form" [formGroup]="specDraft" (keydown.enter)="$event.preventDefault(); commitSpec()">
+            @for (lang of languages; track lang) {
+              <div class="field" [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'">
+                <label>{{ 'a.prod.specName' | t }} ({{ 'a.lang.' + lang | t }})</label>
+                <input [formControlName]="lang + '_name'" [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'" />
+              </div>
+              <div class="field" [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'">
+                <label>{{ 'a.prod.specValue' | t }} ({{ 'a.lang.' + lang | t }})</label>
+                <input [formControlName]="lang + '_value'" [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'" />
+              </div>
+            }
+            <div class="row">
+              <button type="button" class="btn btn-primary" (click)="commitSpec()">
+                {{ (editingSpec() === null ? 'a.prod.addRow' : 'a.prod.updateRow') | t }}
+              </button>
+              @if (editingSpec() !== null) {
+                <button type="button" class="btn btn-light" (click)="resetSpecDraft()">{{ 'a.cancel' | t }}</button>
+              }
+            </div>
+          </div>
+          @if (specError()) { <div class="error" style="margin: -.5rem 0 .8rem">{{ 'a.prod.specRequired' | t }}</div> }
+
+          @if (specs().length === 0) {
+            <p class="muted small">{{ 'a.prod.noSpecs' | t }}</p>
+          } @else {
+            <div class="table-wrap">
+              <table class="spec-table">
+                <thead>
+                  <tr>
+                    <th style="width:40px">#</th>
+                    @for (lang of languages; track lang) {
+                      <th>{{ 'a.prod.specName' | t }} ({{ 'a.lang.' + lang | t }})</th>
+                      <th>{{ 'a.prod.specValue' | t }} ({{ 'a.lang.' + lang | t }})</th>
+                    }
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of specs(); track row; let i = $index) {
+                    <tr [class.editing]="editingSpec() === i">
+                      <td>{{ i + 1 }}</td>
+                      @for (lang of languages; track lang) {
+                        <td [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'">{{ row.data[lang]?.name }}</td>
+                        <td [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'">{{ row.data[lang]?.value }}</td>
+                      }
+                      <td class="actions">
+                        <button type="button" class="btn btn-light btn-sm btn-icon" [disabled]="i === 0" (click)="moveSpec(i, -1)">↑</button>
+                        <button type="button" class="btn btn-light btn-sm btn-icon" [disabled]="i === specs().length - 1" (click)="moveSpec(i, 1)">↓</button>
+                        <button type="button" class="btn btn-light btn-sm" (click)="editSpec(i)">{{ 'a.edit' | t }}</button>
+                        <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeSpec(i)">✕</button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- ============ 4. gallery ============ -->
+      <div class="form-section" [hidden]="step() !== 2">
+        <h3>{{ 'a.prod.gallery' | t }}</h3>
+        <div class="section-body">
+          <app-image-field [control]="form.controls.mainImageUrl" label="a.prod.mainImage" />
+          <p class="muted small">{{ 'a.prod.imageHint' | t }}</p>
+          <h4 style="margin: 1rem 0 .5rem">{{ 'a.prod.gallery' | t }}</h4>
+          <div class="row" style="margin-bottom: .8rem">
+            <label class="btn btn-light btn-sm file-btn">
+              {{ 'a.prod.uploadMany' | t }}
+              <input type="file" accept="image/*" multiple hidden (change)="onGalleryFiles($event)" />
+            </label>
+            <button type="button" class="btn btn-light btn-sm" (click)="addImage()">{{ 'a.prod.addImage' | t }}</button>
+            @if (uploading()) { <span class="muted small">{{ 'a.uploading' | t }}</span> }
+          </div>
+
+          @if (images.length === 0) { <p class="muted small">{{ 'a.prod.noGallery' | t }}</p> }
+
+          @for (img of images.controls; track img; let i = $index) {
+            <div class="gallery-row" [formGroup]="img">
+              @if (img.get('url')?.value) {
+                <img class="thumb" [src]="img.get('url')?.value | assetUrl" alt="" />
+              } @else {
+                <div class="thumb thumb-empty">🖼️</div>
+              }
+              <input formControlName="url" dir="ltr" placeholder="https://... or /uploads/..." />
+              <input formControlName="altText" [placeholder]="'a.prod.altText' | t" />
+              <input type="number" min="0" formControlName="sortOrder" [title]="'a.order' | t" />
+              <div class="gallery-actions">
+                <label class="btn btn-light btn-sm file-btn">
+                  {{ 'a.upload' | t }}
+                  <input type="file" accept="image/*" hidden (change)="onRowFile($event, img)" />
+                </label>
+                <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeImage(i)">✕</button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      <!-- ============ 5. options, items and prices (after the product data and its images) ============ -->
+      <div [hidden]="step() !== 4"><app-variants-editor #variants [bundle]="!!form.controls.isBundle.value" /></div>
+    </form>
+  }
+
+  <div modal-footer>
+    <button type="button" class="btn btn-light" (click)="cancelled.emit()">{{ 'a.cancel' | t }}</button>
+    @if (step() > 1) { <button type="button" class="btn btn-light" (click)="back()">{{ 'step.back' | t }}</button> }
+    @if (step() < 4) { <button type="button" class="btn btn-primary" [disabled]="loading()" (click)="next()">{{ 'step.next' | t }}</button> }
+    @if (step() === 4 || productId) {
+      <button class="btn btn-primary" type="button" (click)="save()" [disabled]="saving() || loading()">{{ (saving() ? 'a.saving' : 'a.prod.save') | t }}</button>
+    }
+  </div>
+</app-modal>

@@ -1,0 +1,226 @@
+    @if (order(); as o) {
+      <div class="top">
+        <div class="title">
+          <a routerLink="/orders" class="back">{{ 'ord2.back' | t }}</a>
+          <h1 dir="ltr">{{ o.number }}</h1>
+          <span [class]="'chip big ' + stageCls(o)">{{ stageOf(o) | t }}</span>
+          <span [class]="'chip big ' + payCls(o)">{{ 'ord.pay.' + o.paymentStatus | t }} · {{ 'pay.' + o.paymentMethod | t }}</span>
+        </div>
+        <div class="actions">
+          <a class="btn btn-light" [routerLink]="['/orders', o.id, 'invoice']">{{ 'ord2.print' | t }}</a>
+          <a class="btn btn-light" [href]="'mailto:' + o.email">{{ 'ord2.contact' | t }}</a>
+          @if (canCancel(o)) { <button type="button" class="btn btn-light danger" [disabled]="saving()" (click)="cancelOrder(o)">{{ 'ord2.cancelOrder' | t }}</button> }
+          @switch (action(o)) {
+            @case ('confirm') { <button type="button" class="btn btn-primary strong" [disabled]="saving()" (click)="confirmOrder(o)">{{ 'ord2.act.confirm' | t }}</button> }
+            @case ('fulfilment') { <a class="btn btn-primary strong" routerLink="/fulfilment">{{ 'ord2.act.fulfilment' | t }}</a> }
+            @case ('ship') { <button type="button" class="btn btn-primary strong" [disabled]="saving()" (click)="ship(o)">{{ 'ord2.act.ship' | t }}</button> }
+            @case ('deliver') { <button type="button" class="btn btn-primary strong" [disabled]="saving()" (click)="deliver(o)">{{ 'ord2.act.deliver' | t }}</button> }
+          }
+        </div>
+      </div>
+
+      <!-- One progress line: the stage -->
+      <div class="card steps">
+        @for (s of steps(o); track s.key) {
+          <div class="step">
+            <span [class]="'dot ' + s.state">{{ s.mark }}</span>
+            <span [class]="'step-label ' + s.state">{{ 'ord2.step.' + s.key | t }}</span>
+            @if (!s.last) { <span [class]="'line ' + s.state"></span> }
+          </div>
+        }
+      </div>
+
+      <div class="cols">
+        <div class="col">
+          <div class="card">
+            <h3>{{ 'ord2.items' | t }}</h3>
+            <div class="scroll">
+              <table class="grid">
+                <thead><tr><th>{{ 'inv.item' | t }}</th><th>{{ 'inv.quantity' | t }}</th><th>{{ 'a.prod.price' | t }}</th><th>{{ 'inv.total' | t }}</th><th>{{ 'ord2.lineWarehouse' | t }}</th><th>{{ 'ord2.lineStatus' | t }}</th></tr></thead>
+                <tbody>
+                  @for (i of o.items; track $index) {
+                    <tr>
+                      <td><strong>{{ i.productName }}</strong>@if (i.variantLabel) { <span class="muted small"> · {{ i.variantLabel }}</span> }
+                        <div class="muted small" dir="ltr">{{ i.sku }}</div>
+                        @if (i.isPreorder) { <span class="chip c-new">{{ 'ord.preorder' | t }} ({{ i.preorderLeadDays }}d)</span> }</td>
+                      <td>{{ i.quantity }}</td>
+                      <td dir="ltr" class="start">{{ i.unitPrice }}</td>
+                      <td dir="ltr" class="start">{{ i.lineTotal }}</td>
+                      <td>{{ warehouseName(i.warehouseId) }}</td>
+                      <td>
+                        @if (i.fulfilmentStatus) { <span [class]="'chip ' + itemCls(i.fulfilmentStatus)">{{ 'ful.item.' + i.fulfilmentStatus | t }}</span> }
+                        @if (i.fulfilmentNote) { <div class="muted small">{{ i.fulfilmentNote }}</div> }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="totals">
+              <div class="row"><span class="muted">{{ 'ord2.subtotal' | t }}</span><span dir="ltr">{{ o.subtotal }}</span></div>
+              @if ((o.promotionDiscount ?? 0) > 0) { <div class="row"><span class="muted">{{ 'ord2.promo' | t }}</span><span dir="ltr">- {{ o.promotionDiscount }}</span></div> }
+              @if (o.couponCode) { <div class="row"><span class="muted">{{ 'ord2.coupon' | t }} <code dir="ltr">{{ o.couponCode }}</code></span><span dir="ltr">- {{ o.couponDiscount }}</span></div> }
+              <div class="row"><span class="muted">{{ 'ord2.shippingFee' | t }}</span><span dir="ltr">{{ o.shippingFee ?? 0 }}</span></div>
+              <div class="row grand"><span>{{ 'ord2.grandTotal' | t }}</span><span dir="ltr">{{ o.total }} {{ o.currency }}</span></div>
+            </div>
+          </div>
+
+          <!-- The money: read only. Cash on delivery is collected by the shipping company and settled in Accounting; a card is confirmed by the gateway -->
+          <div class="card">
+            <h3>{{ 'ord2.payTitle' | t }}</h3>
+            <div class="tiles">
+              <div class="tile"><div class="muted small">{{ 'ord2.method' | t }}</div><strong>{{ 'pay.' + o.paymentMethod | t }}</strong></div>
+              <div class="tile"><div class="muted small">{{ 'ord2.paid' | t }}</div><strong dir="ltr">{{ o.paidAmount ?? 0 }} {{ o.currency }}</strong></div>
+              <div class="tile" [class.warn]="due(o) > 0"><div class="muted small">{{ 'ord2.due' | t }}</div><strong dir="ltr">{{ due(o) }} {{ o.currency }}</strong></div>
+            </div>
+            @if ((o.refundedAmount ?? 0) > 0) { <p class="small">{{ 'ord2.refunded' | t }}: <strong dir="ltr">{{ o.refundedAmount }} {{ o.currency }}</strong></p> }
+
+            @if (o.settlementStatus === 'Pending' || o.settlementStatus === 'Settled') {
+              <p class="small settle">
+                {{ (o.paymentMethod === 'CashOnDelivery' ? 'ord2.settleLine.cod' : 'ord2.settleLine.online') | t }}:
+                <span [class]="'chip ' + (o.settlementStatus === 'Settled' ? 'c-ready' : 'c-new')">{{ 'ord2.settle.' + o.settlementStatus | t }}</span>
+              </p>
+            }
+
+            @if ((timeline()?.payments?.length ?? 0) > 0) {
+              <table class="grid">
+                <tbody>
+                  @for (p of timeline()?.payments ?? []; track p.id) {
+                    <tr>
+                      <td dir="ltr" class="start small">{{ stamp(p.createdAtUtc) }}</td>
+                      <td>{{ 'ord2.kind.' + p.kind | t }}</td>
+                      <td dir="ltr" class="start">{{ p.kind === 'Failed' ? '—' : (p.kind === 'Refund' ? '-' : '+') + p.amount }}</td>
+                      <td class="muted small"><span dir="ltr">{{ p.reference }}</span> {{ p.note }}</td>
+                      <td class="muted small">{{ p.userName }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+
+            @if (o.settlementStatus === 'Pending' && o.paymentMethod !== 'CashOnDelivery') {
+              <div class="toolbar">
+                <input [(ngModel)]="payoutRef" [placeholder]="'ord2.payoutRef' | t" />
+                <button type="button" class="btn btn-light" [disabled]="saving()" (click)="markPayout(o)">{{ 'ord2.payoutReceived' | t }}</button>
+              </div>
+            }
+
+            @if (o.paymentMethod === 'Card' && refundable(o) > 0) {
+              <div class="toolbar refund-box">
+                <span class="muted small">{{ 'ord2.refundable' | t }}: <strong dir="ltr">{{ refundable(o) }} {{ o.currency }}</strong></span>
+                <input type="number" min="0" step="0.01" [(ngModel)]="refundAmount" [placeholder]="'ord2.refundAmount' | t" dir="ltr" />
+                <input [(ngModel)]="refundReason" [placeholder]="'ord2.refundReason' | t" />
+                <button type="button" class="btn btn-light" [disabled]="saving()" (click)="refundToCard(o)">{{ 'ord2.refundBtn' | t }}</button>
+              </div>
+            }
+
+            <p class="muted small note">{{ (o.paymentMethod === 'CashOnDelivery' ? 'ord2.payReadOnlyCod' : 'ord2.payReadOnlyOnline') | t }}</p>
+          </div>
+
+          <div class="card">
+            <h3>{{ 'ord2.timeline' | t }}</h3>
+            @if (events().length === 0) {
+              <p class="muted small">{{ 'ord2.timelineNone' | t }}</p>
+            } @else {
+              <div class="events">
+                @for (e of events(); track $index) {
+                  <div class="event">
+                    <span class="bullet"></span>
+                    <span class="grow">{{ say(e.message) }} <span class="muted small">— {{ e.userName || ('ord2.system' | t) }}</span></span>
+                    <span class="muted small nowrap" dir="ltr">{{ stamp(e.createdAtUtc) }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card">
+            <h3>{{ 'ord2.customerTitle' | t }}</h3>
+            <div class="name">{{ o.customerName }}</div>
+            <div class="muted lines"><span dir="ltr">{{ o.phone }}</span><br /><span dir="ltr">{{ o.email }}</span><br />
+              {{ o.line1 }}@if (o.line2) { , {{ o.line2 }} }, {{ o.city }}@if (o.region) { , {{ o.region }} }, {{ o.country }}</div>
+            <div class="muted small gap">{{ (o.isGuest ? 'ord2.guest' : 'ord2.registered') | t }}</div>
+            @if (o.notes) { <div class="customer-note">{{ 'ord2.customerNote' | t }}: {{ o.notes }}</div> }
+          </div>
+
+          <div class="card">
+            <h3>{{ 'ord2.shipTitle' | t }}</h3>
+            @if (['Shipped', 'Delivered'].includes(o.status)) {
+              <div class="row"><span class="muted">{{ 'ord2.carrier' | t }}</span><span>{{ o.shippingCarrierName || '—' }}</span></div>
+              @if (o.status === 'Shipped') {
+                <div class="row"><span class="muted">{{ 'ord2.tracking' | t }}</span><input dir="ltr" class="mini" [(ngModel)]="tracking" /></div>
+                @if (o.estimatedDeliveryDays) { <div class="row"><span class="muted">{{ 'ord2.eta' | t }}</span><span>{{ 'ord2.days' | t: { n: o.estimatedDeliveryDays } }}</span></div> }
+                <div class="toolbar"><button type="button" class="btn btn-light btn-sm" [disabled]="saving() || tracking.trim() === (o.trackingNumber ?? '')" (click)="saveTracking(o)">{{ 'ord2.saveShipping' | t }}</button></div>
+              } @else {
+                <div class="row"><span class="muted">{{ 'ord2.tracking' | t }}</span><span dir="ltr">{{ o.trackingNumber || '—' }}</span></div>
+              }
+            } @else {
+              <div class="row">
+                <span class="muted">{{ 'ord2.carrier' | t }}</span>
+                <select class="mini" [(ngModel)]="carrierId">
+                  <option [ngValue]="null">{{ 'ord2.chooseCarrier' | t }}</option>
+                  @for (c of carriers(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+                </select>
+              </div>
+              <div class="row"><span class="muted">{{ 'ord2.tracking' | t }}</span><input dir="ltr" class="mini" [(ngModel)]="tracking" [placeholder]="'ord2.trackingHint' | t" /></div>
+              <div class="row"><span class="muted">{{ 'ord.deliveryDays' | t }}</span><input type="number" min="1" max="365" dir="ltr" class="mini num" [(ngModel)]="deliveryDays" /></div>
+              <div class="row"><span class="muted">{{ 'ord2.mailOnShip' | t }}</span><label class="switch"><input type="checkbox" [(ngModel)]="sendEmail" /> {{ (sendEmail ? 'ord2.on' : 'ord2.off') | t }}</label></div>
+            }
+          </div>
+
+          <!-- Goods coming back: only for an order that left the warehouse for the customer -->
+          @if (['Shipped', 'Delivered'].includes(o.status)) {
+            <div class="card">
+              <h3>{{ 'ord2.retTitle' | t }}</h3>
+              <p class="muted small">{{ 'ord2.retHint' | t }}</p>
+              @if (returnable(o).length === 0) {
+                <p class="muted small">{{ 'ord2.retNone' | t }}</p>
+              } @else {
+                <table class="grid">
+                  <thead><tr><th>{{ 'inv.item' | t }}</th><th>{{ 'inv.quantity' | t }}</th><th>{{ 'ord.returnQty' | t }}</th></tr></thead>
+                  <tbody>
+                    @for (i of returnable(o); track i.id) {
+                      <tr>
+                        <td><strong>{{ i.productName }}</strong> <span class="muted small">{{ i.variantLabel }}</span></td>
+                        <td>{{ i.quantity }}</td>
+                        <td><input type="number" min="0" [max]="i.quantity" dir="ltr" class="mini num" [ngModel]="returnQty[i.id!]" (ngModelChange)="returnQty[i.id!] = $event" /></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+                <div class="stack">
+                  <input [(ngModel)]="returnReason" [placeholder]="'ord2.retReason' | t" />
+                  <input [(ngModel)]="returnNote" [placeholder]="'inv.note' | t" />
+                  <button type="button" class="btn btn-light" [disabled]="saving()" (click)="requestReturn(o)">{{ 'ord2.retRequest' | t }}</button>
+                </div>
+              }
+              @if ((timeline()?.returns?.length ?? 0) > 0) {
+                <h4>{{ 'ord2.retList' | t }}</h4>
+                <ul class="plain">
+                  @for (r of timeline()?.returns ?? []; track r.id) {
+                    <li><a [routerLink]="['/customer-returns', r.id]" dir="ltr">{{ r.number }}</a> · <span class="chip c-gray">{{ 'cr.s.' + r.status | t }}</span> · {{ 'ord2.retUnits' | t: { n: r.units } }}</li>
+                  }
+                </ul>
+              }
+            </div>
+          } @else if (o.status !== 'Cancelled') {
+            <div class="card dashed">
+              <h3>{{ 'ord2.retTitle' | t }}</h3>
+              <p class="muted small">{{ 'ord2.retLater' | t }}</p>
+            </div>
+          }
+
+          <div class="card">
+            <h3>{{ 'ord2.noteTitle' | t }}</h3>
+            <textarea rows="3" [(ngModel)]="noteText" [placeholder]="'ord2.notePlaceholder' | t"></textarea>
+            <div class="toolbar"><button type="button" class="btn btn-light btn-sm" [disabled]="saving() || !noteText.trim()" (click)="addNote(o)">{{ 'ord2.noteAdd' | t }}</button></div>
+          </div>
+        </div>
+      </div>
+    } @else if (failed()) {
+      <div class="card"><p>{{ 'ord2.notFound' | t }}</p><a routerLink="/orders" class="btn btn-light">{{ 'ord2.back' | t }}</a></div>
+    } @else {
+      <p class="muted">{{ 'common.loading' | t }}</p>
+    }

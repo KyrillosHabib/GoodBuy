@@ -1,0 +1,16 @@
+.back { font-size: .85rem; text-decoration: none; }
+.split { display: grid; gap: 1rem; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 1500px) { .split { grid-template-columns: 1fr 1fr; } }
+.card h2 { margin: 0 0 .2rem; font-size: 1.1rem; }
+.st { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.st th, .st td { border-bottom: 1px solid var(--border); padding: .4rem .5rem; text-align: start; vertical-align: middle; }
+.st thead th { background: var(--primary-soft); white-space: nowrap; }
+.st tfoot th { border-top: 2px solid var(--text); border-bottom: 0; }
+.st .num { text-align: center; font-variant-numeric: tabular-nums; }
+.st .zero { color: var(--muted, #a8a29e); }
+.in-qty { width: 84px; text-align: center; }
+.in-cost { width: 96px; }
+.in-batch { width: 120px; }
+.bar { display: flex; gap: 1rem; align-items: center; margin: 1rem 0 .4rem; flex-wrap: wrap; }
+.tag { color: var(--primary); font-size: .6rem; vertical-align: super; }
+.note { background: #fef3c7; color: #92400e; padding: .7rem 1rem; border-radius: 10px; }

@@ -1,0 +1,53 @@
+@if (cart.drawerOpen()) {
+  <div class="drawer-backdrop" (click)="close()"></div>
+  <aside class="drawer" role="dialog" [attr.aria-label]="'cart.title' | t">
+    <header class="drawer-head">
+      <strong>{{ 'cart.title' | t }} ({{ cart.count() }})</strong>
+      <button type="button" class="drawer-close" (click)="close()" [attr.aria-label]="'common.close' | t">✕</button>
+    </header>
+
+    @if (cart.cart().items.length === 0) {
+      <div class="drawer-empty">
+        <p>{{ 'cart.empty' | t }}</p>
+        <a class="btn btn-primary" routerLink="/products" (click)="close()">{{ 'cart.continue' | t }}</a>
+      </div>
+    } @else {
+      <div class="drawer-lines">
+        @for (l of cart.cart().items; track l.variantId + (l.isGift ? 'g' : '')) {
+          <div class="drawer-line" [class.cart-line-bad]="l.issue">
+            <img [src]="l.imageUrl | productImage: l.slug : null" [alt]="l.name" />
+            <div class="drawer-info">
+              @if (l.issue === 'unavailable') { <strong>{{ 'cart.unavailable' | t }}</strong> } @else {
+                <a [routerLink]="['/products', l.slug]" (click)="close()"><strong>{{ l.name }}</strong></a>
+                @if (l.variantLabel) { <div class="muted small">{{ l.variantLabel }}</div> }
+                <div class="price-row"><span class="price">{{ l.unitPrice | money }}</span>@if (l.compareAtPrice) { <s class="old-price">{{ l.compareAtPrice | money }}</s> }</div>
+                @if (l.preorder) { <div class="stock-note">{{ 'cart.preorder' | t: { n: l.preorderLeadDays ?? 0 } }}</div> }
+                @if (l.issue === 'out_of_stock') { <div class="stock-note out">{{ 'product.outOfStock' | t }}</div> }
+                @if (l.issue === 'insufficient_stock') { <div class="stock-note out">{{ 'product.onlyLeft' | t: { n: l.availableStock ?? 0 } }}</div> }
+              }
+              @if (l.isGift) {
+                <div class="gift-badge">🎁 {{ 'cart.gift' | t }} × {{ l.quantity }}</div>
+              } @else if (l.issue !== 'unavailable') {
+                <div class="qty">
+                  <button type="button" (click)="change(l, -1)" [disabled]="cart.busy()">−</button>
+                  <span>{{ l.quantity }}</span>
+                  <button type="button" (click)="change(l, 1)" [disabled]="cart.busy()">+</button>
+                </div>
+              }
+            </div>
+            @if (!l.isGift) { <button type="button" class="cart-remove" [attr.aria-label]="'cart.remove' | t" (click)="cart.remove(l.variantId).subscribe()">✕</button> }
+          </div>
+        }
+      </div>
+
+      <footer class="drawer-foot">
+        @if (cart.cart().savings > 0) { <div class="sum-row save"><span>{{ 'cart.savings' | t }}</span><span>- {{ cart.cart().savings | money }}</span></div> }
+        @if (cart.cart().promotionDiscount > 0) { <div class="sum-row save"><span>{{ 'cart.offerDiscount' | t }}</span><span>- {{ cart.cart().promotionDiscount | money }}</span></div> }
+        <div class="sum-row"><span>{{ 'cart.shipping' | t }}</span><span>{{ cart.cart().shippingFee > 0 ? (cart.cart().shippingFee | money) : ('cart.free' | t) }}</span></div>
+        <div class="sum-row total"><span>{{ 'cart.total' | t }}</span><span>{{ cart.cart().total | money }}</span></div>
+        <a class="btn btn-primary btn-lg auth-submit" routerLink="/checkout" (click)="close()" [class.disabled]="cart.cart().hasIssues">{{ 'cart.checkout' | t }}</a>
+        <a class="btn btn-light auth-submit" routerLink="/cart" (click)="close()">{{ 'cart.viewCart' | t }}</a>
+      </footer>
+    }
+  </aside>
+}

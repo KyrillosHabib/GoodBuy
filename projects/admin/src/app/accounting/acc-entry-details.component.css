@@ -1,0 +1,7 @@
+.entry-details { margin-top: 1rem; }
+.entry-table .entry-idx { width: 2.5rem; text-align: center; }
+.entry-table .entry-zero { color: var(--muted, #9ca3af); }
+.entry-table tfoot td { font-weight: 700; background: var(--alt); border-top: 2px solid var(--border); }
+.entry-status { margin: .6rem 0 0; padding: .45rem .8rem; border-radius: 8px; font-weight: 600; }
+.entry-ok { background: #dcfce7; color: #166534; }
+.entry-bad { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }

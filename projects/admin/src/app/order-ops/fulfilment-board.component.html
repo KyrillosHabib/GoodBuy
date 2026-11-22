@@ -1,0 +1,215 @@
+<div class="page-head head-row">
+  <div>
+    <h1>{{ 'ful.title' | t }}</h1>
+    <p class="muted">{{ 'ful.sub' | t }}</p>
+  </div>
+  <div class="filters-row">
+    <input type="search" [placeholder]="'ful.search' | t" [value]="search()" (input)="search.set($any($event.target).value)" (keyup.enter)="load()" (change)="load()" />
+    <select (change)="warehouseId.set(+$any($event.target).value); load()">
+      <option value="0" [selected]="warehouseId() === 0">{{ 'ful.allWarehouses' | t }}</option>
+      @for (w of board()?.warehouses ?? []; track w.id) { <option [value]="w.id" [selected]="w.id === warehouseId()">{{ w.name }}</option> }
+    </select>
+    <select (change)="setPay($any($event.target).value)">
+      <option value="" [selected]="pay() === ''">{{ 'ful.allPayments' | t }}</option>
+      @for (m of methods; track m) { <option [value]="m" [selected]="m === pay()">{{ 'pay.' + m | t }}</option> }
+    </select>
+  </div>
+</div>
+
+<!-- the numbers: each one filters the table -->
+<div class="kpis">
+  @for (k of kpis; track k.key) {
+    <div class="kpi-wrap">
+      <button type="button" [class]="'kpi ' + k.css" [class.on]="view() === k.key" (click)="setView(view() === k.key ? 'all' : k.key)">
+        <span class="kpi-top"><span class="kpi-label">{{ k.label | t }}</span><span class="dot"></span></span>
+        <span class="kpi-value">{{ group(k.key).count }}</span>
+        <span class="kpi-hint">{{ hint(k.key) }}</span>
+      </button>
+      @if (k.tip && group(k.key).count > 0) {
+        <div class="tip" role="tooltip">
+          <strong>{{ k.label | t }} ({{ group(k.key).count }})</strong>
+          @for (w of group(k.key).warehouses; track w.name) { <div>{{ w.name }}: {{ w.count }}</div> }
+          @if (group(k.key).oldestUtc) { <div class="dim">{{ 'ful.kpi.oldest' | t: { t: ageOf(group(k.key).oldestUtc!) } }}</div> }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+@if (view() !== 'all') {
+  <div class="active-filter">
+    <span class="muted">{{ 'ful.view' | t }}</span>
+    <span class="chip fs-filter">{{ kpiLabel(view()) | t }} ({{ group(view()).count }})</span>
+    <button type="button" class="link" (click)="setView('all')">{{ 'ful.clearFilter' | t }}</button>
+    <span class="muted spacer">{{ 'ful.newest' | t }}</span>
+  </div>
+} @else {
+  <div class="active-filter"><span class="muted spacer">{{ 'ful.newest' | t }}</span></div>
+}
+
+@if (loading()) {
+  <div class="card"><p class="muted">{{ 'common.loading' | t }}</p></div>
+} @else if (filtered().length === 0) {
+  <div class="card"><p class="muted">{{ 'ful.none' | t }}</p></div>
+} @else {
+  <div class="card board">
+    <div class="grid head">
+      <span class="c-chk"><input type="checkbox" [checked]="allOnPageChosen()" (change)="toggleAllOnPage()" /></span>
+      <span>{{ 'ful.col.no' | t }}</span>
+      <span>{{ 'ful.col.customer' | t }}</span>
+      <span>{{ 'ful.col.units' | t }}</span>
+      <span>{{ 'ful.col.warehouse' | t }}</span>
+      <span>{{ 'ful.col.stage' | t }}</span>
+      <span>{{ 'ful.col.age' | t }}</span>
+      <span>{{ 'ful.col.pay' | t }}</span>
+      <span></span>
+    </div>
+
+    @for (o of pageItems(); track o.id) {
+      <div class="order" [class.open]="isOpen(o.id)">
+        <div class="grid row" role="button" tabindex="0" (click)="toggleOpen(o.id)" (keyup.enter)="toggleOpen(o.id)">
+          <span class="c-chk" (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="isChosen(o.id)" (change)="toggleChosen(o.id)" [attr.aria-label]="o.number" />
+            <span class="chev">{{ isOpen(o.id) ? '▾' : '▸' }}</span>
+          </span>
+          <strong dir="ltr" class="num-col">{{ o.number }}</strong>
+          <span class="who"><strong>{{ o.customerName }}</strong><span class="muted"> · {{ o.city }}</span></span>
+          <span>{{ units(o) }}</span>
+          <span>{{ warehousesOf(o) }}</span>
+          <span><span [class]="'chip ' + cls(o)">{{ stage(o) | t }}</span></span>
+          <span [class.late]="isLate(o)">{{ ageOf(o.createdAtUtc) }}</span>
+          <span class="muted small">{{ payText(o) }}</span>
+          <span><button type="button" class="btn btn-light btn-sm" [disabled]="saving()" (click)="rowAction(o, $event)">{{ actionKey(o) | t }}</button></span>
+        </div>
+
+        @if (isOpen(o.id)) {
+          <div class="detail">
+            <div class="info">
+              <span>{{ 'ful.address' | t }}: {{ o.address }}</span>
+              <span>{{ 'ful.phone' | t }}: <span dir="ltr">{{ o.phone }}</span></span>
+              @if (o.notes) { <span>{{ 'ful.customerNote' | t }}: {{ o.notes }}</span> }
+            </div>
+
+            <div class="table-wrap">
+              <table class="lt">
+                <thead>
+                  <tr>
+                    <th class="chk"></th>
+                    <th>{{ 'ful.col.item' | t }}</th>
+                    <th class="num">{{ 'ful.col.qty' | t }}</th>
+                    <th>{{ 'ful.col.warehouse' | t }}</th>
+                    <th>{{ 'ful.col.status' | t }}</th>
+                    <th class="num">{{ 'ful.col.onHand' | t }}</th>
+                    <th>{{ 'ful.col.note' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (i of o.items; track i.itemId) {
+                    <tr [class.problem]="i.status === 'Problem'">
+                      <td class="chk">
+                        @if (i.mine && i.warehouseId !== null && i.status !== 'Fulfilled') {
+                          <input type="checkbox" [checked]="isSelected(i.itemId)" (change)="toggle(i.itemId)" />
+                        }
+                      </td>
+                      <td>
+                        <strong>{{ i.productName }}</strong> <span class="muted small">{{ i.variantLabel }} · <span dir="ltr">{{ i.sku }}</span></span>
+                        @if (i.isPreorder) { <span class="chip">{{ 'ful.preorder' | t }}</span> }
+                      </td>
+                      <td class="num">{{ i.quantity }}</td>
+                      <td>
+                        @if (board()?.canAllocate && i.status !== 'Fulfilled') {
+                          <select (change)="pick(i.itemId, +$any($event.target).value)">
+                            <option value="0" [selected]="currentWarehouse(i) === 0">{{ 'ful.pickWarehouse' | t }}</option>
+                            @for (w of board()?.warehouses ?? []; track w.id) { <option [value]="w.id" [selected]="w.id === currentWarehouse(i)">{{ w.name }}</option> }
+                          </select>
+                        } @else {
+                          {{ i.warehouse ?? '—' }}
+                        }
+                      </td>
+                      <td>
+                        <span [class]="'chip is-' + i.status">{{ 'ful.item.' + i.status | t }}</span>
+                        @if (i.status === 'Fulfilled' && i.fulfilledBy) { <div class="muted small">{{ 'ful.doneBy' | t: { name: i.fulfilledBy } }}</div> }
+                      </td>
+                      <td class="num" [class.low]="i.onHand !== null && i.onHand < i.quantity && i.status !== 'Fulfilled'">{{ i.onHand ?? '—' }}</td>
+                      <td class="muted small">{{ i.status === 'Problem' ? (i.note ?? '') : '' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="bar">
+              @if (board()?.canAllocate && changedCount(o) > 0) {
+                <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveAllocation(o)">{{ 'ful.saveAllocation' | t }} ({{ changedCount(o) }})</button>
+              }
+              @if (hasMine(o)) {
+                <button type="button" class="btn btn-light" [disabled]="saving()" (click)="start(o)">{{ 'ful.start' | t }}</button>
+                <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="issue(o)">{{ 'ful.confirmPrep' | t }}</button>
+                <button type="button" class="btn btn-light danger" [disabled]="saving()" (click)="problem(o)">{{ 'ful.problem' | t }}</button>
+              }
+              <span class="spacer"></span>
+              <button type="button" class="btn btn-light" (click)="printPick(o)">{{ 'ful.printPick' | t }}</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="pager">
+      <span>{{ 'ful.showing' | t: { a: from(), b: to(), n: filtered().length } }}</span>
+      @if (pageCount() > 1) {
+        <span class="pages">
+          <button type="button" class="btn btn-light btn-sm" [disabled]="page() === 1" (click)="goto(page() - 1)">{{ 'ful.prev' | t }}</button>
+          @for (p of pageNumbers(); track p) {
+            <button type="button" class="btn btn-sm" [class.btn-primary]="p === page()" [class.btn-light]="p !== page()" (click)="goto(p)">{{ p }}</button>
+          }
+          <button type="button" class="btn btn-light btn-sm" [disabled]="page() === pageCount()" (click)="goto(page() + 1)">{{ 'ful.next' | t }}</button>
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- orders ticked: the actions for all of them at once -->
+  @if (chosenOrders().length > 0) {
+    <div class="bulk">
+      <strong>{{ 'ful.selected' | t: { n: chosenOrders().length } }}</strong>
+      <button type="button" class="btn btn-light" [disabled]="saving()" (click)="bulkStart()">{{ 'ful.start' | t }}</button>
+      <button type="button" class="btn btn-light" [disabled]="saving()" (click)="bulkIssue()">{{ 'ful.confirmPrep' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="openHandOver(chosenOrders())">{{ 'ful.handOver' | t }}</button>
+      <button type="button" class="link" (click)="chosen.set([])">×</button>
+    </div>
+  } @else {
+    <p class="muted small bulk-hint">{{ 'ful.bulkHint' | t }}</p>
+  }
+
+  <!-- the hand-over form: the data of the shipping company -->
+  @if (handOverFor(); as list) {
+    <app-modal [title]="'ful.handOverTitle' | t" (closed)="handOverFor.set(null)">
+      <form id="handover-form" (submit)="$event.preventDefault(); confirmHandOver()">
+        <p class="muted small">{{ 'ful.handOverHint' | t }}</p>
+        <ul class="plain">
+          @for (o of list; track o.id) { <li><strong dir="ltr">{{ o.number }}</strong> · {{ o.customerName }} · {{ o.city }} · {{ 'pay.' + o.paymentMethod | t }}</li> }
+        </ul>
+        <div class="field">
+          <label>{{ 'ful.chooseCarrier' | t }} *</label>
+          <select [value]="carrierId()" (change)="carrierId.set(+$any($event.target).value)">
+            <option value="0">{{ 'ful.chooseCarrier' | t }}</option>
+            @for (c of board()?.carriers ?? []; track c.id) { <option [value]="c.id" [selected]="c.id === carrierId()">{{ c.name }}</option> }
+          </select>
+        </div>
+        @if (list.length === 1) {
+          <div class="field">
+            <label>{{ 'ful.trackingNo' | t }}</label>
+            <input dir="ltr" [value]="tracking()" (input)="tracking.set($any($event.target).value)" />
+          </div>
+        } @else {
+          <p class="muted small">{{ 'ful.trackingLater' | t }}</p>
+        }
+      </form>
+      <div modal-footer>
+        <button type="button" class="btn btn-light" (click)="handOverFor.set(null)">{{ 'a.cancel' | t }}</button>
+        <button class="btn btn-primary" form="handover-form" [disabled]="saving()">{{ 'ful.handOverConfirm' | t }}</button>
+      </div>
+    </app-modal>
+  }
+}

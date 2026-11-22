@@ -1,0 +1,26 @@
+@if (docs.length === 0) {
+  <p class="muted">{{ 'acc.alloc.none' | t }}</p>
+} @else {
+  <div class="toolbar">
+    <button type="button" class="btn btn-light btn-sm" (click)="fill()">{{ 'acc.alloc.fill' | t }}</button>
+    <button type="button" class="btn btn-light btn-sm" (click)="clear()">{{ 'acc.alloc.clear' | t }}</button>
+    <span class="muted small">{{ 'acc.alloc.available' | t }}: <strong dir="ltr">{{ available | number: '1.2-2' }}</strong> · {{ 'acc.alloc.used' | t }}: <strong dir="ltr">{{ used() | number: '1.2-2' }}</strong></span>
+    @if (used() > available) { <span class="text-bad small">{{ 'acc.alloc.over' | t }}</span> }
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.due' | t }}</th><th class="num">{{ 'acc.outstanding' | t }}</th><th class="num">{{ 'acc.alloc.amount' | t }}</th></tr></thead>
+      <tbody>
+        @for (d of docs; track d.id) {
+          <tr>
+            <td><strong>{{ d.number }}</strong></td>
+            <td dir="ltr">{{ d.issueDate | slice: 0 : 10 }}</td>
+            <td dir="ltr">{{ (d.dueDate ?? '') | slice: 0 : 10 }}</td>
+            <td class="num" dir="ltr">{{ d.outstanding | number: '1.2-2' }}</td>
+            <td class="num"><input type="number" min="0" step="0.01" dir="ltr" style="width: 9rem" [max]="d.outstanding" [value]="amounts()[d.id] ?? ''" (input)="set(d, $any($event.target).value)" /></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

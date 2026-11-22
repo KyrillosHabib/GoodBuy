@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="1000" height="700">
+
+<defs>
+  <linearGradient id="gBodyW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e7e5e4"/></linearGradient>
+  <linearGradient id="gBodyWH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e7e5e4"/><stop offset=".45" stop-color="#ffffff"/><stop offset="1" stop-color="#d6d3d1"/></linearGradient>
+  <linearGradient id="gSilver" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5f5f4"/><stop offset="1" stop-color="#a8a29e"/></linearGradient>
+  <linearGradient id="gSilverH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a8a29e"/><stop offset=".5" stop-color="#f5f5f4"/><stop offset="1" stop-color="#a8a29e"/></linearGradient>
+  <linearGradient id="gDark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#57534e"/><stop offset="1" stop-color="#1c1917"/></linearGradient>
+  <linearGradient id="gDarkH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#292524"/><stop offset=".4" stop-color="#57534e"/><stop offset="1" stop-color="#1c1917"/></linearGradient>
+  <linearGradient id="gDarker" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#292524"/><stop offset="1" stop-color="#0c0a09"/></linearGradient>
+  <radialGradient id="gGlassTeal" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#14b8a6" stop-opacity=".9"/><stop offset=".45" stop-color="#115e59"/><stop offset="1" stop-color="#042f2e"/></radialGradient>
+  <radialGradient id="gGlassWarm" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#fdba74" stop-opacity=".8"/><stop offset=".5" stop-color="#7c2d12"/><stop offset="1" stop-color="#1c1917"/></radialGradient>
+  <linearGradient id="gRingSilver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5f5f4"/><stop offset="1" stop-color="#78716c"/></linearGradient>
+  <linearGradient id="gRingOrange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#c2410c"/></linearGradient>
+  <radialGradient id="gKnob" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#a8a29e"/><stop offset="1" stop-color="#292524"/></radialGradient>
+  <radialGradient id="gShadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#1c1917" stop-opacity=".38"/><stop offset="1" stop-color="#1c1917" stop-opacity="0"/></radialGradient>
+  <radialGradient id="gGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#f97316" stop-opacity=".55"/><stop offset=".6" stop-color="#f97316" stop-opacity=".12"/><stop offset="1" stop-color="#f97316" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gWallW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#ffedd5"/></linearGradient>
+</defs>
+
+<rect width="1000" height="700" fill="url(#gWallW)"/>
+<circle cx="860" cy="120" r="110" fill="#fb923c" opacity=".18"/><circle cx="130" cy="150" r="70" fill="#ea580c" opacity=".10"/>
+<path transform="translate(900 40) scale(0.8)" d="M20 0 L0 44 H18 L12 80 L40 32 H22 Z" fill="#ea580c" opacity="0.35"/>
+<g transform="translate(500 300) scale(1.0)">
+    <rect x="-262" y="-170" width="524" height="170" rx="44" fill="url(#gBodyW)"/>
+    <rect x="-262" y="-170" width="524" height="170" rx="44" fill="none" stroke="#d6d3d1" stroke-width="2"/>
+    <g fill="#d6d3d1"><rect x="-224" y="-146" width="448" height="6" rx="3"/><rect x="-224" y="-130" width="448" height="6" rx="3"/><rect x="-224" y="-114" width="448" height="6" rx="3"/></g>
+    <rect x="-232" y="-62" width="464" height="30" rx="15" fill="#a8a29e"/>
+    <rect x="-224" y="-56" width="448" height="18" rx="9" fill="#57534e"/>
+    <rect x="-224" y="-48" width="448" height="5" rx="2.5" fill="#292524"/>
+    <rect x="150" y="-104" width="78" height="20" rx="10" fill="#1c1917"/>
+    <circle cx="170" cy="-94" r="5" fill="#fb923c"/><circle cx="190" cy="-94" r="5" fill="#2dd4bf"/><circle cx="210" cy="-94" r="3" fill="#78716c"/>
+    <text x="-226" y="-96" fill="#a8a29e" font-size="17" font-weight="700" letter-spacing="5" font-family="'Segoe UI',Arial,sans-serif">VOLTARA</text>
+    <g><path d="M-170 18 q18 34 0 68 t0 68 t0 68" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" opacity="0.75"/><path d="M-85 18 q18 34 0 68 t0 68 t0 68" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" opacity="0.75"/><path d="M0 18 q18 34 0 68 t0 68 t0 68" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" opacity="0.75"/><path d="M85 18 q18 34 0 68 t0 68 t0 68" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" opacity="0.75"/><path d="M170 18 q18 34 0 68 t0 68 t0 68" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" opacity="0.75"/></g>
+    </g><rect x="0" y="620" width="1000" height="80" fill="#e7e5e4"/><rect x="0" y="620" width="1000" height="6" fill="#d6d3d1"/><ellipse cx="115" cy="622" rx="100" ry="10" fill="url(#gShadow)"/><g transform="translate(115 620) scale(0.55)">
+    <rect x="-140" y="-14" width="40" height="14" rx="5" fill="#57534e"/><rect x="100" y="-14" width="40" height="14" rx="5" fill="#57534e"/>
+    <rect x="-160" y="-356" width="320" height="346" rx="26" fill="url(#gBodyW)"/>
+    <rect x="-160" y="-356" width="320" height="346" rx="26" fill="none" stroke="#d6d3d1" stroke-width="2"/>
+    <rect x="-160" y="-290" width="320" height="3" fill="#d6d3d1"/>
+    <rect x="-140" y="-338" width="88" height="36" rx="9" fill="#e7e5e4" stroke="#d6d3d1" stroke-width="2"/>
+    <rect x="-118" y="-324" width="44" height="8" rx="4" fill="#a8a29e"/>
+    <rect x="-32" y="-338" width="76" height="34" rx="7" fill="#1c1917"/>
+    <text x="6" y="-314" text-anchor="middle" fill="#fb923c" font-size="19" font-weight="700" font-family="'Segoe UI',Arial,sans-serif">40°</text>
+    <circle cx="100" cy="-321" r="25" fill="url(#gDark)"/><circle cx="100" cy="-321" r="19" fill="url(#gKnob)"/>
+    <rect x="98" y="-338" width="4" height="14" rx="2" fill="#fb923c"/>
+    <circle cx="0" cy="-158" r="116" fill="url(#gRingSilver)"/>
+    <circle cx="0" cy="-158" r="98" fill="#292524"/>
+    <circle cx="0" cy="-158" r="86" fill="url(#gGlassTeal)"/>
+    <ellipse cx="-14" cy="-120" rx="50" ry="34" fill="#fb923c" opacity=".92"/><ellipse cx="22" cy="-148" rx="34" ry="24" fill="#fed7aa" opacity=".9"/><path d="M-60 -150 q30 -34 70 -8" fill="none" stroke="#5eead4" stroke-width="5" opacity=".6"/>
+    <path d="M-62 -196 A 76 76 0 0 1 8 -232" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".28"/>
+    <rect x="108" y="-176" width="13" height="38" rx="6.5" fill="url(#gSilverH)"/>
+    
+    </g><ellipse cx="300" cy="622" rx="100" ry="10" fill="url(#gShadow)"/><g transform="translate(300 620) scale(0.55)">
+    <rect x="-140" y="-14" width="40" height="14" rx="5" fill="#57534e"/><rect x="100" y="-14" width="40" height="14" rx="5" fill="#57534e"/>
+    <rect x="-160" y="-356" width="320" height="346" rx="26" fill="url(#gBodyW)"/>
+    <rect x="-160" y="-356" width="320" height="346" rx="26" fill="none" stroke="#d6d3d1" stroke-width="2"/>
+    <rect x="-160" y="-290" width="320" height="3" fill="#d6d3d1"/>
+    <rect x="-140" y="-338" width="88" height="36" rx="9" fill="#e7e5e4" stroke="#d6d3d1" stroke-width="2"/>
+    <rect x="-118" y="-324" width="44" height="8" rx="4" fill="#a8a29e"/>
+    <rect x="-32" y="-338" width="76" height="34" rx="7" fill="#1c1917"/>
+    <text x="6" y="-314" text-anchor="middle" fill="#fb923c" font-size="19" font-weight="700" font-family="'Segoe UI',Arial,sans-serif">60 min</text>
+    <circle cx="100" cy="-321" r="25" fill="url(#gDark)"/><circle cx="100" cy="-321" r="19" fill="url(#gKnob)"/>
+    <rect x="98" y="-338" width="4" height="14" rx="2" fill="#fb923c"/>
+    <circle cx="0" cy="-158" r="116" fill="url(#gRingOrange)"/>
+    <circle cx="0" cy="-158" r="98" fill="#292524"/>
+    <circle cx="0" cy="-158" r="86" fill="url(#gGlassWarm)"/>
+    <ellipse cx="-16" cy="-122" rx="48" ry="32" fill="#fed7aa" opacity=".9"/><ellipse cx="20" cy="-150" rx="34" ry="26" fill="#fb923c" opacity=".85"/><ellipse cx="-30" cy="-168" rx="26" ry="18" fill="#fff" opacity=".75"/>
+    <path d="M-62 -196 A 76 76 0 0 1 8 -232" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".28"/>
+    <rect x="108" y="-176" width="13" height="38" rx="6.5" fill="url(#gSilverH)"/>
+    <rect x="-70" y="-52" width="140" height="4" rx="2" fill="#d6d3d1"/><rect x="-70" y="-43" width="140" height="4" rx="2" fill="#d6d3d1"/><rect x="-70" y="-34" width="140" height="4" rx="2" fill="#d6d3d1"/><rect x="-70" y="-25" width="140" height="4" rx="2" fill="#d6d3d1"/>
+    </g><ellipse cx="480" cy="622" rx="100" ry="10" fill="url(#gShadow)"/><g transform="translate(480 620) scale(0.52)">
+    <rect x="-168" y="-310" width="336" height="26" rx="13" fill="url(#gBodyW)" stroke="#d6d3d1" stroke-width="2"/>
+    <rect x="-168" y="-76" width="336" height="22" rx="11" fill="url(#gBodyW)" stroke="#d6d3d1" stroke-width="2"/>
+    <rect x="-151" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="-134" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="-123" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="-106" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="-95" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="-78" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="-67" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="-50" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="-39" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="-22" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="-11" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="6" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="17" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="34" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="45" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="62" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="73" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="90" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="101" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="118" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/><rect x="129" y="-298" width="22" height="232" rx="11" fill="url(#gBodyWH)"/><rect x="146" y="-290" width="4" height="216" rx="2" fill="#a8a29e" opacity=".35"/>
+    <rect x="-96" y="-352" width="192" height="52" rx="18" fill="url(#gDark)"/>
+    <circle cx="-48" cy="-326" r="17" fill="url(#gKnob)"/><rect x="-50" y="-341" width="4" height="12" rx="2" fill="#fb923c"/>
+    <circle cx="4" cy="-326" r="12" fill="url(#gKnob)"/><rect x="2.5" y="-336" width="3" height="9" rx="1.5" fill="#fb923c"/>
+    <circle cx="58" cy="-326" r="7" fill="#ea580c"/><circle cx="58" cy="-326" r="12" fill="#ea580c" opacity=".25"/>
+    <rect x="-140" y="-54" width="20" height="26" rx="6" fill="#57534e"/><rect x="120" y="-54" width="20" height="26" rx="6" fill="#57534e"/>
+    <circle cx="-130" cy="-17" r="18" fill="#292524"/><circle cx="-130" cy="-17" r="7" fill="#a8a29e"/>
+    <circle cx="130" cy="-17" r="18" fill="#292524"/><circle cx="130" cy="-17" r="7" fill="#a8a29e"/>
+    <path d="M-90 -372 q16 -22 0 -44 t0 -44" fill="none" stroke="#fb923c" stroke-width="6" stroke-linecap="round" opacity=".7"/><path d="M0 -372 q16 -22 0 -44 t0 -44" fill="none" stroke="#fb923c" stroke-width="6" stroke-linecap="round" opacity=".7"/><path d="M90 -372 q16 -22 0 -44 t0 -44" fill="none" stroke="#fb923c" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    </g><ellipse cx="640" cy="622" rx="100" ry="10" fill="url(#gShadow)"/><g transform="translate(640 620) scale(0.56)">
+    <rect x="-118" y="-12" width="30" height="12" rx="5" fill="#0c0a09"/><rect x="88" y="-12" width="30" height="12" rx="5" fill="#0c0a09"/>
+    <rect x="-130" y="-340" width="260" height="334" rx="50" fill="url(#gDark)"/>
+    <path d="M-130 -290 Q-130 -340 -80 -340 L-52 -340 Q-96 -300 -96 -230 L-96 -40 Q-130 -40 -130 -80 Z" fill="#fff" opacity=".07"/>
+    <rect x="-104" y="-318" width="208" height="70" rx="22" fill="#0c0a09" stroke="#57534e" stroke-width="2"/>
+    <rect x="-92" y="-306" width="92" height="46" rx="10" fill="#1c1917"/>
+    <text x="-46" y="-274" text-anchor="middle" fill="#fb923c" font-size="24" font-weight="700" font-family="'Segoe UI',Arial,sans-serif">180°</text>
+    <circle cx="38" cy="-283" r="17" fill="url(#gKnob)"/><rect x="36" y="-297" width="4" height="12" rx="2" fill="#fb923c"/>
+    <circle cx="80" cy="-283" r="13" fill="url(#gKnob)"/><rect x="78.5" y="-294" width="3" height="9" rx="1.5" fill="#fb923c"/>
+    <rect x="-112" y="-226" width="224" height="178" rx="26" fill="url(#gDarker)" stroke="#57534e" stroke-width="2"/>
+    <rect x="-72" y="-206" width="144" height="28" rx="14" fill="url(#gSilverH)"/>
+    <rect x="-72" y="-178" width="144" height="5" rx="2.5" fill="#0c0a09" opacity=".35"/>
+    <rect x="-112" y="-70" width="224" height="9" rx="4.5" fill="#ea580c"/>
+    <g stroke="#57534e" stroke-width="4" stroke-linecap="round"><path d="M-48 -150 H48"/><path d="M-48 -134 H48"/><path d="M-48 -118 H48"/></g>
+    </g><ellipse cx="852" cy="622" rx="100" ry="10" fill="url(#gShadow)"/><g transform="translate(852 620) scale(0.46)">
+    <rect x="-190" y="-12" width="36" height="12" rx="5" fill="#0c0a09"/><rect x="154" y="-12" width="36" height="12" rx="5" fill="#0c0a09"/>
+    <rect x="-210" y="-268" width="420" height="260" rx="26" fill="url(#gSilver)"/>
+    <rect x="-210" y="-268" width="420" height="260" rx="26" fill="none" stroke="#a8a29e" stroke-width="2"/>
+    <rect x="-192" y="-246" width="268" height="216" rx="18" fill="#1c1917"/>
+    <rect x="-180" y="-234" width="244" height="192" rx="12" fill="url(#gDarker)"/>
+    <path d="M-176 -230 L-90 -230 L-176 -110 Z" fill="#fff" opacity=".10"/>
+    <path d="M-60 -230 L-10 -230 L-110 -70 L-160 -70 Z" fill="#fff" opacity=".06"/>
+    <ellipse cx="-58" cy="-62" rx="78" ry="11" fill="#57534e"/>
+    <ellipse cx="-58" cy="-70" rx="52" ry="22" fill="#292524"/>
+    <rect x="58" y="-196" width="11" height="124" rx="5.5" fill="url(#gSilverH)"/>
+    <rect x="96" y="-246" width="98" height="216" rx="14" fill="#292524"/>
+    <rect x="106" y="-234" width="78" height="40" rx="8" fill="#0c0a09"/>
+    <text x="145" y="-206" text-anchor="middle" fill="#fb923c" font-size="22" font-weight="700" font-family="'Segoe UI',Arial,sans-serif">12:30</text>
+    <g fill="#57534e">
+      <rect x="106" y="-180" width="36" height="18" rx="5"/><rect x="148" y="-180" width="36" height="18" rx="5"/>
+      <rect x="106" y="-154" width="36" height="18" rx="5"/><rect x="148" y="-154" width="36" height="18" rx="5"/>
+      <rect x="106" y="-128" width="36" height="18" rx="5"/><rect x="148" y="-128" width="36" height="18" rx="5"/>
+    </g>
+    <circle cx="145" cy="-66" r="20" fill="url(#gRingOrange)"/><path d="M139 -74 L153 -66 L139 -58 Z" fill="#fff"/>
+    </g>
+</svg>

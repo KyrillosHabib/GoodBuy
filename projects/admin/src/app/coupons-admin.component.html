@@ -1,0 +1,133 @@
+    <div class="page-head">
+      <h1>{{ 'cpn.title' | t }}</h1>
+      <button type="button" class="btn btn-primary" (click)="edit(null)">+ {{ 'cpn.new' | t }}</button>
+    </div>
+    <app-intro [text]="'cpn.intro' | t" />
+
+    <div class="card"><app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" /></div>
+
+    <ng-template #row let-c>
+      <td><code dir="ltr"><strong>{{ c.code }}</strong></code><div class="muted small">{{ c.name }}</div></td>
+      <td dir="ltr">{{ c.type === 'Percent' ? '-' + c.value + '%' : c.type === 'FreeShipping' ? ('cpn.type.FreeShipping' | t) : '-' + c.value }}</td>
+      <td dir="ltr">{{ c.usedCount }} / {{ c.totalUsageLimit ?? '∞' }}</td>
+      <td>{{ ('cpn.audience.' + c.audience) | t }}</td>
+      <td><span class="chip" [class.chip-off]="c.status !== 'active'">{{ ('cpn.status.' + c.status) | t }}</span></td>
+      <td class="actions">
+        <button type="button" class="btn btn-light btn-sm" (click)="showUsages(c)">{{ 'cpn.usages' | t }}</button>
+        <button type="button" class="btn btn-light btn-sm" (click)="edit(c)">{{ 'a.edit' | t }}</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="remove(c)">{{ 'a.delete' | t }}</button>
+      </td>
+    </ng-template>
+
+    @if (open()) {
+      <app-modal [title]="(editing() ? 'cpn.edit' : 'cpn.new') | t" (closed)="open.set(false)">
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'cpn.code' | t }} *</label>
+            <div class="toolbar">
+              <input [(ngModel)]="f.code" dir="ltr" style="text-transform: uppercase" placeholder="EID25" />
+              <button type="button" class="btn btn-light btn-sm" (click)="generate()">{{ 'cpn.generate' | t }}</button>
+            </div>
+          </div>
+          <div class="field"><label>{{ 'disc.name' | t }} *</label><input [(ngModel)]="f.name" [placeholder]="'cpn.nameHint' | t" /></div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'disc.type' | t }} *</label>
+            <select [(ngModel)]="f.type">
+              <option value="Percent">{{ 'cpn.type.Percent' | t }}</option>
+              <option value="FixedAmount">{{ 'cpn.type.FixedAmount' | t }}</option>
+              <option value="FreeShipping">{{ 'cpn.type.FreeShipping' | t }}</option>
+            </select>
+          </div>
+          @if (f.type !== 'FreeShipping') {
+            <div class="field"><label>{{ (f.type === 'Percent' ? 'cpn.valuePercent' : 'cpn.valueAmount') | t }} *</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.value" /></div>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'cpn.minOrder' | t }}</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.minOrderAmount" /></div>
+          @if (f.type === 'Percent') {
+            <div class="field"><label>{{ 'cpn.maxDiscount' | t }}</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.maxDiscountAmount" /></div>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'disc.starts' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="starts" /></div>
+          <div class="field"><label>{{ 'disc.ends' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="ends" /></div>
+        </div>
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'cpn.totalLimit' | t }}</label><input type="number" min="1" dir="ltr" [(ngModel)]="f.totalUsageLimit" [placeholder]="'cpn.unlimited' | t" /></div>
+          <div class="field"><label>{{ 'cpn.perCustomer' | t }}</label><input type="number" min="1" dir="ltr" [(ngModel)]="f.perCustomerLimit" [placeholder]="'cpn.unlimited' | t" /></div>
+        </div>
+
+        <div class="field">
+          <label>{{ 'cpn.audience' | t }}</label>
+          <select [(ngModel)]="f.audience">
+            <option value="Everyone">{{ 'cpn.audience.Everyone' | t }}</option>
+            <option value="NewCustomers">{{ 'cpn.audience.NewCustomers' | t }}</option>
+            <option value="SpecificCustomers">{{ 'cpn.audience.SpecificCustomers' | t }}</option>
+          </select>
+        </div>
+        @if (f.audience === 'SpecificCustomers') {
+          <div class="field">
+            <label>{{ 'cpn.emails' | t }} *</label>
+            <textarea rows="3" dir="ltr" [(ngModel)]="f.allowedEmails" placeholder="ali@example.com&#10;sara@example.com"></textarea>
+          </div>
+        }
+
+        <div class="field">
+          <label>{{ 'cpn.appliesTo' | t }}</label>
+          <select [(ngModel)]="appliesTo" (ngModelChange)="appliesChanged()">
+            <option value="all">{{ 'cpn.applies.all' | t }}</option>
+            <option value="category">{{ 'cpn.applies.category' | t }}</option>
+            <option value="product">{{ 'cpn.applies.product' | t }}</option>
+          </select>
+        </div>
+        @if (appliesTo === 'category') {
+          <div class="field">
+            <select [(ngModel)]="f.categoryId">
+              <option [ngValue]="null">—</option>
+              @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ categoryName(c) }}</option> }
+            </select>
+          </div>
+        }
+        @if (appliesTo === 'product') {
+          <div class="field">
+            @if (productLabel(); as label) {
+              <div class="picker-chosen"><span><strong>{{ label }}</strong></span><button type="button" class="btn btn-light btn-sm" (click)="clearProduct()">✕</button></div>
+            } @else {
+              <app-variant-picker [includeBundles]="true" (picked)="pickProduct($event)" />
+            }
+          </div>
+        }
+
+        <label class="switch"><input type="checkbox" [(ngModel)]="f.excludeDiscountedItems" /><span></span> {{ 'cpn.excludeDiscounted' | t }}</label>
+        <br />
+        <label class="switch"><input type="checkbox" [(ngModel)]="f.isActive" /><span></span> {{ 'a.active' | t }}</label>
+
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+        </div>
+      </app-modal>
+    }
+
+    @if (usagesOf(); as c) {
+      <app-modal [title]="('cpn.usages' | t) + ' · ' + c.code" (closed)="usagesOf.set(null)">
+        @if (usages().length === 0) {
+          <p class="muted">{{ 'cpn.noUsages' | t }}</p>
+        } @else {
+          <table class="table">
+            <thead><tr><th>{{ 'ord.title' | t }}</th><th>{{ 'contact.email' | t }}</th><th>{{ 'cpn.amount' | t }}</th><th>{{ 'inv.date' | t }}</th></tr></thead>
+            <tbody>
+              @for (u of usages(); track u.orderNumber) {
+                <tr><td dir="ltr">{{ u.orderNumber }}</td><td dir="ltr">{{ u.email }}</td><td dir="ltr">{{ u.amount }}</td><td dir="ltr">{{ u.usedAtUtc.slice(0, 10) }}</td></tr>
+              }
+            </tbody>
+          </table>
+        }
+      </app-modal>
+    }

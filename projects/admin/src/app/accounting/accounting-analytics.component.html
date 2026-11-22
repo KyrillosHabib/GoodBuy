@@ -1,0 +1,79 @@
+<div class="an-head">
+  <h2>{{ 'acc.an.title' | t }}</h2>
+  <span class="spacer"></span>
+  <label class="muted small">{{ 'acc.an.months' | t }}</label>
+  <select [value]="months()" (change)="setMonths(+$any($event.target).value)">
+    @for (m of monthOptions; track m) { <option [value]="m" [selected]="m === months()">{{ m }}</option> }
+  </select>
+  <button type="button" class="btn btn-light btn-sm" (click)="load()">{{ 'acc.an.refresh' | t }}</button>
+</div>
+
+@if (loading() && !d()) { <div class="card"><p class="muted">{{ 'acc.an.loading' | t }}</p></div> }
+@if (failed()) { <div class="card warn-card"><span>{{ 'acc.an.error' | t }}</span></div> }
+
+@if (d(); as a) {
+  <div class="kpis">
+    <div class="card kpi">
+      <span class="muted">{{ 'acc.an.k.revenue' | t }}</span><strong dir="ltr">{{ a.changes.revenue.current | number: '1.0-0' }}</strong>
+      <span class="delta" [class.up]="isGood(a.changes.revenue.changePct, true)" [class.down]="isBad(a.changes.revenue.changePct, true)" dir="ltr">{{ pct(a.changes.revenue.changePct) }}</span>
+      <app-sparkline [values]="a.monthly.revenue" [color]="c0" />
+    </div>
+    <div class="card kpi">
+      <span class="muted">{{ 'acc.an.k.expenses' | t }}</span><strong dir="ltr">{{ a.changes.expenses.current | number: '1.0-0' }}</strong>
+      <span class="delta" [class.up]="isGood(a.changes.expenses.changePct, false)" [class.down]="isBad(a.changes.expenses.changePct, false)" dir="ltr">{{ pct(a.changes.expenses.changePct) }}</span>
+      <app-sparkline [values]="a.monthly.expenses" [color]="c1" />
+    </div>
+    <div class="card kpi" [class.warn]="a.changes.profit.current < 0">
+      <span class="muted">{{ 'acc.an.k.profit' | t }}</span><strong dir="ltr">{{ a.changes.profit.current | number: '1.0-0' }}</strong>
+      <span class="delta" [class.up]="isGood(a.changes.profit.changePct, true)" [class.down]="isBad(a.changes.profit.changePct, true)" dir="ltr">{{ pct(a.changes.profit.changePct) }}</span>
+      <app-sparkline [values]="a.monthly.netProfit" [color]="c3" />
+    </div>
+    <div class="card kpi"><span class="muted">{{ 'acc.an.k.cash' | t }}</span><strong dir="ltr">{{ a.cashNow | number: '1.0-0' }}</strong><span class="muted small">{{ 'acc.an.k.margin' | t }}: <b dir="ltr">{{ a.grossMarginPct | number: '1.0-1' }}%</b></span></div>
+    <div class="card kpi"><span class="muted">{{ 'acc.an.k.receivables' | t }}</span><strong dir="ltr">{{ a.receivables.total | number: '1.0-0' }}</strong></div>
+    <div class="card kpi"><span class="muted">{{ 'acc.an.k.payables' | t }}</span><strong dir="ltr">{{ a.payables.total | number: '1.0-0' }}</strong></div>
+    <div class="card kpi"><span class="muted">{{ 'acc.an.k.vat' | t }}</span><strong dir="ltr">{{ a.vat.payable | number: '1.0-0' }}</strong></div>
+  </div>
+  <p class="muted small">{{ 'acc.an.vsLast' | t }}</p>
+
+  <div class="grid-2">
+    <div class="card"><h3>{{ 'acc.an.c.profit' | t }}</h3>
+      <app-line-chart [labels]="a.monthly.months" [series]="profitSeries(a)" [area]="true" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.profit' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.revExp' | t }}</h3>
+      <app-bar-chart [labels]="a.monthly.months" [series]="revExpSeries(a)" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.revExp' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.cash' | t }}</h3>
+      <app-bar-chart [labels]="a.monthly.months" [series]="cashSeries(a)" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.cash' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.daily' | t }}</h3>
+      <app-line-chart [labels]="dayLabels(a)" [series]="dailySeries(a)" [area]="true" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.daily' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.aging' | t }}</h3>
+      <app-bar-chart [labels]="agingLabels()" [series]="agingSeries(a)" [stacked]="true" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.aging' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.expenseMix' | t }}</h3>
+      <app-donut-chart [items]="items(a.expensesByAccount)" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.expenseMix' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.methods' | t }}</h3>
+      <app-donut-chart [items]="methodItems(a)" [emptyText]="'acc.an.empty' | t" [title]="'acc.an.c.methods' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.unsettled' | t }}</h3>
+      <div class="unsettled">
+        <div><span class="muted">{{ 'acc.an.u.carriers' | t }}</span><strong dir="ltr">{{ a.unsettled.custody | number: '1.2-2' }}</strong></div>
+        <div><span class="muted">{{ 'acc.an.u.gateways' | t }}</span><strong dir="ltr">{{ a.unsettled.gateway | number: '1.2-2' }}</strong></div>
+      </div>
+      <a class="btn btn-primary btn-sm" routerLink="/accounting/settlements-hub">{{ 'acc.an.u.open' | t }}</a>
+    </div>
+    <div class="card"><h3>{{ 'acc.an.c.topCustomers' | t }}</h3>
+      <app-hbar-chart [items]="items(a.topCustomers)" [color]="c0" [emptyText]="'acc.an.empty' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.topSuppliers' | t }}</h3>
+      <app-hbar-chart [items]="items(a.topSuppliers)" [color]="c1" [emptyText]="'acc.an.empty' | t" /></div>
+    <div class="card"><h3>{{ 'acc.an.c.attention' | t }}</h3>
+      @if (pendingTotal(a) === 0) { <p class="muted">{{ 'acc.an.nothingPending' | t }}</p> } @else {
+        <div class="chips">
+          @if (a.pending.documents > 0) { <a class="chip-btn" routerLink="/accounting/inbox">{{ 'acc.an.p.documents' | t }}: <strong>{{ a.pending.documents }}</strong></a> }
+          @if (a.pending.vouchers > 0) { <a class="chip-btn" routerLink="/accounting/treasury">{{ 'acc.an.p.vouchers' | t }}: <strong>{{ a.pending.vouchers }}</strong></a> }
+          @if (a.pending.journal > 0) { <a class="chip-btn" routerLink="/accounting/journal">{{ 'acc.an.p.journal' | t }}: <strong>{{ a.pending.journal }}</strong></a> }
+          @if (a.pending.transfers > 0) { <a class="chip-btn" routerLink="/accounting/treasury">{{ 'acc.an.p.transfers' | t }}: <strong>{{ a.pending.transfers }}</strong></a> }
+          @if (a.pending.settlements + a.pending.carrierSettlements + a.pending.gatewaySettlements > 0) {
+            <a class="chip-btn" routerLink="/accounting/settlements-hub">{{ 'acc.an.p.settlements' | t }}: <strong>{{ a.pending.settlements + a.pending.carrierSettlements + a.pending.gatewaySettlements }}</strong></a>
+          }
+          @if (a.pending.issues > 0) { <a class="chip-btn warn" routerLink="/accounting/inbox">{{ 'acc.an.p.issues' | t }}: <strong>{{ a.pending.issues }}</strong></a> }
+        </div>
+      }
+    </div>
+  </div>
+}

@@ -1,0 +1,43 @@
+<div class="page-head">
+  <h1>{{ 'a.brand.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="startCreate()">+ {{ 'a.brand.new' | t }}</button>
+</div>
+<app-intro [text]="'a.brand.intro' | t" />
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else {
+    <app-data-table [rows]="brands()" [columns]="columns" [rowTemplate]="row" />
+  }
+</div>
+
+<ng-template #row let-b>
+  <td>
+    @if (b.logoUrl) { <img class="thumb thumb-sm" [src]="b.logoUrl | assetUrl" alt="" /> } @else { <div class="thumb thumb-sm thumb-empty">🏷️</div> }
+  </td>
+  <td><strong>{{ nameOf(b) }}</strong></td>
+  <td>{{ b.productsCount }}</td>
+  <td>@if (b.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="startEdit(b)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(b)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (formOpen()) {
+  <app-modal [title]="(editing() ? 'a.brand.edit' : 'a.brand.new') | t" (closed)="formOpen.set(false)">
+    <form id="brand-form" [formGroup]="form" (ngSubmit)="save()">
+      <app-translation-fields [group]="form.controls.translations" [fields]="fields" />
+
+      <app-image-field [control]="form.controls.logoUrl" label="a.brand.logo" />
+
+      <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+    </form>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="formOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="brand-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

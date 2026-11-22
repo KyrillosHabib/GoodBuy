@@ -1,0 +1,155 @@
+<div class="page-head"><h1>{{ 'users.title' | t }}</h1></div>
+
+<div class="tabs">
+  <button type="button" class="tab" [class.active]="tab() === 'users'" (click)="tab.set('users')">{{ 'users.tab.users' | t }}</button>
+  <button type="button" class="tab" [class.active]="tab() === 'roles'" (click)="tab.set('roles')">{{ 'users.tab.roles' | t }}</button>
+</div>
+
+@if (tab() === 'users') {
+  <div class="page-head">
+    <app-intro [text]="'users.intro' | t" />
+    <button type="button" class="btn btn-primary" (click)="editUser(null)">+ {{ 'users.new' | t }}</button>
+  </div>
+  <div class="card"><app-data-table [rows]="users()" [columns]="uColumns" [rowTemplate]="uRow" /></div>
+
+  <ng-template #uRow let-u>
+    <td><strong>{{ u.fullName }}</strong></td>
+    <td dir="ltr">{{ u.userName || u.email }}</td>
+    <td><span class="chip">{{ roleLabel(u.role) }}</span></td>
+    <td>{{ warehouseNames(u) }}</td>
+    <td>@if (u.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+    <td class="actions">
+      <button type="button" class="btn btn-light btn-sm" (click)="editUser(u)">{{ 'a.edit' | t }}</button>
+      <button type="button" class="btn btn-light btn-sm" (click)="resetPassword(u)">{{ 'inv.resetPassword' | t }}</button>
+    </td>
+  </ng-template>
+}
+
+@if (tab() === 'roles') {
+  <app-intro [text]="'users.rolesIntro' | t" />
+
+  <div class="roles-layout">
+    <!-- the roles: a list on the side (a drop-down on a phone) -->
+    <aside class="roles-side">
+      <select class="roles-select" [ngModel]="current()?.name" (ngModelChange)="selected.set($event)">
+        @for (r of drafts(); track r.name) { <option [value]="r.name">{{ roleLabel(r.name) }}</option> }
+      </select>
+
+      <ul class="roles-list">
+        @for (r of drafts(); track r.name) {
+          <li>
+            <button type="button" [class.on]="current()?.name === r.name" (click)="selected.set(r.name)">
+              <span class="roles-name">{{ roleLabel(r.name) }}</span>
+              @if (r.isNew) { <span class="chip">{{ 'users.unsaved' | t }}</span> }
+              <span class="roles-count">{{ r.users }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+
+      <div class="roles-new">
+        <input [(ngModel)]="newRoleName" [placeholder]="'users.roleName' | t" (keyup.enter)="addRole()" />
+        <button type="button" class="btn btn-light" (click)="addRole()">+ {{ 'users.addRole' | t }}</button>
+      </div>
+    </aside>
+
+    <!-- what the chosen role can do -->
+    @if (current(); as r) {
+      <section class="card roles-main">
+        <div class="spread row">
+          <div>
+            <h3>{{ roleLabel(r.name) }}</h3>
+            <p class="muted small">{{ roleDescription(r) }} · {{ 'users.count' | t: { n: r.users } }} · {{ r.picked.size }} {{ 'users.permsCount' | t }}</p>
+          </div>
+          <div class="toolbar">
+            @if (r.name !== 'Admin') {
+              <button type="button" class="btn btn-primary btn-sm" [disabled]="saving()" (click)="saveRole(r)">{{ 'a.save' | t }}</button>
+            }
+            @if (!r.isSystem) {
+              <button type="button" class="btn btn-danger btn-sm" (click)="deleteRole(r)">{{ 'a.delete' | t }}</button>
+            }
+          </div>
+        </div>
+
+        @for (g of groups; track g.title) {
+          <details class="perm-box" open>
+            <summary>
+              <strong>{{ g.title | t }}</strong>
+              <span class="perm-n">{{ groupCount(r, g.items) }}/{{ g.items.length }}</span>
+              @if (r.name !== 'Admin') {
+                <button type="button" class="btn btn-light btn-sm" (click)="$event.preventDefault(); toggleGroup(r, g.items)">{{ (groupCount(r, g.items) === g.items.length ? 'users.none' : 'users.all') | t }}</button>
+              }
+            </summary>
+            <ul class="perm-rows">
+              @for (p of g.items; track p) {
+                <li>
+                  <label>
+                    <input type="checkbox" [checked]="r.picked.has(p)" [disabled]="r.name === 'Admin'" (change)="togglePermission(r, p)" />
+                    <span class="perm-t">{{ ('perm.' + p) | t }}</span>
+                    <span class="perm-h">{{ ('perm.' + p + '.hint') | t }}</span>
+                  </label>
+                </li>
+              }
+            </ul>
+          </details>
+        }
+      </section>
+    }
+  </div>
+}
+
+@if (uOpen()) {
+  <app-modal [title]="(uEditing() ? 'users.edit' : 'users.new') | t" (closed)="uOpen.set(false)">
+    <form id="user-form" [formGroup]="uForm" (ngSubmit)="saveUser()">
+      <div class="field"><label>{{ 'auth.fullName' | t }} *</label><input formControlName="fullName" /></div>
+
+      @if (!uEditing()) {
+        <div class="form-row">
+          <div class="field"><label>{{ 'users.username' | t }} *</label><input type="text" formControlName="userName" dir="ltr" autocomplete="off" placeholder="ahmed.store" />@if (uForm.controls.userName.touched && uForm.controls.userName.invalid) { <div class="error">{{ 'users.usernameRule' | t }}</div> }</div>
+          <div class="field"><label>{{ 'inv.tempPassword' | t }} *</label><input type="text" formControlName="password" dir="ltr" autocomplete="off" /></div>
+        </div>
+        <div class="hint-text">{{ 'inv.tempPasswordHint' | t }}</div>
+      }
+
+      <div class="field">
+        <label>{{ 'users.role' | t }} *</label>
+        <select formControlName="role">
+          @for (r of roles(); track r.name) { <option [value]="r.name">{{ roleLabel(r.name) }}</option> }
+        </select>
+      </div>
+
+      @if (needsWarehouses()) {
+        <div class="field">
+          <label>{{ 'inv.assignedWarehouses' | t }} *</label>
+          <div class="chip-pick">
+            @for (w of warehouses(); track w.id) {
+              <button type="button" class="pick-chip" [class.on]="picked().has(w.id)" (click)="togglePick(w.id)">{{ w.name }}</button>
+            }
+          </div>
+          <div class="hint-text">{{ 'users.warehousesHint' | t }}</div>
+        </div>
+
+        @if (picked().size > 0) {
+          <div class="field">
+            <label>{{ 'users.managerOf' | t }}</label>
+            <div class="chip-pick">
+              @for (w of warehouses(); track w.id) {
+                @if (picked().has(w.id)) {
+                  <button type="button" class="pick-chip" [class.on]="managerPicked().has(w.id)" (click)="toggleManager(w.id)">★ {{ w.name }}</button>
+                }
+              }
+            </div>
+            <div class="hint-text">{{ 'users.managerHint' | t }}</div>
+          </div>
+        }
+      }
+
+      @if (uEditing()) { <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label> }
+    </form>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="uOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button class="btn btn-primary" form="user-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

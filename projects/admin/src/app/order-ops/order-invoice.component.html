@@ -1,0 +1,91 @@
+<div class="bar">
+  <a [routerLink]="['/orders', orderId()]" class="btn">{{ 'ord2.inv.back' | t }}</a>
+  <button type="button" class="btn primary" [disabled]="!order()" (click)="print()">{{ 'ord2.inv.print' | t }}</button>
+</div>
+
+@if (order(); as o) {
+  <article class="sheet" [attr.dir]="i18n.isRtl() ? 'rtl' : 'ltr'">
+    <header class="head">
+      <div>
+        <h1>{{ company() }}</h1>
+        @if (contact()) { <p class="muted">{{ contact() }}</p> }
+      </div>
+      <div class="meta">
+        <h2>{{ 'ord2.inv.title' | t }}</h2>
+        <div><span class="muted">{{ 'ord2.inv.no' | t }}:</span> <strong dir="ltr">{{ o.number }}</strong></div>
+        <div><span class="muted">{{ 'ord2.inv.date' | t }}:</span> <span dir="ltr">{{ date(o.createdAtUtc) }}</span></div>
+      </div>
+    </header>
+
+    <section class="bill">
+      <div class="label">{{ 'ord2.inv.billTo' | t }}</div>
+      <div class="name">{{ o.customerName }}</div>
+      <div class="muted"><span dir="ltr">{{ o.phone }}</span></div>
+      <div class="muted">{{ address(o) }}</div>
+    </section>
+
+    <table class="lines">
+      <thead>
+        <tr>
+          <th class="start">{{ 'ord2.inv.item' | t }}</th>
+          <th class="num">{{ 'ord2.inv.qty' | t }}</th>
+          <th class="num">{{ 'ord2.inv.unit' | t }}</th>
+          <th class="num">{{ 'ord2.inv.lineTotal' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (i of o.items; track $index) {
+          <tr>
+            <td class="start">{{ i.productName }}@if (i.variantLabel) { <span class="muted"> · {{ i.variantLabel }}</span> }</td>
+            <td class="num" dir="ltr">{{ i.quantity }}</td>
+            <td class="num" dir="ltr">{{ money(i.unitPrice) }}</td>
+            <td class="num" dir="ltr">{{ money(i.lineTotal) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="sums">
+      <div class="row"><span>{{ 'ord2.inv.subtotal' | t }}</span><span dir="ltr">{{ money(o.subtotal) }}</span></div>
+      @if ((o.promotionDiscount ?? 0) > 0) { <div class="row"><span>{{ 'ord2.inv.promo' | t }}</span><span dir="ltr">-{{ money(o.promotionDiscount ?? 0) }}</span></div> }
+      @if (o.couponDiscount > 0) { <div class="row"><span>{{ 'ord2.inv.coupon' | t }}@if (o.couponCode) { ({{ o.couponCode }}) }</span><span dir="ltr">-{{ money(o.couponDiscount) }}</span></div> }
+      @if ((o.shippingFee ?? 0) > 0) { <div class="row"><span>{{ 'ord2.inv.shipping' | t }}</span><span dir="ltr">{{ money(o.shippingFee ?? 0) }}</span></div> }
+      <div class="row total"><span>{{ 'ord2.inv.total' | t }}</span><span dir="ltr">{{ money(o.total) }} {{ o.currency }}</span></div>
+    </div>
+
+    <p class="pay">{{ 'ord2.inv.payment' | t }}: {{ 'pay.' + o.paymentMethod | t }} · {{ 'ord.pay.' + o.paymentStatus | t }}</p>
+
+    @if (returned().length > 0) {
+      <section class="returns">
+        <h3>{{ 'ord2.inv.returns' | t }}</h3>
+        <table class="lines">
+          <thead>
+            <tr>
+              <th class="start">{{ 'ord2.inv.retNo' | t }}</th>
+              <th class="start">{{ 'ord2.inv.item' | t }}</th>
+              <th class="num">{{ 'ord2.inv.qty' | t }}</th>
+              <th class="num">{{ 'ord2.inv.retValue' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of returned(); track $index) {
+              <tr>
+                <td class="start"><span dir="ltr">{{ r.number }}</span><div class="muted small" dir="ltr">{{ r.date }}</div></td>
+                <td class="start">{{ r.name }}</td>
+                <td class="num" dir="ltr">{{ r.qty }}</td>
+                <td class="num" dir="ltr">-{{ money(r.value) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div class="sums">
+          <div class="row total"><span>{{ 'ord2.inv.net' | t }}</span><span dir="ltr">{{ money(net()) }} {{ o.currency }}</span></div>
+        </div>
+      </section>
+    }
+
+    <footer class="thanks">{{ 'ord2.inv.thanks' | t }}</footer>
+  </article>
+} @else {
+  <p class="loading">{{ 'ord2.inv.loading' | t }}</p>
+}

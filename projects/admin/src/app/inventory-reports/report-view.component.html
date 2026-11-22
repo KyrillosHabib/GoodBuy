@@ -1,0 +1,205 @@
+@if (def(); as d) {
+  <div class="page-head no-print">
+    <div>
+      <a class="back" routerLink="/inventory/reports">← {{ 'ir.back' | t }}</a>
+      <h1>{{ 'ir.r.' + d.code + '.title' | t }}</h1>
+      <p class="muted">{{ 'ir.r.' + d.code + '.desc' | t }}</p>
+    </div>
+    <select class="switch-report" [attr.aria-label]="'ir.switch' | t" (change)="go($any($event.target).value)">
+      @for (r of openable(); track r.code) {
+        <option [value]="r.code" [selected]="r.code === d.code">{{ 'ir.r.' + r.code + '.title' | t }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="card no-print">
+    <div class="filters">
+      @for (f of d.filters; track f.key) {
+        <div class="field" [class.wide]="f.type === 'variant'">
+          <span class="flabel">{{ 'ir.f.' + f.key | t }}@if (f.required) { <b class="req"> *</b> }</span>
+
+          @switch (f.type) {
+            @case ('text') {
+              <input type="text" [value]="val(f.key)" (input)="set(f.key, $any($event.target).value)" (keyup.enter)="run()" />
+            }
+            @case ('date') {
+              <input type="date" dir="ltr" [value]="val(f.key)" (change)="set(f.key, $any($event.target).value)" />
+            }
+            @case ('number') {
+              <input type="number" min="0" dir="ltr" [value]="val(f.key)" (input)="set(f.key, $any($event.target).value)" (keyup.enter)="run()" />
+            }
+            @case ('flag') {
+              <label class="switch"><input type="checkbox" [checked]="val(f.key) === 'true'" (change)="set(f.key, $any($event.target).checked ? 'true' : '')" /><span></span></label>
+            }
+            @case ('select') {
+              <select (change)="set(f.key, $any($event.target).value)">
+                @for (o of f.options; track o) {
+                  <option [value]="o" [selected]="o === val(f.key)">{{ o === '' ? ('ir.f.all' | t) : ((f.optionPrefix ?? '') + o | t) }}</option>
+                }
+              </select>
+            }
+            @case ('warehouse') {
+              <select (change)="set(f.key, $any($event.target).value)">
+                <option value="" [selected]="val(f.key) === ''">{{ 'ir.f.allWarehouses' | t }}</option>
+                @for (o of lookups().warehouses; track o.id) { <option [value]="o.id" [selected]="'' + o.id === val(f.key)">{{ o.name }}</option> }
+              </select>
+            }
+            @case ('supplier') {
+              <select (change)="set(f.key, $any($event.target).value)">
+                <option value="" [selected]="val(f.key) === ''">{{ 'ir.f.all' | t }}</option>
+                @for (o of lookups().suppliers; track o.id) { <option [value]="o.id" [selected]="'' + o.id === val(f.key)">{{ o.name }}</option> }
+              </select>
+            }
+            @case ('category') {
+              <select (change)="set(f.key, $any($event.target).value)">
+                <option value="" [selected]="val(f.key) === ''">{{ 'ir.f.all' | t }}</option>
+                @for (o of lookups().categories; track o.id) { <option [value]="o.id" [selected]="'' + o.id === val(f.key)">{{ o.name }}</option> }
+              </select>
+            }
+            @case ('brand') {
+              <select (change)="set(f.key, $any($event.target).value)">
+                <option value="" [selected]="val(f.key) === ''">{{ 'ir.f.all' | t }}</option>
+                @for (o of lookups().brands; track o.id) { <option [value]="o.id" [selected]="'' + o.id === val(f.key)">{{ o.name }}</option> }
+              </select>
+            }
+            @case ('variant') {
+              @if (variantLabel()) {
+                <div class="picked"><strong>{{ variantLabel() }}</strong> <button type="button" class="btn btn-light" (click)="clearVariant()">{{ 'ir.clear' | t }}</button></div>
+              } @else {
+                <div class="picker">
+                  <input type="text" [placeholder]="'ir.pickItem' | t" (focus)="variantInput.next($any($event.target).value)" (input)="variantInput.next($any($event.target).value)" />
+                  @if (variantResults().length > 0) {
+                    <ul class="picker-list">
+                      @for (v of variantResults(); track v.id) {
+                        <li><button type="button" (click)="pickVariant(v)"><strong>{{ v.productName }}</strong> <span class="muted small">{{ v.label }} · {{ v.sku }}</span></button></li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            }
+          }
+        </div>
+      }
+    </div>
+
+    @if (missing()) { <p class="text-bad small">{{ 'ir.pickItemFirst' | t }}</p> }
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" (click)="run()">{{ 'ir.run' | t }}</button>
+      <button type="button" class="btn btn-light" (click)="reset()">{{ 'ir.reset' | t }}</button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="muted no-print">{{ 'common.loading' | t }}</p>
+  } @else if (error()) {
+    <p class="text-bad no-print">{{ 'ir.loadFailed' | t }}</p>
+  } @else {
+   @if (report(); as r) {
+    <div class="toolbar no-print">
+      @if (d.stickers) {
+        <div class="tabs">
+          <button type="button" [class.active]="view() === 'table'" (click)="view.set('table')">{{ 'ir.tableView' | t }}</button>
+          <button type="button" [class.active]="view() === 'stickers'" (click)="view.set('stickers')">{{ 'ir.labelsView' | t }}</button>
+        </div>
+      }
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-light" (click)="exportCsv()">{{ 'ir.csv' | t }}</button>
+      <button type="button" class="btn btn-primary" (click)="print()">{{ 'ir.print' | t }}</button>
+    </div>
+
+    <div class="print-area sheet">
+      <div class="sheet-head">
+        <h2>{{ 'ir.r.' + d.code + '.title' | t }}</h2>
+        <div class="meta small">{{ 'ir.generated' | t }}: <span dir="ltr">{{ stamp(r.generatedAtUtc) }}</span></div>
+      </div>
+
+      @if (filterLines().length > 0) {
+        <div class="applied small">
+          @for (l of filterLines(); track l.label) { <span><b>{{ l.label }}:</b> {{ l.value }}</span> }
+        </div>
+      }
+
+      @if (r.truncated) { <p class="warn small no-print">{{ 'ir.truncated' | t }}</p> }
+
+      @if (visibleSummary().length > 0) {
+        <div class="metrics">
+          @for (m of visibleSummary(); track m.key) {
+            <div class="metric">
+              <span class="muted small">{{ metricLabel(m.key) }}</span>
+              <strong [class.long]="m.type === 'text'" [attr.dir]="isLtr(m.type) ? 'ltr' : null">{{ fmt(m.value, m.type, m.key) }}</strong>
+            </div>
+          }
+        </div>
+      }
+
+      @if (view() === 'stickers' && d.stickers) {
+        <div class="stickers">
+          @for (s of stickers(); track $index) {
+            <div class="sticker">
+              <div class="s-name">{{ s.item }}</div>
+              @if (s.label) { <div class="s-label">{{ s.label }}</div> }
+              <div class="s-bar"><app-barcode [value]="s.barcode" /></div>
+              <div class="s-code" dir="ltr">{{ s.barcode }}</div>
+            </div>
+          }
+        </div>
+      } @else {
+        @for (t of r.tables; track $index) {
+          <div class="rt">
+            @if (t.title) { <h3>{{ titleOf(t.title) }}</h3> }
+
+            @if (t.rows.length === 0) {
+              <p class="muted">{{ 'ir.noRows' | t }}</p>
+            } @else {
+              <div class="table-wrap">
+                <table class="rtable">
+                  <thead>
+                    <tr>@for (c of t.columns; track c.key) { <th [class.num]="isLtr(c.type)">{{ colLabel(c.key) }}</th> }</tr>
+                  </thead>
+                  <tbody>
+                    @for (row of t.rows; track $index) {
+                      <tr>
+                        @for (c of t.columns; track c.key) {
+                          <td [class.num]="isLtr(c.type)" [attr.dir]="isLtr(c.type) ? 'ltr' : null">
+                            @switch (c.type) {
+                              @case ('barcode') { <div class="cell-bar"><app-barcode [value]="str(row[c.key])" /></div> }
+                              @case ('status') { <span [class]="'chip st-' + str(row[c.key])">{{ fmt(row[c.key], c.type, c.key) }}</span> }
+                              @default { {{ fmt(row[c.key], c.type, c.key) }} }
+                            }
+                          </td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                  @if (t.totals) {
+                    <tfoot>
+                      <tr>
+                        @for (c of t.columns; track c.key; let i = $index) {
+                          <th [class.num]="isLtr(c.type)" [attr.dir]="isLtr(c.type) ? 'ltr' : null">
+                            @if (t.totals[c.key] !== undefined && t.totals[c.key] !== null) { {{ fmt(t.totals[c.key], c.type, c.key) }} }
+                            @else if (i === 0) { {{ 'ir.total' | t }} }
+                          </th>
+                        }
+                      </tr>
+                    </tfoot>
+                  }
+                </table>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <div class="signatures print-only">
+        <div>{{ 'ir.preparedBy' | t }}: ........................</div>
+        <div>{{ 'ir.reviewedBy' | t }}: ........................</div>
+        <div>{{ 'ir.approvedBy' | t }}: ........................</div>
+      </div>
+    </div>
+   } @else if (d.filters.some(requiredOf)) {
+    <p class="muted no-print">{{ 'ir.pickItemFirst' | t }}</p>
+   }
+  }
+}

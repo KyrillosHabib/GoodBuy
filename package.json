@@ -1,0 +1,39 @@
+{
+  "name": "voltara-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start:website": "ng serve website",
+    "start:admin": "ng serve admin",
+    "build:website": "ng build website",
+    "build:admin": "ng build admin",
+    "build": "ng build website && ng build admin"
+  },
+  "dependencies": {
+    "@angular/common": "^17.3.0",
+    "@angular/compiler": "^17.3.0",
+    "@angular/core": "^17.3.0",
+    "@angular/forms": "^17.3.0",
+    "@angular/platform-browser": "^17.3.0",
+    "@angular/router": "^17.3.0",
+    "@microsoft/signalr": "^8.0.7",
+    "chart.js": "^4.4.4",
+    "d3-geo": "^3.1.1",
+    "rxjs": "~7.8.0",
+    "topojson-client": "^3.1.0",
+    "tslib": "^2.6.0",
+    "world-atlas": "^2.0.2",
+    "zone.js": "~0.14.3"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^17.3.0",
+    "@angular/cli": "^17.3.0",
+    "@angular/compiler-cli": "^17.3.0",
+    "@types/d3-geo": "^3.1.0",
+    "@types/geojson": "^7946.0.14",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
+    "typescript": "~5.4.2"
+  }
+}

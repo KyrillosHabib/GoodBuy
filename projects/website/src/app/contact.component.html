@@ -1,0 +1,92 @@
+<div class="container shop-page">
+  <header class="shop-head">
+    <div class="shop-head-top">
+      <nav class="crumbs" aria-label="breadcrumb">
+        <a routerLink="/" class="crumb-home" [attr.aria-label]="'nav.home' | t"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></a>
+        <i>›</i><b>{{ 'nav.contact' | t }}</b>
+      </nav>
+    </div>
+    <h1 class="shop-title">{{ 'nav.contact' | t }}</h1>
+    <p class="ct-sub">{{ 'contact.subtitle' | t }}</p>
+  </header>
+</div>
+
+<div class="container ct-page">
+  <div class="contact-grid">
+    <div class="card ct-form">
+      @if (sent()) {
+        <div class="banner banner-success">{{ 'contact.success' | t }}</div>
+        <button type="button" class="btn btn-light" (click)="sent.set(false)">{{ 'contact.another' | t }}</button>
+      } @else {
+        @if (productName) {
+          <div class="banner banner-info">{{ 'contact.about' | t }}: <strong>{{ productName }}</strong></div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <div class="form-row">
+            <div class="field">
+              <label>{{ 'contact.name' | t }} *</label>
+              <input formControlName="name" />
+              @if (invalid('name')) { <div class="error">{{ 'contact.required' | t }}</div> }
+            </div>
+            <div class="field">
+              <label>{{ 'contact.email' | t }} *</label>
+              <input type="email" formControlName="email" dir="ltr" />
+              @if (invalid('email')) { <div class="error">{{ 'contact.invalidEmail' | t }}</div> }
+            </div>
+          </div>
+
+          <div class="field">
+            <label>{{ 'contact.phone' | t }}</label>
+            <input formControlName="phone" dir="ltr" />
+          </div>
+
+          <div class="field">
+            <label>{{ 'contact.message' | t }} *</label>
+            <textarea rows="6" formControlName="message"></textarea>
+            @if (invalid('message')) { <div class="error">{{ 'contact.required' | t }}</div> }
+          </div>
+
+          <button class="btn btn-primary btn-lg ct-send" [disabled]="sending()">
+            {{ (sending() ? 'contact.sending' : 'contact.send') | t }}
+          </button>
+        </form>
+      }
+    </div>
+
+    <aside class="contact-side">
+      @if (site.home(); as h) {
+        @if (h.company.phone) {
+          <a class="contact-card" [href]="'tel:' + h.company.phone">
+            <span class="contact-icon"><app-icon name="phone" [size]="22" /></span>
+            <div><strong>{{ 'contact.phone' | t }}</strong><span dir="ltr">{{ h.company.phone }}</span></div>
+          </a>
+        }
+        @if (h.company.contactEmail) {
+          <a class="contact-card" [href]="'mailto:' + h.company.contactEmail">
+            <span class="contact-icon"><app-icon name="mail" [size]="22" /></span>
+            <div><strong>{{ 'contact.email' | t }}</strong><span>{{ h.company.contactEmail }}</span></div>
+          </a>
+        }
+        @if (h.company.address) {
+          <div class="contact-card">
+            <span class="contact-icon"><app-icon name="map-pin" [size]="22" /></span>
+            <div><strong>{{ 'contact.address' | t }}</strong><span>{{ h.company.address }}</span></div>
+          </div>
+        }
+        @if (h.company.workingHours) {
+          <div class="contact-card">
+            <span class="contact-icon"><app-icon name="clock" [size]="22" /></span>
+            <div><strong>{{ 'contact.hours' | t }}</strong><span class="hours">{{ h.company.workingHours }}</span></div>
+          </div>
+        }
+        @if (whatsappLink(); as link) {
+          <a class="btn btn-whatsapp btn-lg block" [href]="link" target="_blank" rel="noopener"><app-icon name="whatsapp" [size]="20" /> {{ 'common.whatsapp' | t }}</a>
+        }
+        @if (mapUrl(); as map) {
+          <iframe class="map-embed" [src]="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="map"></iframe>
+        }
+      }
+    </aside>
+  </div>
+</div>

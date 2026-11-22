@@ -1,0 +1,29 @@
+<div class="page-head">
+  <h1>{{ 'pkg.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="open(null)">+ {{ 'pkg.new' | t }}</button>
+</div>
+<app-intro [text]="'pkg.intro' | t" />
+
+<div class="card">
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else {
+    <app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" />
+  }
+</div>
+
+<ng-template #row let-p>
+  <td><img class="thumb thumb-sm" [src]="p.mainImageUrl | productImage: p.slug" alt="" /></td>
+  <td><strong>{{ p.name }}</strong><div class="muted small"><code>{{ p.slug }}</code></div></td>
+  <td dir="ltr">{{ p.price === null ? '—' : p.price }}</td>
+  <td>{{ p.sortOrder }}</td>
+  <td>@if (p.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="open(p.id)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(p)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (formOpen()) {
+  <app-product-form [productId]="editingId()" [packageMode]="true" (saved)="onSaved()" (cancelled)="formOpen.set(false)" />
+}

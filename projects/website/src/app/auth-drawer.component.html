@@ -1,0 +1,67 @@
+@if (drawer.isOpen()) {
+  <div class="drawer-backdrop" (click)="drawer.close()"></div>
+  <aside class="drawer auth-drawer" role="dialog" [attr.aria-label]="'auth.signIn' | t">
+    <header class="drawer-head">
+      <strong>{{ (drawer.tab() === 'login' ? 'auth.loginTitle' : 'auth.registerTitle') | t }}</strong>
+      <button type="button" class="drawer-close" (click)="drawer.close()" [attr.aria-label]="'common.close' | t">✕</button>
+    </header>
+
+    <div class="auth-drawer-body">
+      <div class="auth-tabs">
+        <button type="button" [class.active]="drawer.tab() === 'login'" (click)="drawer.tab.set('login')">{{ 'auth.signIn' | t }}</button>
+        <button type="button" [class.active]="drawer.tab() === 'register'" (click)="drawer.tab.set('register')">{{ 'auth.createAccount' | t }}</button>
+      </div>
+
+      @if (drawer.tab() === 'login') {
+        <p class="auth-sub">{{ 'auth.loginSub' | t }}</p>
+        <form [formGroup]="loginForm" (ngSubmit)="login()">
+          <div class="field">
+            <label>{{ 'contact.email' | t }}</label>
+            <input type="email" formControlName="email" autocomplete="email" dir="ltr" />
+            @if (bad(loginForm, 'email')) { <div class="error">{{ 'contact.invalidEmail' | t }}</div> }
+          </div>
+          <div class="field">
+            <label>{{ 'auth.password' | t }}</label>
+            <input type="password" formControlName="password" autocomplete="current-password" dir="ltr" />
+            @if (bad(loginForm, 'password')) { <div class="error">{{ 'contact.required' | t }}</div> }
+          </div>
+          <div class="auth-row"><a href="javascript:void(0)" (click)="forgot()">{{ 'auth.forgot' | t }}</a></div>
+          <button class="btn btn-primary btn-lg auth-submit" [disabled]="loading()">{{ (loading() ? 'auth.signingIn' : 'auth.signIn') | t }}</button>
+        </form>
+        <p class="auth-foot">{{ 'auth.noAccount' | t }} <a href="javascript:void(0)" (click)="drawer.tab.set('register')">{{ 'auth.createAccount' | t }}</a></p>
+      } @else {
+        <p class="auth-sub">{{ 'auth.registerSub' | t }}</p>
+        <form [formGroup]="registerForm" (ngSubmit)="register()">
+          <div class="field">
+            <label>{{ 'auth.fullName' | t }} *</label>
+            <input formControlName="fullName" autocomplete="name" />
+            @if (bad(registerForm, 'fullName')) { <div class="error">{{ 'contact.required' | t }}</div> }
+          </div>
+          <div class="field">
+            <label>{{ 'contact.email' | t }} *</label>
+            <input type="email" formControlName="email" autocomplete="email" dir="ltr" />
+            @if (bad(registerForm, 'email')) { <div class="error">{{ 'contact.invalidEmail' | t }}</div> }
+          </div>
+          <div class="field">
+            <label>{{ 'contact.phone' | t }}</label>
+            <input type="tel" formControlName="phone" autocomplete="tel" dir="ltr" />
+            @if (bad(registerForm, 'phone')) { <div class="error">{{ 'auth.phoneRule' | t }}</div> }
+          </div>
+          <div class="field">
+            <label>{{ 'auth.password' | t }} *</label>
+            <input type="password" formControlName="password" autocomplete="new-password" dir="ltr" />
+            @if (bad(registerForm, 'password')) { <div class="error">{{ 'auth.passwordRule' | t }}</div> }
+          </div>
+          <div class="field">
+            <label>{{ 'auth.confirmPassword' | t }} *</label>
+            <input type="password" formControlName="confirm" autocomplete="new-password" dir="ltr" />
+            @if (registerForm.controls.confirm.touched && registerForm.hasError('mismatch')) { <div class="error">{{ 'auth.passwordMismatch' | t }}</div> }
+          </div>
+          <p class="auth-hint">{{ 'auth.passwordRule' | t }}</p>
+          <button class="btn btn-primary btn-lg auth-submit" [disabled]="loading()">{{ (loading() ? 'auth.creating' : 'auth.createAccount') | t }}</button>
+        </form>
+        <p class="auth-foot">{{ 'auth.haveAccount' | t }} <a href="javascript:void(0)" (click)="drawer.tab.set('login')">{{ 'auth.signIn' | t }}</a></p>
+      }
+    </div>
+  </aside>
+}

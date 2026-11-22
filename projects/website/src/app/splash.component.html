@@ -1,0 +1,25 @@
+@if (visible()) {
+  <div class="splash" [class.leaving]="leaving()">
+    <div class="splash-glow"></div>
+
+    <div class="splash-center">
+      @if (site.home(); as h) {
+        <div class="splash-logo">
+          <span class="ring"></span>
+          <span class="ring ring-2"></span>
+          @if (h.company.logoUrl) {
+            <img [src]="h.company.logoUrl | assetUrl" alt="" />
+          } @else {
+            <span class="splash-mark"><app-icon name="zap" [size]="46" /></span>
+          }
+        </div>
+        <div class="splash-name">{{ h.company.companyName }}</div>
+        @if (h.company.tagline) { <div class="splash-tagline">{{ h.company.tagline }}</div> }
+      } @else {
+        <span class="splash-spinner"></span>
+      }
+
+      <div class="splash-bar"><span></span></div>
+    </div>
+  </div>
+}

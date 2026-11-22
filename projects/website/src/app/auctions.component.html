@@ -1,0 +1,87 @@
+<div class="container shop-page">
+  <header class="shop-head">
+    <div class="shop-head-top">
+      <nav class="crumbs" aria-label="breadcrumb"><a routerLink="/" class="crumb-home" [attr.aria-label]="'nav.home' | t"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></a><i>›</i><b>{{ 'auction.title' | t }}</b></nav>
+    </div>
+    <h1 class="shop-title" [class.visually-hidden]="!!banner()">{{ 'auction.title' | t }}</h1>
+  </header>
+
+  @if (banner(); as b) { <app-page-banner [banner]="b" [title]="bannerTitle()" /> }
+  <p class="muted">{{ 'auction.intro' | t }}</p>
+
+  <!-- where I stand in the auctions I bid in -->
+  @if (mine().length > 0) {
+    <section class="auc-mine">
+      <h2>{{ 'auction.mine' | t }}</h2>
+      <ul>
+        @for (a of mine(); track a.id) {
+          <li>
+            <a [routerLink]="['/auctions', a.id]">{{ a.productName }}</a>
+            <span class="auc-mine-bid" dir="ltr">{{ a.myBestBid | money }}</span>
+            @if (a.status === 'ended') {
+              @if (a.result === 'sold' && a.isLeading) { <span class="auc-tag win">{{ 'auction.won' | t }}</span> }
+              @else if (a.isLeading) { <span class="auc-tag out">{{ 'auction.notMet' | t }}</span> }
+              @else { <span class="auc-tag out">{{ 'auction.ended' | t }}</span> }
+            } @else if (a.isLeading) { <span class="auc-tag win">✓ {{ 'auction.leadingShort' | t }}</span> }
+            @else { <span class="auc-tag out">! {{ 'auction.outbid' | t }}</span> }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (loaded() && items().length === 0) { <div class="state state-soon"><strong>{{ 'auction.soonTitle' | t }}</strong><span>{{ 'auction.soonText' | t }}</span></div> }
+
+  <div class="auc-grid">
+    @for (a of items(); track a.id) {
+      <article class="auc-card" [class.lead]="standing(a) === 'lead' && a.status === 'running'" [class.outbid]="standing(a) === 'outbid' && a.status === 'running'" [class.done]="a.status === 'ended'">
+        <a class="auc-pic" [routerLink]="['/auctions', a.id]">
+          <img [src]="a.imageUrl | productImage: a.productSlug : ''" [alt]="a.productName" loading="lazy" />
+          <span class="auc-state" [class.live]="a.status === 'running'">{{ ('auction.status.' + a.status) | t }}</span>
+          @if ((a.items?.length ?? 0) > 1) { <span class="auc-lot">{{ a.items!.length }} {{ 'auction.itemsCount' | t }}</span> }
+        </a>
+
+        <div class="auc-body">
+          <a class="auc-name" [routerLink]="['/auctions', a.id]">{{ a.productName }}</a>
+          @if ((a.items?.length ?? 0) <= 1 && a.variantLabel) { <span class="muted small">{{ a.variantLabel }}</span> }
+
+          <div class="auc-price">
+            <span>{{ (a.bidCount > 0 ? 'auction.currentBid' : 'auction.startsAt') | t }}</span>
+            <strong>{{ (a.bidCount > 0 ? a.currentPrice : a.startingPrice) | money }}</strong>
+          </div>
+
+          <div class="auc-meta">
+            <span>{{ 'auction.bids' | t: { n: a.bidCount } }}</span>
+            @if (a.status !== 'ended') { <span dir="ltr" class="auc-clock">{{ left(a) }}</span> }
+          </div>
+
+          <!-- where I stand -->
+          @if (a.status === 'running') {
+            @if (standing(a) === 'lead') { <div class="auc-stand win">✓ {{ 'auction.leading' | t }}</div> }
+            @else if (standing(a) === 'outbid') { <div class="auc-stand out">! {{ 'auction.outbidFull' | t }}</div> }
+          } @else if (a.status === 'ended') {
+            @if (a.result === 'sold') { <div class="auc-stand" [class.win]="a.isLeading">{{ (a.isLeading ? 'auction.won' : 'auction.soldShort') | t }}</div> }
+            @else if (a.isLeading) { <div class="auc-stand out">{{ 'auction.notMetFull' | t }}</div> }
+            @else { <div class="auc-stand">{{ 'auction.noSale' | t }}</div> }
+          }
+
+          <!-- bid from the card -->
+          @if (a.status === 'running') {
+            @if (!auth.isCustomer()) {
+              <a class="btn btn-light btn-block" routerLink="/login">{{ 'auction.signInBid' | t }}</a>
+            } @else if (!a.isLeading) {
+              <div class="auc-quick">
+                @for (q of quickAmounts(a); track q) { <button type="button" dir="ltr" (click)="amounts[a.id] = q">{{ q }}</button> }
+              </div>
+              <div class="auc-bid">
+                <input type="number" dir="ltr" step="any" [min]="a.minNextBid" [(ngModel)]="amounts[a.id]" [placeholder]="a.minNextBid + ''" (keyup.enter)="bid(a)" />
+                <button type="button" class="btn btn-primary" [disabled]="busyId() !== null" (click)="bid(a)">{{ 'auction.bid' | t }}</button>
+              </div>
+              <span class="muted small">{{ 'auction.minBid' | t }}: {{ a.minNextBid | money }}</span>
+            }
+          }
+        </div>
+      </article>
+    }
+  </div>
+</div>

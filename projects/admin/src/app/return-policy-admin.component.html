@@ -1,0 +1,56 @@
+    <div class="page-head">
+      <h1>{{ 'pol.title' | t }}</h1>
+      <button type="button" class="btn btn-primary" [disabled]="saving() || !policy()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+    <app-intro [text]="'pol.intro' | t" />
+
+    @if (policy(); as p) {
+      <div class="card">
+        <label class="switch"><input type="checkbox" [(ngModel)]="p.enabled" /><span></span> {{ 'pol.enabled' | t }}</label>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'pol.returns' | t }}</h3>
+        <label class="switch"><input type="checkbox" [(ngModel)]="p.returnsAllowed" /><span></span> {{ 'pol.returnsAllowed' | t }}</label>
+        @if (p.returnsAllowed) {
+          <div class="form-row">
+            <div class="field"><label>{{ 'pol.returnDays' | t }}</label><input type="number" min="0" max="365" dir="ltr" [(ngModel)]="p.returnWindowDays" /></div>
+            <div class="field">
+              <label>{{ 'pol.refundMethod' | t }}</label>
+              <select [(ngModel)]="p.refundMethod">
+                <option value="original">{{ 'pol.refund.original' | t }}</option>
+                <option value="storeCredit">{{ 'pol.refund.storeCredit' | t }}</option>
+                <option value="none">{{ 'pol.refund.none' | t }}</option>
+              </select>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="card">
+        <h3>{{ 'pol.exchange' | t }}</h3>
+        <label class="switch"><input type="checkbox" [(ngModel)]="p.exchangeAllowed" /><span></span> {{ 'pol.exchangeAllowed' | t }}</label>
+        @if (p.exchangeAllowed) {
+          <div class="field" style="max-width: 260px"><label>{{ 'pol.exchangeDays' | t }}</label><input type="number" min="0" max="365" dir="ltr" [(ngModel)]="p.exchangeWindowDays" /></div>
+        }
+      </div>
+
+      <div class="card">
+        <h3>{{ 'pol.conditions' | t }}</h3>
+        <label class="switch"><input type="checkbox" [(ngModel)]="p.requireOriginalPackaging" /><span></span> {{ 'pol.packaging' | t }}</label>
+        <br />
+        <label class="switch"><input type="checkbox" [(ngModel)]="p.defectiveOnly" /><span></span> {{ 'pol.defectiveOnly' | t }}</label>
+        <div class="field" style="max-width: 320px; margin-top: .8rem">
+          <label>{{ 'pol.shipping' | t }}</label>
+          <select [(ngModel)]="p.shippingPaidBy">
+            <option value="customer">{{ 'pol.ship.customer' | t }}</option>
+            <option value="store">{{ 'pol.ship.store' | t }}</option>
+            <option value="storeIfDefective">{{ 'pol.ship.storeIfDefective' | t }}</option>
+          </select>
+        </div>
+        <div class="form-row" style="direction: ltr">
+          <div class="field" dir="ltr"><label>{{ 'pol.extra' | t }} (English)</label><textarea rows="5" dir="ltr" [(ngModel)]="p.conditions['en']"></textarea></div>
+          <div class="field" dir="rtl"><label>{{ 'pol.extra' | t }} (العربية)</label><textarea rows="5" dir="rtl" [(ngModel)]="p.conditions['ar']"></textarea></div>
+        </div>
+      </div>
+    }

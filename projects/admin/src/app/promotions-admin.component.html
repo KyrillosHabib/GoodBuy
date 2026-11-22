@@ -1,0 +1,121 @@
+<div class="page-head">
+  <h1>{{ 'promo.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="edit(null)">+ {{ 'promo.new' | t }}</button>
+</div>
+<app-intro [text]="'promo.intro' | t" />
+
+<div class="card"><app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" /></div>
+
+<ng-template #row let-p>
+  <td><strong>{{ p.name }}</strong></td>
+  <td>{{ ('promo.type.' + p.type) | t }}</td>
+  <td>{{ describe(p) }}</td>
+  <td class="small" dir="ltr">{{ period(p) }}</td>
+  <td><span class="chip" [class.chip-off]="p.status !== 'active'">{{ ('disc.status.' + p.status) | t }}</span></td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="edit(p)">{{ 'a.edit' | t }}</button>
+    <button type="button" class="btn btn-danger btn-sm" (click)="remove(p)">{{ 'a.delete' | t }}</button>
+  </td>
+</ng-template>
+
+@if (open()) {
+  <app-modal [title]="(editing() ? 'promo.edit' : 'promo.new') | t" (closed)="open.set(false)">
+    <div class="field"><label>{{ 'disc.name' | t }} *</label><input [(ngModel)]="f.name" [placeholder]="'disc.nameHint' | t" /></div>
+
+    <div class="field">
+      <label>{{ 'promo.kind' | t }} *</label>
+      <select [(ngModel)]="f.type" (ngModelChange)="typeChanged()">
+        <option value="BuyGet">{{ 'promo.type.BuyGet' | t }}</option>
+        <option value="QuantityDiscount">{{ 'promo.type.QuantityDiscount' | t }}</option>
+        <option value="SpendGift">{{ 'promo.type.SpendGift' | t }}</option>
+        <option value="FreeShipping">{{ 'promo.type.FreeShipping' | t }}</option>
+      </select>
+      <div class="hint-text">{{ ('promo.hint.' + f.type) | t }}</div>
+    </div>
+
+    <!-- What the customer must buy -->
+    @if (f.type === 'BuyGet' || f.type === 'QuantityDiscount') {
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'promo.buyWhat' | t }} *</label>
+          <select [(ngModel)]="f.triggerScope" (ngModelChange)="scopeChanged()">
+            <option value="AllProducts">{{ 'disc.scope.AllProducts' | t }}</option>
+            <option value="Category">{{ 'disc.scope.Category' | t }}</option>
+            <option value="Product">{{ 'disc.scope.Product' | t }}</option>
+            <option value="Variant">{{ 'disc.scope.Variant' | t }}</option>
+          </select>
+        </div>
+        <div class="field"><label>{{ (f.type === 'BuyGet' ? 'promo.buyQty' : 'promo.minQty') | t }} *</label><input type="number" min="1" dir="ltr" [(ngModel)]="f.buyQuantity" /></div>
+      </div>
+
+      @if (f.triggerScope === 'Category') {
+        <div class="field">
+          <select [(ngModel)]="f.triggerCategoryId">
+            <option [ngValue]="null">—</option>
+            @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ categoryName(c) }}</option> }
+          </select>
+        </div>
+      }
+      @if (f.triggerScope === 'Product' || f.triggerScope === 'Variant') {
+        <div class="field">
+          @if (triggerLabel(); as label) {
+            <div class="picker-chosen"><span><strong>{{ label }}</strong></span><button type="button" class="btn btn-light btn-sm" (click)="clearTrigger()">✕</button></div>
+          } @else {
+            <app-variant-picker [includeBundles]="true" (picked)="pickTrigger($event)" />
+          }
+        </div>
+      }
+    }
+
+    <!-- The gift -->
+    @if (f.type === 'BuyGet' || f.type === 'SpendGift') {
+      <div class="field">
+        <label>{{ 'promo.gift' | t }} *</label>
+        @if (rewardLabel(); as label) {
+          <div class="picker-chosen"><span><strong>{{ label }}</strong></span><button type="button" class="btn btn-light btn-sm" (click)="clearReward()">✕</button></div>
+        } @else {
+          <app-variant-picker [includeBundles]="true" (picked)="pickReward($event)" />
+        }
+      </div>
+      <div class="form-row">
+        <div class="field"><label>{{ 'promo.giftQty' | t }}</label><input type="number" min="1" dir="ltr" [(ngModel)]="f.rewardQuantity" /></div>
+        @if (f.type === 'BuyGet') {
+          <div class="field"><label class="switch" style="margin-top: 1.7rem"><input type="checkbox" [(ngModel)]="f.repeat" /><span></span> {{ 'promo.repeat' | t }}</label></div>
+        }
+      </div>
+    }
+
+    <!-- Amount off -->
+    @if (f.type === 'QuantityDiscount') {
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'disc.type' | t }}</label>
+          <select [(ngModel)]="f.discountType">
+            <option value="Percent">{{ 'disc.type.Percent' | t }}</option>
+            <option value="FixedAmount">{{ 'promo.perUnit' | t }}</option>
+          </select>
+        </div>
+        <div class="field"><label>{{ (f.discountType === 'Percent' ? 'disc.value.Percent' : 'disc.value.FixedAmount') | t }} *</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.discountValue" /></div>
+      </div>
+    }
+
+    <!-- The cart value -->
+    @if (f.type === 'SpendGift' || f.type === 'FreeShipping') {
+      <div class="field" style="max-width: 260px">
+        <label>{{ 'promo.minCart' | t }} {{ f.type === 'SpendGift' ? '*' : '' }}</label>
+        <input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.minSubtotal" />
+      </div>
+    }
+
+    <div class="form-row">
+      <div class="field"><label>{{ 'disc.starts' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="starts" /></div>
+      <div class="field"><label>{{ 'disc.ends' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="ends" /></div>
+    </div>
+    <label class="switch"><input type="checkbox" [(ngModel)]="f.isActive" /><span></span> {{ 'a.active' | t }}</label>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}

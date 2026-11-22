@@ -1,0 +1,9 @@
+@if (lead) { <p class="intro-lead">{{ lead }}</p> }
+@if (steps.length) {
+  <ol class="intro-steps">
+    @for (s of steps; track $index) {
+      <li><span class="intro-n">{{ $index + 1 }}</span><span class="intro-t">{{ s }}</span></li>
+    }
+  </ol>
+}
+@for (n of notes; track $index) { <p class="intro-note">{{ n }}</p> }

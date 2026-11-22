@@ -1,0 +1,84 @@
+<div class="page-head">
+  <h1>{{ 'a.company.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || loading()">{{ (saving() ? 'a.saving' : 'a.company.save') | t }}</button>
+</div>
+
+@if (loading()) {
+  <p class="muted">{{ 'common.loading' | t }}</p>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <div class="card">
+      <h3>{{ 'a.company.texts' | t }}</h3>
+      <app-translation-fields [group]="form.controls.translations" [fields]="fields" />
+    </div>
+
+    <div class="card">
+      <h3>{{ 'a.company.contact' | t }}</h3>
+
+      <div class="form-row">
+        <div class="field"><label>{{ 'a.company.email' | t }}</label><input type="email" dir="ltr" formControlName="contactEmail" /></div>
+        <div class="field"><label>{{ 'a.company.phone' | t }}</label><input dir="ltr" formControlName="phone" /></div>
+        <div class="field"><label>{{ 'a.company.whatsapp' | t }}</label><input dir="ltr" formControlName="whatsAppNumber" placeholder="+20100..." /></div>
+      </div>
+
+      <div class="field">
+        <label>{{ 'a.company.map' | t }}</label>
+        <input dir="ltr" formControlName="mapEmbedUrl" [placeholder]="'a.company.mapPlaceholder' | t" />
+        <div class="hint-text">{{ 'a.company.mapHint' | t }}</div>
+        @if (form.controls.mapEmbedUrl.value && !mapPreview()) { <div class="error">{{ 'a.company.mapError' | t }}</div> }
+      </div>
+      @if (mapPreview(); as map) {
+        <iframe class="map-preview" [src]="map" loading="lazy" title="map"></iframe>
+      }
+    </div>
+
+    <!-- social links: one small form, rows go into the table -->
+    <div class="card">
+      <h3>{{ 'a.company.social' | t }}</h3>
+      <p class="muted small">{{ 'a.company.socialHint' | t }}</p>
+
+      <div class="social-row" [formGroup]="socialDraft" (keydown.enter)="$event.preventDefault(); addSocial()">
+        <span class="ico"><app-icon [name]="socialDraft.controls.platform.value" [size]="18" /></span>
+        <select formControlName="platform">
+          @for (p of platforms; track p.id) { <option [value]="p.id">{{ p.label }}</option> }
+        </select>
+        <input dir="ltr" formControlName="url" placeholder="https://..." />
+        <button type="button" class="btn btn-primary" (click)="addSocial()">{{ 'a.prod.addRow' | t }}</button>
+        <span></span>
+      </div>
+      @if (socialError()) { <div class="error">{{ 'a.company.socialError' | t }}</div> }
+
+      @if (socials().length === 0) {
+        <p class="muted small">{{ 'a.company.noSocial' | t }}</p>
+      } @else {
+        <div class="table-wrap" style="margin-top: .8rem">
+          <table>
+            <thead><tr><th style="width:50px"></th><th>{{ 'a.company.platform' | t }}</th><th>URL</th><th>{{ 'a.company.visible' | t }}</th><th></th></tr></thead>
+            <tbody>
+              @for (l of socials(); track l; let i = $index) {
+                <tr>
+                  <td><span class="ico-cell"><app-icon [name]="l.platform" [size]="18" /></span></td>
+                  <td>{{ l.platform }}</td>
+                  <td dir="ltr"><a [href]="l.url" target="_blank" rel="noopener">{{ l.url }}</a></td>
+                  <td><label class="switch"><input type="checkbox" [checked]="l.isVisible" (change)="toggleSocial(i)" /><span></span></label></td>
+                  <td class="actions">
+                    <button type="button" class="btn btn-light btn-sm btn-icon" [disabled]="i === 0" (click)="moveSocial(i, -1)">↑</button>
+                    <button type="button" class="btn btn-light btn-sm btn-icon" [disabled]="i === socials().length - 1" (click)="moveSocial(i, 1)">↓</button>
+                    <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeSocial(i)">✕</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <div class="card">
+      <h3>{{ 'a.company.images' | t }}</h3>
+      <p class="muted small">{{ 'a.company.imageHint' | t }}</p>
+      <app-image-field [control]="form.controls.logoUrl" label="a.company.logo" />
+      <app-image-field [control]="form.controls.heroImageUrl" label="a.company.heroImage" />
+    </div>
+  </form>
+}

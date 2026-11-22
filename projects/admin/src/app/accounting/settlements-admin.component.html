@@ -1,0 +1,158 @@
+<div class="page-head">
+  @if (!embedded) { <h1>{{ 'acc.nav.settlements' | t }}</h1> }
+  @if (canPrepare) { <button type="button" class="btn btn-primary" (click)="startEdit(null)">+ {{ 'acc.st2.new' | t }}</button> }
+</div>
+<app-intro [text]="'acc.st2.intro' | t" />
+
+<div class="filters">
+  <select [ngModel]="fStatus" (ngModelChange)="fStatus = $event; load()">
+    <option value="">{{ 'acc.allStatuses' | t }}</option>
+    @for (s of statuses; track s) { <option [value]="s">{{ 'acc.st.' + s | t }}</option> }
+  </select>
+</div>
+
+<div class="card"><app-data-table [rows]="rows()" [columns]="columns" [rowTemplate]="row" /></div>
+
+<ng-template #row let-s>
+  <td dir="ltr"><strong>{{ s.number }}</strong></td>
+  <td>{{ s.partyName }} <span class="muted small">{{ 'acc.party.' + s.partyKind | t }}</span></td>
+  <td dir="ltr">{{ s.settlementDate | slice: 0 : 10 }}</td>
+  <td class="num">{{ s.items.length }}</td>
+  <td class="num" dir="ltr">{{ s.adjustmentAmount | number: '1.2-2' }}</td>
+  <td><span class="chip st-{{ s.status }}">{{ (s.status === 'Posted' ? 'acc.st.issued' : 'acc.st.' + s.status) | t }}</span></td>
+  <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="view(s.id)">{{ 'acc.open' | t }}</button></td>
+</ng-template>
+
+@if (editorOpen()) {
+  <app-modal [title]="(editing() ? 'acc.st2.edit' : 'acc.st2.new') | t" size="xl" (closed)="editorOpen.set(false)">
+    <div class="form-row">
+      <div class="field">
+        <label>{{ 'acc.party' | t }} <span class="req">*</span></label>
+        <select [ngModel]="partyId()" (ngModelChange)="pickParty($event)" [disabled]="!!editing()">
+          <option [ngValue]="null">—</option>
+          @for (p of activeParties(); track p.id) { <option [ngValue]="p.id">{{ p.name }} — {{ 'acc.party.' + p.kind | t }}</option> }
+        </select>
+      </div>
+      <div class="field"><label>{{ 'acc.date' | t }} <span class="req">*</span></label><input type="date" [ngModel]="date" (ngModelChange)="date = $event" dir="ltr" /></div>
+    </div>
+
+    @if (partyId() !== null) {
+      <h4>{{ 'acc.st2.scope' | t }}</h4>
+      <p class="muted small">{{ 'acc.st2.scopeHint' | t }}</p>
+      <div class="toolbar">
+        <button type="button" class="btn btn-light btn-sm" (click)="pickAll(true)">{{ 'acc.st2.all' | t }}</button>
+        <button type="button" class="btn btn-light btn-sm" (click)="pickAll(false)">{{ 'acc.alloc.clear' | t }}</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th></th><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.type' | t }}</th><th>{{ 'acc.date' | t }}</th><th class="num">{{ 'acc.total' | t }}</th><th class="num">{{ 'acc.outstanding' | t }}</th></tr></thead>
+          <tbody>
+            @for (d of scopeDocs(); track d.id) {
+              <tr>
+                <td><input type="checkbox" [checked]="picked().has(d.id)" (change)="toggle(d.id)" /></td>
+                <td><strong>{{ d.number }}</strong></td>
+                <td>{{ 'acc.doc.' + d.type | t }}</td>
+                <td dir="ltr">{{ d.issueDate | slice: 0 : 10 }}</td>
+                <td class="num" dir="ltr">{{ d.total | number: '1.2-2' }}</td>
+                <td class="num" dir="ltr" [class.text-bad]="d.outstanding > 0">{{ d.outstanding | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="muted">{{ 'acc.st2.noDocs' | t }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>{{ 'acc.st2.adjustment' | t }}</label>
+          <input type="number" step="0.01" min="0" [ngModel]="adjustment" (ngModelChange)="adjustment = +$event" dir="ltr" />
+          <span class="muted small">{{ 'acc.st2.adjustmentHint' | t }}</span>
+        </div>
+        <div class="field"><label>{{ 'acc.st2.reason' | t }}</label><input [ngModel]="reason" (ngModelChange)="reason = $event" /></div>
+      </div>
+      <div class="field"><label>{{ 'inv.note' | t }}</label><input [ngModel]="notes" (ngModelChange)="notes = $event" /></div>
+
+      <div class="toolbar"><button type="button" class="btn btn-light" [disabled]="picked().size === 0" (click)="check()">{{ 'acc.st2.check' | t }}</button></div>
+      @if (checkResult(); as c) { <ng-container *ngTemplateOutlet="checkView; context: { $implicit: c }" /> }
+    }
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="editorOpen.set(false)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving() || partyId() === null || picked().size === 0" (click)="save()">{{ (saving() ? 'a.saving' : 'acc.doc.saveDraft') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+<ng-template #checkView let-c>
+  <div class="card inner">
+    <div class="stat-grid">
+      <div class="card stat"><span class="muted">{{ 'acc.st2.scopeBalance' | t }}</span><strong dir="ltr">{{ c.scopeBalance | number: '1.2-2' }}</strong></div>
+      <div class="card stat"><span class="muted">{{ 'acc.st2.accountBalance' | t }}</span><strong dir="ltr">{{ c.accountBalance | number: '1.2-2' }}</strong></div>
+    </div>
+    @if (c.ok) { <p class="ok-text"><strong>✓ {{ 'acc.st2.checkOk' | t }}</strong></p> }
+    @else {
+      <p class="text-bad"><strong>{{ 'acc.st2.checkFailed' | t }}</strong></p>
+      <ul>@for (p of c.problems; track $index) { <li class="text-bad small">{{ p }}</li> }</ul>
+    }
+  </div>
+</ng-template>
+
+@if (detail(); as s) {
+  <app-modal [title]="('acc.st2.clearance' | t) + ' ' + s.number" size="xl" (closed)="detail.set(null)">
+    <div class="print-area">
+      <h2 class="print-only">{{ 'acc.st2.clearance' | t }} — {{ s.number }}</h2>
+      <div class="form-row">
+        <div><span class="muted small">{{ 'acc.party.' + s.partyKind | t }}</span><br /><strong>{{ s.partyName }}</strong></div>
+        <div><span class="muted small">{{ 'acc.date' | t }}</span><br /><strong dir="ltr">{{ s.settlementDate | slice: 0 : 10 }}</strong></div>
+        <div><span class="muted small">{{ 'acc.st2.adjustment' | t }}</span><br /><strong dir="ltr">{{ s.adjustmentAmount | number: '1.2-2' }}</strong></div>
+        @if (s.journalEntryNumber) { <div><span class="muted small">{{ 'acc.entry' | t }}</span><br /><strong dir="ltr">{{ s.journalEntryNumber }}</strong></div> }
+      </div>
+      @if (s.adjustmentReason) { <p class="muted">{{ 'acc.st2.reason' | t }}: {{ s.adjustmentReason }}</p> }
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.type' | t }}</th><th>{{ 'acc.date' | t }}</th><th class="num">{{ 'acc.total' | t }}</th><th class="num">{{ 'acc.st2.atCheck' | t }}</th><th class="num">{{ 'acc.outstanding' | t }}</th></tr></thead>
+          <tbody>
+            @for (i of s.items; track i.documentId) {
+              <tr>
+                <td><strong>{{ i.number }}</strong></td><td>{{ 'acc.doc.' + i.type | t }}</td><td dir="ltr">{{ i.issueDate | slice: 0 : 10 }}</td>
+                <td class="num" dir="ltr">{{ i.total | number: '1.2-2' }}</td>
+                <td class="num" dir="ltr">{{ i.outstandingAtVerification | number: '1.2-2' }}</td>
+                <td class="num" dir="ltr">{{ i.currentOutstanding | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (s.verifiedAtUtc) {
+        <p class="muted small">{{ 'acc.st2.verifiedBy' | t }}: <strong>{{ s.verifiedByName }}</strong> ({{ s.verifiedAtUtc | slice: 0 : 16 }}) — {{ 'acc.st2.scopeBalance' | t }}: <span dir="ltr">{{ s.verifiedScopeBalance | number: '1.2-2' }}</span> · {{ 'acc.st2.accountBalance' | t }}: <span dir="ltr">{{ s.verifiedAccountBalance | number: '1.2-2' }}</span></p>
+      } @else if (s.status !== 'Posted' && s.status !== 'Cancelled') {
+        <p class="text-bad small">{{ 'acc.st2.notVerified' | t }}</p>
+      }
+
+      @if (s.status === 'Posted') {
+        <div class="signatures">
+          <div>{{ 'acc.st2.preparedBy' | t }}: <strong>{{ s.createdByName }}</strong></div>
+          <div>{{ 'acc.st2.issuedBy' | t }}: <strong>{{ s.approvedByName }}</strong></div>
+          <div>{{ 'acc.st2.partySignature' | t }}: ____________</div>
+        </div>
+      }
+    </div>
+
+    @if (verification(); as c) { <ng-container *ngTemplateOutlet="checkView; context: { $implicit: c }" /> }
+
+    <app-acc-workflow kind="settlement" [id]="s.id" [item]="s" preparePermission="accounting.settlements" approvePermission="accounting.settlements.approve" (done)="reload(s.id)" />
+    <div class="toolbar no-print">
+      @if ((s.status === 'Draft' || s.status === 'Rejected' || s.status === 'PendingApproval') && (canPrepare || auth.can('accounting.settlements.approve'))) {
+        <button type="button" class="btn btn-light btn-sm" (click)="verify(s.id)">{{ 'acc.st2.verify' | t }}</button>
+      }
+      @if ((s.status === 'Draft' || s.status === 'Rejected') && canPrepare) { <button type="button" class="btn btn-light btn-sm" (click)="startEdit(s)">{{ 'a.edit' | t }}</button> }
+      @if (s.status === 'Posted') { <button type="button" class="btn btn-light btn-sm" (click)="print()">{{ 'acc.st2.printClearance' | t }}</button> }
+    </div>
+    @if (s.journalEntryId) { <app-acc-entry-details [entryId]="s.journalEntryId" /> }
+    <app-acc-audit entityType="settlement" [entityId]="s.id" [refresh]="refresh()" />
+    <div modal-footer><button type="button" class="btn btn-light" (click)="detail.set(null)">{{ 'a.close' | t }}</button></div>
+  </app-modal>
+}

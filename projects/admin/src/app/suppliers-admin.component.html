@@ -1,0 +1,41 @@
+    <div class="page-head">
+      <h1>{{ 'inv.nav.suppliers' | t }}</h1>
+      <button type="button" class="btn btn-primary" (click)="startEdit(null)">+ {{ 'inv.newSupplier' | t }}</button>
+    </div>
+    <div class="card">
+      <app-data-table [rows]="suppliers()" [columns]="columns" [rowTemplate]="row" />
+    </div>
+
+    <ng-template #row let-s>
+      <td><strong>{{ s.name }}</strong></td>
+      <td dir="ltr">{{ s.phone }}</td>
+      <td dir="ltr">{{ s.email }}</td>
+      <td>@if (s.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+      <td class="actions">
+        <button type="button" class="btn btn-light btn-sm" (click)="startEdit(s)">{{ 'a.edit' | t }}</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="remove(s)">{{ 'a.delete' | t }}</button>
+      </td>
+    </ng-template>
+
+    @if (open()) {
+      <app-modal [title]="(editing() ? 'inv.editSupplier' : 'inv.newSupplier') | t" (closed)="open.set(false)">
+        <form id="supplier-form" [formGroup]="form" (ngSubmit)="save()">
+          <!-- Arabic is the main language: required, and on the right; English (optional) is on the left -->
+          <div class="form-row" style="direction: ltr">
+            <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input formControlName="name" dir="ltr" /></div>
+            <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }} <span class="req">*</span></label><input formControlName="nameAr" dir="rtl" /></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>{{ 'contact.phone' | t }}</label><input formControlName="phone" dir="ltr" /></div>
+            <div class="field"><label>{{ 'contact.email' | t }}</label><input type="email" formControlName="email" dir="ltr" /></div>
+          </div>
+          <div class="field"><label>{{ 'inv.address' | t }}</label><input formControlName="address" /></div>
+          <div class="field"><label>{{ 'inv.note' | t }}</label><textarea rows="3" formControlName="notes"></textarea></div>
+          <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+        </form>
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+          <button class="btn btn-primary" form="supplier-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+        </div>
+      </app-modal>
+    }

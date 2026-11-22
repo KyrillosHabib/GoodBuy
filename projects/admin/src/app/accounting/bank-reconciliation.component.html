@@ -1,0 +1,202 @@
+    <div class="page-head"><h1>{{ 'acc.bank.title' | t }}</h1></div>
+    <app-intro [text]="'acc.bank.intro' | t" />
+
+    @if (!detail()) {
+      <div class="filters-row">
+        <select [ngModel]="accountFilter()" (ngModelChange)="accountFilter.set($event); loadList()">
+          <option [ngValue]="0">{{ 'acc.bank.all' | t }}</option>
+          @for (c of banks(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+        </select>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-primary" (click)="startNew()">{{ 'acc.bank.new' | t }}</button>
+      </div>
+
+      @if (creating()) {
+        <div class="card">
+          <div class="form-grid">
+            <div class="field"><label>{{ 'acc.bank.account' | t }} *</label>
+              <select [ngModel]="form.cashAccountId" (ngModelChange)="form.cashAccountId = $event">
+                <option [ngValue]="0">—</option>
+                @for (c of banks(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+              </select></div>
+            <div class="field"><label>{{ 'acc.from' | t }}</label><input type="date" dir="ltr" [(ngModel)]="form.fromDate" /></div>
+            <div class="field"><label>{{ 'acc.to' | t }}</label><input type="date" dir="ltr" [(ngModel)]="form.toDate" /></div>
+            <div class="field"><label>{{ 'acc.bank.opening' | t }}</label><input type="number" step="0.01" dir="ltr" [(ngModel)]="form.openingBalance" /></div>
+            <div class="field"><label>{{ 'acc.bank.closing' | t }} *</label><input type="number" step="0.01" dir="ltr" [(ngModel)]="form.closingBalance" /></div>
+            <div class="field"><label>{{ 'acc.bank.reference' | t }}</label><input [(ngModel)]="form.reference" /></div>
+          </div>
+          <div class="field"><label>{{ 'acc.bank.paste' | t }} *</label>
+            <textarea rows="8" dir="ltr" [ngModel]="pasted()" (ngModelChange)="pasted.set($event)" placeholder="2026-11-03, Deposit, 15000.00&#10;2026-11-05, Bank fees, -35.00"></textarea>
+            <p class="muted small">{{ 'acc.bank.pasteHint' | t }}</p>
+            <p class="small"><strong dir="ltr">{{ parsed().lines.length }}</strong> {{ 'acc.bank.parsed' | t }}
+              @if (parsed().bad > 0) { · <span class="bad"><strong dir="ltr">{{ parsed().bad }}</strong> {{ 'acc.bank.badLines' | t }}</span> }</p>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveStatement()">{{ 'acc.bank.save' | t }}</button>
+            <button type="button" class="btn btn-light" (click)="creating.set(false)">{{ 'a.cancel' | t }}</button>
+          </div>
+        </div>
+      }
+
+      <div class="card">
+        @if (rows().length === 0) { <p class="muted">{{ 'acc.bank.empty' | t }}</p> } @else {
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>{{ 'acc.bank.account' | t }}</th><th>{{ 'acc.bank.period' | t }}</th><th>{{ 'acc.bank.reference' | t }}</th><th class="num">{{ 'acc.bank.closing' | t }}</th>
+                <th class="num">{{ 'acc.bank.matched' | t }}</th><th>{{ 'acc.bank.status' | t }}</th><th></th></tr></thead>
+              <tbody>
+                @for (r of rows(); track r.id) {
+                  <tr>
+                    <td><strong>{{ r.cashAccountName }}</strong></td>
+                    <td dir="ltr" class="start small">{{ r.fromDate | date: 'yyyy-MM-dd' }} → {{ r.toDate | date: 'yyyy-MM-dd' }}</td>
+                    <td class="muted small" dir="ltr">{{ r.reference }}</td>
+                    <td class="num" dir="ltr">{{ r.closingBalance | number: '1.2-2' }}</td>
+                    <td class="num" dir="ltr">{{ r.matchedLines }} / {{ r.lines }}</td>
+                    <td><span [class]="'chip ' + (r.status === 'Reconciled' ? 'c-ready' : 'c-new')">{{ 'acc.bank.st.' + r.status | t }}</span></td>
+                    <td class="actions">
+                      <button type="button" class="btn btn-light btn-sm" (click)="open(r.id)">{{ 'acc.bank.open' | t }}</button>
+                      @if (r.status !== 'Reconciled') { <button type="button" class="btn btn-light btn-sm" (click)="remove(r)">{{ 'acc.bank.delete' | t }}</button> }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    @if (detail(); as d) {
+      <div class="filters-row">
+        <button type="button" class="btn btn-light" (click)="close()">← {{ 'acc.bank.back' | t }}</button>
+        <strong>{{ d.statement.cashAccountName }}</strong>
+        <span class="muted small" dir="ltr">{{ d.statement.fromDate | date: 'yyyy-MM-dd' }} → {{ d.statement.toDate | date: 'yyyy-MM-dd' }} {{ d.statement.reference }}</span>
+        <span class="spacer"></span>
+        @if (d.statement.status !== 'Reconciled') {
+          <button type="button" class="btn btn-light" [disabled]="saving()" (click)="autoMatch(d)">{{ 'acc.bank.autoMatch' | t }}</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving() || d.summary.difference !== 0" (click)="finish(d)">{{ 'acc.bank.finish' | t }}</button>
+        } @else {
+          <span class="chip c-ready">{{ 'acc.bank.st.Reconciled' | t }}</span>
+        }
+      </div>
+
+      <div class="sum-grid">
+        <div class="card stat"><span class="muted">{{ 'acc.bank.s.statement' | t }}</span><strong dir="ltr">{{ d.summary.statementClosing | number: '1.2-2' }}</strong></div>
+        <div class="card stat"><span class="muted">{{ 'acc.bank.s.bookNot' | t }}</span><strong dir="ltr">{{ d.summary.bookNotAtBank | number: '1.2-2' }}</strong></div>
+        <div class="card stat"><span class="muted">{{ 'acc.bank.s.book' | t }}</span><strong dir="ltr">{{ d.summary.bookBalance | number: '1.2-2' }}</strong></div>
+        <div class="card stat"><span class="muted">{{ 'acc.bank.s.bankNot' | t }}</span><strong dir="ltr">{{ d.summary.bankNotInBooks | number: '1.2-2' }}</strong></div>
+        <div class="card stat" [class.warn]="d.summary.difference !== 0"><span class="muted">{{ 'acc.bank.s.diff' | t }}</span><strong dir="ltr">{{ d.summary.difference | number: '1.2-2' }}</strong></div>
+      </div>
+      <p class="muted small">{{ (d.summary.difference === 0 ? 'acc.bank.s.ok' : 'acc.bank.s.notOk') | t }}</p>
+
+      <div class="cols">
+        <div class="card">
+          <h3>{{ 'acc.bank.stmtLines' | t }}</h3>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>{{ 'acc.bank.date' | t }}</th><th>{{ 'acc.bank.desc' | t }}</th><th class="num">{{ 'acc.bank.amount' | t }}</th><th>{{ 'acc.bank.status' | t }}</th><th></th></tr></thead>
+              <tbody>
+                @for (l of d.lines; track l.id) {
+                  <tr>
+                    <td dir="ltr" class="start small">{{ l.date | date: 'yyyy-MM-dd' }}</td>
+                    <td>{{ l.description }} <span class="muted small" dir="ltr">{{ l.reference }}</span>
+                      @for (m of l.matches; track m.journalLineId) { <div class="muted small">↔ {{ m.entryNumber }} · {{ m.description }}</div> }</td>
+                    <td class="num" dir="ltr" [class.neg]="l.amount < 0">{{ l.amount | number: '1.2-2' }}</td>
+                    <td><span [class]="'chip ' + (l.state === 'matched' ? 'c-ready' : l.state === 'partial' ? 'c-new' : 'c-late')">{{ 'acc.bank.state.' + l.state | t }}</span></td>
+                    <td class="actions">
+                      @if (d.statement.status !== 'Reconciled') {
+                        @if (l.state === 'unmatched') {
+                          <button type="button" class="btn btn-light btn-sm" (click)="startMatch(l)">{{ 'acc.bank.match' | t }}</button>
+                          <button type="button" class="btn btn-light btn-sm" (click)="startVoucher(l)">{{ 'acc.bank.voucher' | t }}</button>
+                        } @else {
+                          <button type="button" class="btn btn-light btn-sm" (click)="unmatch(l)">{{ 'acc.bank.unmatch' | t }}</button>
+                        }
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>{{ 'acc.bank.bookLines' | t }}</h3>
+          @if (d.unmatchedBook.length === 0) { <p class="muted">{{ 'acc.bank.pickNone' | t }}</p> } @else {
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr>
+                  @if (d.statement.status !== 'Reconciled') { <th></th> }
+                  <th>{{ 'acc.bank.date' | t }}</th><th>{{ 'acc.bank.entry' | t }}</th><th class="num">{{ 'acc.bank.net' | t }}</th></tr></thead>
+                <tbody>
+                  @for (b of d.unmatchedBook; track b.journalLineId) {
+                    <tr>
+                      @if (d.statement.status !== 'Reconciled') { <td><input type="checkbox" [checked]="clearSel().has(b.journalLineId)" (change)="toggleClear(b.journalLineId)" /></td> }
+                      <td dir="ltr" class="start small">{{ b.date | date: 'yyyy-MM-dd' }}</td>
+                      <td class="small"><span dir="ltr">{{ b.entryNumber }}</span> {{ b.description }}@if (b.partyName) { · {{ b.partyName }} }</td>
+                      <td class="num" dir="ltr" [class.neg]="b.net < 0">{{ b.net | number: '1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (d.statement.status !== 'Reconciled') {
+              <button type="button" class="btn btn-light btn-sm" [disabled]="saving() || clearSel().size === 0" (click)="clearSelected(d)">{{ 'acc.bank.clear' | t }} ({{ clearSel().size }})</button>
+            }
+          }
+
+          @if (d.cleared.length > 0) {
+            <h4>{{ 'acc.bank.cleared' | t }}</h4>
+            <table class="table"><tbody>
+              @for (b of d.cleared; track b.journalLineId) {
+                <tr><td dir="ltr" class="start small">{{ b.date | date: 'yyyy-MM-dd' }}</td><td class="small">{{ b.entryNumber }} {{ b.description }}</td><td class="num" dir="ltr">{{ b.net | number: '1.2-2' }}</td>
+                  <td>@if (d.statement.status !== 'Reconciled') { <button type="button" class="btn btn-light btn-sm" (click)="unclear(b.journalLineId)">{{ 'acc.bank.unclear' | t }}</button> }</td></tr>
+              }
+            </tbody></table>
+          }
+        </div>
+      </div>
+    }
+
+    @if (matchFor(); as l) {
+      <app-modal [title]="'acc.bank.pick' | t" (closed)="matchFor.set(null)">
+        <p class="small"><strong dir="ltr">{{ l.amount | number: '1.2-2' }}</strong> · {{ l.description }}</p>
+        @if ((detail()?.unmatchedBook?.length ?? 0) === 0) { <p class="muted">{{ 'acc.bank.pickNone' | t }}</p> } @else {
+          <table class="table"><tbody>
+            @for (b of detail()!.unmatchedBook; track b.journalLineId) {
+              <tr><td><input type="checkbox" [checked]="matchSel().has(b.journalLineId)" (change)="toggleMatch(b.journalLineId)" /></td>
+                <td dir="ltr" class="start small">{{ b.date | date: 'yyyy-MM-dd' }}</td><td class="small">{{ b.entryNumber }} {{ b.description }}</td>
+                <td class="num" dir="ltr" [class.neg]="b.net < 0">{{ b.net | number: '1.2-2' }}</td></tr>
+            }
+          </tbody></table>
+          <p class="muted small">Σ <strong dir="ltr">{{ matchTotal() | number: '1.2-2' }}</strong></p>
+        }
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="matchFor.set(null)">{{ 'a.cancel' | t }}</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving() || matchSel().size === 0" (click)="doMatch(l)">{{ 'acc.bank.doMatch' | t }}</button>
+        </div>
+      </app-modal>
+    }
+
+    @if (voucherFor(); as l) {
+      <app-modal [title]="'acc.bank.voucherTitle' | t" (closed)="voucherFor.set(null)">
+        <p class="small"><strong dir="ltr">{{ l.amount | number: '1.2-2' }}</strong> · {{ l.description }}</p>
+        <div class="field"><label>{{ 'acc.bank.counter' | t }} *</label>
+          <select [ngModel]="counterId" (ngModelChange)="counterId = $event">
+            <option [ngValue]="0">—</option>
+            @for (a of accounts(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+          </select></div>
+        @if (costCenters().length > 0) {
+          <div class="field"><label>{{ 'acc.bank.costCenter' | t }}</label>
+            <select [ngModel]="costCenterId" (ngModelChange)="costCenterId = $event">
+              <option [ngValue]="0">{{ 'acc.bank.none' | t }}</option>
+              @for (c of costCenters(); track c.id) { <option [ngValue]="c.id">{{ c.code }} — {{ c.name }}</option> }
+            </select></div>
+        }
+        <p class="muted small">{{ 'acc.bank.voucherNote' | t }}</p>
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="voucherFor.set(null)">{{ 'a.cancel' | t }}</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving() || !counterId" (click)="doVoucher(l)">{{ 'acc.bank.create' | t }}</button>
+        </div>
+      </app-modal>
+    }

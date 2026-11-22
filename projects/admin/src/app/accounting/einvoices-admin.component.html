@@ -1,0 +1,139 @@
+    <div class="page-head"><h1>{{ 'acc.ei.title' | t }}</h1></div>
+    <app-intro [text]="'acc.ei.intro' | t" />
+    <div class="card warn-card"><span>{{ 'acc.ei.notice' | t }}</span></div>
+
+    <div class="tabs">
+      @for (x of tabs; track x) { <button type="button" class="tab" [class.on]="tab() === x" (click)="setTab(x)">{{ 'acc.ei.tab.' + x | t }}</button> }
+    </div>
+
+    @if (tab() === 'invoices') {
+      <div class="filters-row">
+        <input [placeholder]="'acc.ei.search' | t" [ngModel]="search()" (ngModelChange)="search.set($event)" (keyup.enter)="loadInvoices()" />
+        <select [ngModel]="status()" (ngModelChange)="status.set($event); loadInvoices()">
+          <option value="">{{ 'acc.ei.allStatus' | t }}</option>
+          @for (s of allStatuses; track s) { <option [value]="s">{{ 'acc.ei.st.' + s | t }}</option> }
+        </select>
+        <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event); loadInvoices()" />
+        <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event); loadInvoices()" />
+      </div>
+
+      <div class="card">
+        @if (rows().length === 0) { <p class="muted">{{ 'acc.ei.empty' | t }}</p> } @else {
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr>
+                <th>{{ 'acc.ei.number' | t }}</th><th>{{ 'acc.ei.kind' | t }}</th><th>{{ 'acc.ei.date' | t }}</th><th>{{ 'acc.ei.customer' | t }}</th>
+                <th class="num">{{ 'acc.ei.total' | t }}</th><th class="num">{{ 'acc.ei.tax' | t }}</th><th>{{ 'acc.ei.status' | t }}</th><th></th>
+              </tr></thead>
+              <tbody>
+                @for (r of rows(); track r.documentId) {
+                  <tr>
+                    <td dir="ltr"><strong>{{ r.documentNumber }}</strong></td>
+                    <td>{{ 'acc.ei.kind.' + r.etaType | t }}</td>
+                    <td dir="ltr">{{ r.issueDate | date: 'yyyy-MM-dd' }}</td>
+                    <td>{{ r.partyName }}<div class="muted small" dir="ltr">{{ r.partyTaxNumber }}</div></td>
+                    <td class="num" dir="ltr">{{ r.total | number: '1.2-2' }}</td>
+                    <td class="num" dir="ltr">{{ r.taxTotal | number: '1.2-2' }}</td>
+                    <td><span class="chip ei-{{ r.status }}">{{ 'acc.ei.st.' + r.status | t }}</span>
+                      @if (r.errorMessage) { <div class="muted small">{{ r.errorMessage }}</div> }</td>
+                    <td class="actions">
+                      @if (canWork) {
+                        <button type="button" class="btn btn-light btn-sm" [disabled]="busy() === r.documentId || r.status === 'Submitted' || r.status === 'Valid'" (click)="generate(r)">
+                          {{ (r.status === 'None' ? 'acc.ei.generate' : 'acc.ei.regenerate') | t }}
+                        </button>
+                      }
+                      @if (r.status !== 'None') {
+                        <button type="button" class="btn btn-light btn-sm" (click)="openDetail(r)">{{ 'acc.ei.problems' | t }}</button>
+                        <button type="button" class="btn btn-light btn-sm" (click)="download(r)">{{ 'acc.ei.download' | t }}</button>
+                        @if (canWork && r.status !== 'Draft') { <button type="button" class="btn btn-light btn-sm" (click)="openStatus(r)">{{ 'acc.ei.setStatus' | t }}</button> }
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    @if (tab() === 'vat') {
+      <div class="filters-row">
+        <label class="muted">{{ 'acc.ei.vat.from' | t }}</label><input type="date" [ngModel]="vatFrom()" (ngModelChange)="vatFrom.set($event)" />
+        <label class="muted">{{ 'acc.ei.vat.to' | t }}</label><input type="date" [ngModel]="vatTo()" (ngModelChange)="vatTo.set($event)" />
+        <button type="button" class="btn btn-primary btn-sm" (click)="loadVat()">{{ 'acc.ei.vat.show' | t }}</button>
+      </div>
+      @if (vat(); as v) {
+        <div class="stat-grid">
+          <div class="card stat"><span class="muted">{{ 'acc.ei.vat.output' | t }}</span><strong dir="ltr">{{ v.outputVat | number: '1.2-2' }}</strong></div>
+          <div class="card stat"><span class="muted">{{ 'acc.ei.vat.input' | t }}</span><strong dir="ltr">{{ v.inputVat | number: '1.2-2' }}</strong></div>
+          <div class="card stat" [class.warn]="v.netPayable > 0"><span class="muted">{{ 'acc.ei.vat.payable' | t }}</span><strong dir="ltr">{{ v.netPayable | number: '1.2-2' }}</strong></div>
+          <div class="card stat"><span class="muted">{{ 'acc.ei.vat.sales' | t }}</span><strong dir="ltr">{{ v.taxableSales | number: '1.2-2' }}</strong></div>
+          <div class="card stat"><span class="muted">{{ 'acc.ei.vat.purchases' | t }}</span><strong dir="ltr">{{ v.taxablePurchases | number: '1.2-2' }}</strong></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>{{ 'acc.ei.vat.month' | t }}</th><th class="num">{{ 'acc.ei.vat.output' | t }}</th><th class="num">{{ 'acc.ei.vat.input' | t }}</th><th class="num">{{ 'acc.ei.vat.net' | t }}</th></tr></thead>
+              <tbody>
+                @for (m of v.months; track $index) {
+                  <tr><td dir="ltr">{{ m.month }}</td><td class="num" dir="ltr">{{ m.outputVat | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ m.inputVat | number: '1.2-2' }}</td><td class="num" dir="ltr">{{ m.net | number: '1.2-2' }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    }
+
+    @if (tab() === 'profile' && profile(); as p) {
+      <div class="card">
+        <p class="muted small">{{ 'acc.ei.profile.hint' | t }}</p>
+        <div class="form-grid">
+          <div class="field"><label>{{ 'acc.ei.profile.legalName' | t }}</label><input [(ngModel)]="p.legalName" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.taxNumber' | t }}</label><input dir="ltr" [(ngModel)]="p.taxRegistrationNumber" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.branch' | t }}</label><input dir="ltr" [(ngModel)]="p.branchCode" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.activity' | t }}</label><input dir="ltr" [(ngModel)]="p.activityCode" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.country' | t }}</label><input dir="ltr" maxlength="2" [(ngModel)]="p.country" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.governate' | t }}</label><input [(ngModel)]="p.governate" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.city' | t }}</label><input [(ngModel)]="p.regionCity" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.street' | t }}</label><input [(ngModel)]="p.street" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.building' | t }}</label><input [(ngModel)]="p.buildingNumber" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.itemType' | t }}</label>
+            <select [(ngModel)]="p.itemCodeType" [disabled]="!canSettings"><option value="EGS">EGS</option><option value="GS1">GS1</option></select></div>
+          <div class="field"><label>{{ 'acc.ei.profile.itemCode' | t }}</label><input dir="ltr" [(ngModel)]="p.defaultItemCode" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.unit' | t }}</label><input dir="ltr" [(ngModel)]="p.defaultUnitType" [disabled]="!canSettings" /></div>
+          <div class="field"><label>{{ 'acc.ei.profile.env' | t }}</label>
+            <select [(ngModel)]="p.environment" [disabled]="!canSettings"><option value="preprod">preprod</option><option value="prod">prod</option></select></div>
+        </div>
+        @if (canSettings) { <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveProfile()">{{ 'acc.ei.save' | t }}</button> }
+      </div>
+    }
+
+    @if (detail(); as d) {
+      <app-modal [title]="d.row.documentNumber" (closed)="detail.set(null)">
+        @if (d.problems.length === 0) { <p>{{ 'acc.ei.noProblems' | t }}</p> } @else {
+          <ul class="plain">@for (p of d.problems; track $index) { <li>• {{ 'acc.ei.problem.' + p | t }}</li> }</ul>
+        }
+      </app-modal>
+    }
+
+    @if (statusFor(); as r) {
+      <app-modal [title]="'acc.ei.statusTitle' | t" (closed)="statusFor.set(null)">
+        <form id="ei-status-form" (submit)="$event.preventDefault(); saveStatus()">
+          <div class="field"><label>{{ 'acc.ei.newStatus' | t }}</label>
+            <select [ngModel]="newStatus()" name="st" (ngModelChange)="newStatus.set($event)">
+              @for (s of statuses; track s) { <option [value]="s">{{ 'acc.ei.st.' + s | t }}</option> }
+            </select></div>
+          <div class="field"><label>{{ 'acc.ei.submissionUuid' | t }}</label><input dir="ltr" name="su" [ngModel]="submissionUuid()" (ngModelChange)="submissionUuid.set($event)" /></div>
+          <div class="field"><label>{{ 'acc.ei.longId' | t }}</label><input dir="ltr" name="li" [ngModel]="longId()" (ngModelChange)="longId.set($event)" /></div>
+          @if (newStatus() === 'Invalid') {
+            <div class="field"><label>{{ 'acc.ei.error' | t }} *</label><textarea rows="2" name="er" [ngModel]="errorText()" (ngModelChange)="errorText.set($event)"></textarea></div>
+          }
+        </form>
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="statusFor.set(null)">{{ 'a.cancel' | t }}</button>
+          <button class="btn btn-primary" form="ei-status-form" [disabled]="saving()">{{ 'acc.ei.save' | t }}</button>
+        </div>
+      </app-modal>
+    }

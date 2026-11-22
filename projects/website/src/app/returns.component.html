@@ -1,0 +1,40 @@
+<div class="container section" style="max-width: 820px">
+  <h1>{{ 'ret.title' | t }}</h1>
+
+  @if (policy(); as p) {
+    @if (!p.enabled) {
+      <p class="muted">{{ 'ret.disabled' | t }}</p>
+    } @else {
+      <div class="card" style="margin-top: 1rem">
+        <h3>{{ 'ret.returns' | t }}</h3>
+        @if (p.returnsAllowed) {
+          <p>{{ 'ret.returnsYes' | t: { n: p.returnWindowDays } }}</p>
+          <p>{{ ('ret.refund.' + p.refundMethod) | t }}</p>
+        } @else {
+          <p>{{ 'ret.returnsNo' | t }}</p>
+        }
+      </div>
+
+      <div class="card" style="margin-top: 1rem">
+        <h3>{{ 'ret.exchange' | t }}</h3>
+        @if (p.exchangeAllowed) {
+          <p>{{ 'ret.exchangeYes' | t: { n: p.exchangeWindowDays } }}</p>
+        } @else {
+          <p>{{ 'ret.exchangeNo' | t }}</p>
+        }
+      </div>
+
+      @if (p.returnsAllowed || p.exchangeAllowed) {
+        <div class="card" style="margin-top: 1rem">
+          <h3>{{ 'ret.conditions' | t }}</h3>
+          <ul>
+            @if (p.defectiveOnly) { <li>{{ 'ret.defectiveOnly' | t }}</li> }
+            @if (p.requireOriginalPackaging) { <li>{{ 'ret.packaging' | t }}</li> }
+            <li>{{ ('ret.ship.' + p.shippingPaidBy) | t }}</li>
+          </ul>
+          @if (extra(p); as text) { <p style="white-space: pre-line">{{ text }}</p> }
+        </div>
+      }
+    }
+  }
+</div>

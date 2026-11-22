@@ -1,0 +1,221 @@
+    <div class="page-head">
+      <h1>{{ 'acc.nav.' + scope | t }}</h1>
+      @if (canPrepare) { <button type="button" class="btn btn-primary" (click)="picking.set(true)">+ {{ 'acc.doc.new' | t }}</button> }
+    </div>
+    <app-intro [text]="'acc.doc.intro.' + scope | t" />
+
+    <div class="filters">
+      <select [ngModel]="fType" (ngModelChange)="fType = $event; load()">
+        <option value="">{{ 'acc.doc.allTypes' | t }}</option>
+        @for (t of types; track t) { <option [value]="t">{{ 'acc.doc.' + t | t }}</option> }
+      </select>
+      <select [ngModel]="fStatus" (ngModelChange)="fStatus = $event; load()">
+        <option value="">{{ 'acc.allStatuses' | t }}</option>
+        @for (s of statuses; track s) { <option [value]="s">{{ 'acc.st.' + s | t }}</option> }
+      </select>
+      <label>{{ 'acc.from' | t }} <input type="date" [ngModel]="fFrom" (ngModelChange)="fFrom = $event; load()" /></label>
+      <label>{{ 'acc.to' | t }} <input type="date" [ngModel]="fTo" (ngModelChange)="fTo = $event; load()" /></label>
+    </div>
+
+    <div class="card">
+      <app-data-table [rows]="rows()" [columns]="columns" [rowTemplate]="row" />
+    </div>
+
+    <ng-template #row let-d>
+      <td><strong>{{ d.number }}</strong></td>
+      <td>{{ 'acc.doc.' + d.type | t }}</td>
+      <td>{{ d.partyName }}</td>
+      <td dir="ltr">{{ d.issueDate | slice: 0 : 10 }}</td>
+      <td dir="ltr">{{ (d.dueDate ?? '') | slice: 0 : 10 }}</td>
+      <td class="num" dir="ltr">{{ d.total | number: '1.2-2' }}</td>
+      <td class="num" dir="ltr">{{ d.status === 'Posted' ? (d.outstanding | number: '1.2-2') : '' }}</td>
+      <td><span class="chip st-{{ d.status }}">{{ 'acc.st.' + d.status | t }}</span> @if (d.isClosed) { <span class="chip">{{ 'acc.doc.closed' | t }}</span> }</td>
+      <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="view(d.id)">{{ 'acc.open' | t }}</button></td>
+    </ng-template>
+
+    <!-- which kind of document -->
+    @if (picking()) {
+      <app-modal [title]="'acc.doc.new' | t" (closed)="picking.set(false)">
+        <div class="grid" style="gap: .6rem">
+          @for (t of types; track t) {
+            <button type="button" class="btn btn-light" style="text-align: start" (click)="startNew(t)">
+              <strong>{{ 'acc.doc.' + t | t }}</strong><br /><span class="muted small">{{ 'acc.doc.' + t + '.hint' | t }}</span>
+            </button>
+          }
+        </div>
+      </app-modal>
+    }
+
+    <!-- editor -->
+    @if (editorOpen()) {
+      <app-modal [title]="(editing() ? 'acc.doc.edit' : 'acc.doc.new') | t" size="xl" (closed)="editorOpen.set(false)">
+        <form id="doc-form" [formGroup]="form" (ngSubmit)="save()">
+          <h3>{{ 'acc.doc.' + editorType() | t }}</h3>
+          <div class="form-row">
+            <div class="field">
+              <label>{{ (editorKind() === 'Customer' ? 'acc.party.customer' : 'acc.party.supplier') | t }} <span class="req">*</span></label>
+              <select formControlName="partyId" (change)="partyChanged()">
+                <option [ngValue]="null">—</option>
+                @for (p of partyChoices(); track p.id) { <option [ngValue]="p.id">{{ p.name }} ({{ p.code }})</option> }
+              </select>
+            </div>
+            <div class="field"><label>{{ 'acc.date' | t }} <span class="req">*</span></label><input type="date" formControlName="issueDate" dir="ltr" /></div>
+            @if (invoice()) {
+              <div class="field"><label>{{ 'acc.due' | t }}</label><input type="date" formControlName="dueDate" dir="ltr" /><span class="muted small">{{ 'acc.doc.dueHint' | t }}</span></div>
+            }
+            <div class="field"><label>{{ 'acc.reference' | t }}</label><input formControlName="reference" dir="ltr" /></div>
+          </div>
+
+          @if (!invoice()) {
+            <div class="field">
+              <label>{{ 'acc.doc.original' | t }}</label>
+              <select formControlName="originalDocumentId">
+                <option [ngValue]="null">—</option>
+                @for (o of originals(); track o.id) { <option [ngValue]="o.id">{{ o.number }} — {{ o.total | number: '1.2-2' }}</option> }
+              </select>
+              <span class="muted small">{{ 'acc.doc.originalHint' | t }}</span>
+            </div>
+          }
+
+          <h4>{{ 'acc.doc.lines' | t }}</h4>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="min-width: 15rem">{{ (editorKind() === 'Customer' ? 'acc.doc.revenueAccount' : 'acc.doc.expenseAccount') | t }}</th>
+                  <th style="min-width: 12rem">{{ 'acc.description' | t }}</th>
+                  <th>{{ 'acc.doc.qty' | t }}</th><th>{{ 'acc.doc.price' | t }}</th><th>{{ 'acc.doc.tax' | t }}</th>
+                  @if (costCenters().length > 0) { <th style="min-width: 9rem">{{ 'acc.cc.center' | t }}</th> }
+                  <th class="num">{{ 'acc.doc.amount' | t }}</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of lines.controls; track line; let i = $index) {
+                  <tr [formGroup]="line">
+                    <td>
+                      <select formControlName="accountId">
+                        <option [ngValue]="null">—</option>
+                        @for (a of accountChoices(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+                      </select>
+                    </td>
+                    <td><input formControlName="description" /></td>
+                    <td><input type="number" step="0.001" min="0" formControlName="quantity" dir="ltr" style="width: 6rem" /></td>
+                    <td><input type="number" step="0.01" formControlName="unitPrice" dir="ltr" style="width: 8rem" /></td>
+                    <td><input type="number" step="0.01" min="0" max="100" formControlName="taxRate" dir="ltr" style="width: 5rem" /></td>
+                    @if (costCenters().length > 0) {
+                      <td>
+                        <select formControlName="costCenterId" style="width: 9rem">
+                          <option [ngValue]="null">—</option>
+                          @for (c of costCenters(); track c.id) { <option [ngValue]="c.id">{{ c.code }} — {{ c.name }}</option> }
+                        </select>
+                      </td>
+                    }
+                    <td class="num" dir="ltr">{{ amountOf(line) | number: '1.2-2' }}</td>
+                    <td><button type="button" class="btn btn-danger btn-sm" [disabled]="lines.length < 2" (click)="removeLine(i)">×</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="btn btn-light btn-sm" (click)="addLine()">+ {{ 'acc.doc.addLine' | t }}</button>
+            <button type="button" class="btn btn-light btn-sm" (click)="applyVat()">{{ 'acc.doc.applyVat' | t: { rate: ctx.settings()?.defaultTaxRate ?? 0 } }}</button>
+          </div>
+
+          <div class="totals" dir="ltr">
+            <div>{{ 'acc.doc.subtotal' | t }}: <strong>{{ totals().subtotal | number: '1.2-2' }}</strong></div>
+            <div>{{ 'acc.doc.taxTotal' | t }}: <strong>{{ totals().tax | number: '1.2-2' }}</strong></div>
+            <div>{{ 'acc.total' | t }}: <strong>{{ totals().total | number: '1.2-2' }}</strong></div>
+          </div>
+
+          <div class="field"><label>{{ 'inv.note' | t }}</label><textarea rows="2" formControlName="notes"></textarea></div>
+        </form>
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="editorOpen.set(false)">{{ 'a.cancel' | t }}</button>
+          <button class="btn btn-primary" form="doc-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'acc.doc.saveDraft') | t }}</button>
+        </div>
+      </app-modal>
+    }
+
+    <!-- one document -->
+    @if (detail(); as d) {
+      <app-modal [title]="('acc.doc.' + d.type | t) + ' ' + d.number" size="xl" (closed)="detail.set(null)">
+        <div class="print-area">
+          <div class="form-row">
+            <div><span class="muted small">{{ (partyKindOf(d.type) === 'Customer' ? 'acc.party.customer' : 'acc.party.supplier') | t }}</span><br /><strong>{{ d.partyName }}</strong></div>
+            <div><span class="muted small">{{ 'acc.date' | t }}</span><br /><strong dir="ltr">{{ d.issueDate | slice: 0 : 10 }}</strong></div>
+            @if (d.dueDate) { <div><span class="muted small">{{ 'acc.due' | t }}</span><br /><strong dir="ltr">{{ d.dueDate | slice: 0 : 10 }}</strong></div> }
+            @if (d.reference) { <div><span class="muted small">{{ 'acc.reference' | t }}</span><br /><strong dir="ltr">{{ d.reference }}</strong></div> }
+            @if (d.originalNumber) { <div><span class="muted small">{{ 'acc.doc.original' | t }}</span><br /><strong>{{ d.originalNumber }}</strong></div> }
+            @if (d.journalEntryNumber) { <div><span class="muted small">{{ 'acc.entry' | t }}</span><br /><strong dir="ltr">{{ d.journalEntryNumber }}</strong></div> }
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>{{ 'acc.account' | t }}</th><th>{{ 'acc.rep.category' | t }}</th><th>{{ 'acc.description' | t }}</th><th class="num">{{ 'acc.doc.qty' | t }}</th><th class="num">{{ 'acc.doc.price' | t }}</th><th class="num">{{ 'acc.doc.tax' | t }}</th><th class="num">{{ 'acc.doc.amount' | t }}</th></tr></thead>
+              <tbody>
+                @for (l of d.lines; track l.id) {
+                  <tr>
+                    <td class="small" dir="ltr">{{ l.accountCode }} {{ l.accountName }}</td><td>{{ l.categoryName }}</td><td>{{ l.description }}</td>
+                    <td class="num" dir="ltr">{{ l.quantity }}</td><td class="num" dir="ltr">{{ l.unitPrice | number: '1.2-2' }}</td>
+                    <td class="num" dir="ltr">{{ l.taxRate }}%</td><td class="num" dir="ltr">{{ l.amount | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="totals" dir="ltr">
+            <div>{{ 'acc.doc.subtotal' | t }}: <strong>{{ d.subtotal | number: '1.2-2' }}</strong></div>
+            <div>{{ 'acc.doc.taxTotal' | t }}: <strong>{{ d.taxTotal | number: '1.2-2' }}</strong></div>
+            <div>{{ 'acc.total' | t }}: <strong>{{ d.total | number: '1.2-2' }}</strong></div>
+            @if (d.costAmount > 0) { <div class="muted">{{ 'acc.doc.cost' | t }}: <strong>{{ d.costAmount | number: '1.2-2' }}</strong></div> }
+            @if (d.status === 'Posted') { <div [class.text-bad]="d.outstanding > 0">{{ 'acc.outstanding' | t }}: <strong>{{ d.outstanding | number: '1.2-2' }}</strong></div> }
+          </div>
+          @if (d.notes) { <p class="muted">{{ d.notes }}</p> }
+        </div>
+
+        <app-acc-workflow kind="document" [id]="d.id" [item]="d" preparePermission="accounting.documents" (done)="reload(d.id)" />
+
+        <div class="toolbar no-print">
+          @if ((d.status === 'Draft' || d.status === 'Rejected') && canPrepare) { <button type="button" class="btn btn-light btn-sm" (click)="startEdit(d)">{{ 'a.edit' | t }}</button> }
+          @if (canApplyCredit(d)) { <button type="button" class="btn btn-light btn-sm" (click)="startApply(d)">{{ 'acc.doc.applyCredit' | t }}</button> }
+          <button type="button" class="btn btn-light btn-sm" (click)="print()">{{ 'acc.print' | t }}</button>
+        </div>
+
+        @if (d.allocations.length > 0) {
+          <h4>{{ 'acc.doc.matching' | t }}</h4>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>{{ 'acc.doc.matchRole' | t }}</th><th>{{ 'acc.number' | t }}</th><th class="num">{{ 'acc.doc.amount' | t }}</th><th>{{ 'acc.date' | t }}</th><th></th></tr></thead>
+              <tbody>
+                @for (a of d.allocations; track a.id) {
+                  <tr [class.muted]="a.isReversed">
+                    <td>{{ 'acc.alloc.' + a.role | t }} @if (a.isAuto) { <span class="chip">{{ 'acc.alloc.auto' | t }}</span> } @if (a.isReversed) { <span class="chip">{{ 'acc.alloc.undone' | t }}</span> } @if (a.isPlanned) { <span class="chip">{{ 'acc.alloc.planned' | t }}</span> }</td>
+                    <td><strong>{{ a.otherNumber }}</strong> <span class="muted small">{{ 'acc.alloc.kind.' + a.otherKind | t }}</span></td>
+                    <td class="num" dir="ltr">{{ a.amount | number: '1.2-2' }}</td>
+                    <td dir="ltr">{{ a.allocatedAtUtc | slice: 0 : 10 }}</td>
+                    <td>@if (!a.isReversed && !a.isPlanned && !a.isAuto && !d.isClosed && auth.can('accounting.approve')) { <button type="button" class="btn btn-light btn-sm" (click)="undo(a.id, d.id)">{{ 'acc.alloc.undo' | t }}</button> }</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @if (d.journalEntryId) { <app-acc-entry-details [entryId]="d.journalEntryId" /> }
+        <app-acc-audit entityType="document" [entityId]="d.id" [refresh]="refresh()" />
+        <div modal-footer><button type="button" class="btn btn-light" (click)="detail.set(null)">{{ 'a.close' | t }}</button></div>
+      </app-modal>
+    }
+
+    <!-- apply a credit document to invoices -->
+    @if (applying(); as c) {
+      <app-modal [title]="'acc.doc.applyCredit' | t" size="lg" (closed)="applying.set(null)">
+        <p>{{ c.number }} — {{ 'acc.alloc.available' | t }}: <strong dir="ltr">{{ c.outstanding | number: '1.2-2' }}</strong></p>
+        <app-acc-alloc-table [docs]="applyDocs()" [available]="c.outstanding" (changed)="applyLines = $event" />
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="applying.set(null)">{{ 'a.cancel' | t }}</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveApply(c)">{{ 'a.save' | t }}</button>
+        </div>
+      </app-modal>
+    }

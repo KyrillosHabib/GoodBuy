@@ -1,0 +1,98 @@
+<div class="page-head">
+  <h1>{{ 'auction.admin.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="edit(null)">+ {{ 'auction.admin.new' | t }}</button>
+</div>
+<app-intro [text]="'auction.admin.intro' | t" />
+
+<div class="card"><app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" /></div>
+
+<ng-template #row let-a>
+  <td>@if (a.imageUrl) { <img class="thumb thumb-sm" [src]="a.imageUrl | productImage: ''" alt="" /> } <strong>{{ a.itemName }}</strong>@if (a.items && a.items.length > 1) { <span class="chip">{{ a.items.length }} {{ 'auction.admin.itemsCount' | t }}</span> }@if (a.isBundle) { <span class="chip">{{ 'bundle.tag' | t }}</span> }</td>
+  <td dir="ltr">{{ a.startingPrice }} (+{{ a.minIncrement }})</td>
+  <td dir="ltr">{{ a.bidCount > 0 ? a.currentPrice : '—' }}@if (a.reservePrice != null) { <span class="chip" [class.chip-ok]="a.bidCount > 0 && a.currentPrice >= a.reservePrice" [title]="'auction.admin.reserve' | t">{{ a.bidCount > 0 && a.currentPrice >= a.reservePrice ? '✓' : '✗' }} {{ a.reservePrice }}</span> }</td>
+  <td class="small" dir="ltr">{{ time(a.endsAtUtc) }}</td>
+  <td>
+    <span class="chip" [class.chip-off]="a.status !== 'running'">{{ ('auction.status.' + a.status) | t }}</span>
+    @if (a.result) { <div class="small">{{ ('auction.result.' + a.result) | t }}@if (a.result === 'sold') { · {{ a.winnerName }} (<span dir="ltr">{{ a.winnerEmail }}</span>) }</div> }
+  </td>
+  <td class="actions">
+    <button type="button" class="btn btn-light btn-sm" (click)="showBids(a)">{{ 'auction.admin.bids' | t }}</button>
+    @if (a.bidCount === 0 && a.status !== 'cancelled' && a.status !== 'ended') { <button type="button" class="btn btn-light btn-sm" (click)="edit(a)">{{ 'a.edit' | t }}</button> }
+    @if (a.status === 'scheduled' || a.status === 'running') { <button type="button" class="btn btn-danger btn-sm" (click)="cancel(a)">{{ 'auction.admin.cancel' | t }}</button> }
+  </td>
+</ng-template>
+
+@if (open()) {
+  <app-modal [title]="(editing() ? 'auction.admin.edit' : 'auction.admin.new') | t" (closed)="open.set(false)">
+    <!-- 1. what is sold -->
+    <div class="au-step"><span class="au-n">1</span><strong>{{ 'auction.admin.s1' | t }}</strong></div>
+    <div class="hint-text">{{ 'auction.admin.itemHint' | t }}</div>
+    @if (lot().length > 0) {
+      <table class="table au-lot">
+        <thead><tr><th>{{ 'auction.admin.item' | t }}</th><th style="width: 110px">{{ 'auction.admin.qty' | t }}</th><th style="width: 50px"></th></tr></thead>
+        <tbody>
+          @for (it of lot(); track it.variantId; let i = $index) {
+            <tr>
+              <td><strong>{{ it.name }}</strong></td>
+              <td><input type="number" min="1" dir="ltr" [value]="it.quantity" (change)="setQty(i, $any($event.target).value)" /></td>
+              <td><button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeItem(i)">✕</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    <div class="field">
+      <label>{{ (lot().length === 0 ? 'auction.admin.addFirst' : 'auction.admin.addMore') | t }}</label>
+      <app-variant-picker #vp [includeBundles]="true" (picked)="pick($event); vp.reset()" />
+    </div>
+
+    <!-- 2. its name and picture -->
+    <div class="au-step"><span class="au-n">2</span><strong>{{ 'auction.admin.s2' | t }}</strong></div>
+    <div class="field">
+      <label>{{ 'auction.admin.titleLbl' | t }}</label>
+      <input type="text" maxlength="200" [(ngModel)]="title" />
+      <div class="hint-text">{{ 'auction.admin.titleHint' | t }}</div>
+    </div>
+    <app-image-field [control]="imageCtl" label="auction.admin.image" />
+
+    <!-- 3. prices and time -->
+    <div class="au-step"><span class="au-n">3</span><strong>{{ 'auction.admin.s3' | t }}</strong></div>
+    <div class="form-row">
+      <div class="field"><label>{{ 'auction.admin.start' | t }} *</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.startingPrice" /></div>
+      <div class="field"><label>{{ 'auction.admin.increment' | t }} *</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.minIncrement" /></div>
+    </div>
+    <div class="hint-text">{{ 'auction.admin.incrementHint' | t }}</div>
+
+    <div class="form-row">
+      <div class="field"><label>{{ 'auction.admin.reserve' | t }}</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.reservePrice" /></div>
+    </div>
+    <div class="hint-text">{{ 'auction.admin.reserveHint' | t }}</div>
+
+    <div class="form-row">
+      <div class="field"><label>{{ 'disc.starts' | t }} *</label><input type="datetime-local" dir="ltr" [(ngModel)]="starts" /></div>
+      <div class="field"><label>{{ 'disc.ends' | t }} *</label><input type="datetime-local" dir="ltr" [(ngModel)]="ends" /></div>
+    </div>
+
+    <div modal-footer>
+      <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+    </div>
+  </app-modal>
+}
+
+@if (bidsOf(); as a) {
+  <app-modal [title]="('auction.admin.bids' | t) + ' · ' + a.itemName" (closed)="bidsOf.set(null)">
+    @if (bids().length === 0) {
+      <p class="muted">{{ 'auction.admin.noBids' | t }}</p>
+    } @else {
+      <table class="table">
+        <thead><tr><th>{{ 'a.name' | t }}</th><th>{{ 'contact.email' | t }}</th><th>{{ 'cpn.amount' | t }}</th><th>{{ 'inv.date' | t }}</th></tr></thead>
+        <tbody>
+          @for (b of bids(); track b.amount) {
+            <tr><td>{{ b.name }}</td><td dir="ltr">{{ b.email }}</td><td dir="ltr"><strong>{{ b.amount }}</strong></td><td class="small" dir="ltr">{{ time(b.placedAtUtc) }}</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </app-modal>
+}

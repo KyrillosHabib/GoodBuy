@@ -1,0 +1,21 @@
+/* Endless carousel. The track is always laid out left-to-right so the loop maths stays simple;
+   the cards inside keep the page direction. */
+:host { display: block; --gap: 1rem; --per: 2.5; }
+:host([data-size=sm]) { --per: 2.5; }
+:host([data-size=md]) { --per: 1.8; }
+:host([data-size=xs]) { --per: 3.2; }
+@media (min-width: 640px) {
+  :host([data-size=sm]) { --per: 4; } :host([data-size=md]) { --per: 3; } :host([data-size=xs]) { --per: 5; }
+}
+@media (min-width: 1000px) {
+  :host([data-size=sm]) { --per: 6; } :host([data-size=md]) { --per: 4; } :host([data-size=xs]) { --per: 7; }
+}
+
+.slider-viewport { overflow: hidden; padding: .5rem 0 1rem; cursor: grab; touch-action: pan-y; user-select: none; direction: ltr; }
+.slider-viewport:active { cursor: grabbing; }
+.slider-viewport.static { cursor: default; }
+.slider-track { display: flex; gap: var(--gap); width: 100%; will-change: transform; }
+.slide { flex: 0 0 calc((100% - (var(--per) - 1) * var(--gap)) / var(--per)); min-width: 0; direction: ltr; }
+:host-context([dir=rtl]) .slide { direction: rtl; }
+.slide > * { display: block; height: 100%; }
+.slider-viewport img { -webkit-user-drag: none; }

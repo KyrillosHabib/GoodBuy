@@ -1,0 +1,279 @@
+@if (site.home(); as h) {
+<div class="home-flow">
+  <!-- ================= hero ================= -->
+  <!-- ================= hero ================= -->
+  <section class="hero" [class.hero-original]="!cfg().heroOverlay">
+    @if (heroSlides().length > 0) {
+      <!-- A slider: the pictures follow each other, with arrows at the sides and dots below -->
+      <div class="hero-slides" (mouseenter)="heroPause(true)" (mouseleave)="heroPause(false)">
+        @for (u of heroSlides(); track u.imageUrl; let i = $index) {
+          <img class="hero-bg hero-slide" [class.on]="i === heroIndex()" [src]="u.imageUrl | assetUrl" alt="" />
+        }
+      </div>
+    } @else {
+      <img class="hero-bg" [class.flip]="i18n.isRtl()" [src]="h.company.heroImageUrl | imageOr: 'hero'" alt="" />
+    }
+    <div class="hero-shade"></div>
+    @if (heroSlides().length > 1) {
+      <!-- Full-height strips on both sides with a soft shadow; the arrow always points OUTWARD (toward the edge it sits on).
+           In Arabic the left edge is "next", in English it is "previous". -->
+      <button type="button" class="hero-edge left" [attr.aria-label]="(i18n.isRtl() ? 'hero.next' : 'hero.prev') | t" (click)="heroGo(i18n.isRtl() ? 1 : -1)" (mouseenter)="heroPause(true)" (mouseleave)="heroPause(false)">
+        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4 7 12l8 8"/></svg>
+      </button>
+      <button type="button" class="hero-edge right" [attr.aria-label]="(i18n.isRtl() ? 'hero.prev' : 'hero.next') | t" (click)="heroGo(i18n.isRtl() ? -1 : 1)" (mouseenter)="heroPause(true)" (mouseleave)="heroPause(false)">
+        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4 8 8-8 8"/></svg>
+      </button>
+      <div class="hero-dots">
+        @for (u of heroSlides(); track u.imageUrl; let i = $index) {
+          <button type="button" [class.on]="i === heroIndex()" [attr.aria-label]="'hero.slide' | t" (click)="heroIndex.set(i)"></button>
+        }
+      </div>
+    }
+
+    <!-- Words over the banner only when the owner wrote some (in the dashboard), in the colour he chose -->
+    @if ((slideTitle() || t(cfg().hero.title)) || (slideSubtitle() || t(cfg().hero.subtitle))) {
+      <div class="container hero-inner">
+        @for (k of [heroIndex()]; track k) {
+          <div class="hero-copy hero-anim" [style.color]="cfg().hero.color">
+            @if (slideTitle() || t(cfg().hero.title)) { <h1>{{ slideTitle() || t(cfg().hero.title) }}</h1> }
+            @if (slideSubtitle() || t(cfg().hero.subtitle)) { <p>{{ slideSubtitle() || t(cfg().hero.subtitle) }}</p> }
+
+            @if (slideButton(); as sb) {
+              <div class="row">
+                @if (sb.external) { <a class="btn btn-primary btn-lg" [href]="sb.url">{{ sb.label }}</a> } @else { <a class="btn btn-primary btn-lg" [routerLink]="sb.url">{{ sb.label }}</a> }
+              </div>
+            } @else if (cfg().hero.showButton) {
+              <div class="row"><a class="btn btn-primary btn-lg shopnow-btn" routerLink="/products">{{ 'home.cta' | t }}</a></div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- ================= strip after the slider (colour, messages and end time come from the dashboard) ================= -->
+  @if (cfg().strip.enabled) {
+    <div class="sf-strip" [style.background]="cfg().strip.color" [class.on-dark]="isDark(cfg().strip.color)" [class.on-light]="!isDark(cfg().strip.color)">
+      <div class="sf-strip-in">
+        @if (t(cfg().strip.title)) { <span class="sf-tag">{{ t(cfg().strip.title) }}</span> }
+
+        <div class="sf-ticker">
+          @for (k of [msgIdx()]; track k) {
+            @if (cfg().strip.columns.length > 0) {
+              @if (stripCol(); as c) {
+                @if (go(c.link); as l) {
+                  <ng-template #colTpl><strong>{{ t(c.head) }}</strong>@if (t(c.sub)) { <span>{{ t(c.sub) }}</span> }</ng-template>
+                  @if (l.external) { <a class="sf-offer" [href]="l.url"><ng-container [ngTemplateOutlet]="colTpl" /></a> }
+                  @else { <a class="sf-offer" [routerLink]="l.url" [queryParams]="l.query"><ng-container [ngTemplateOutlet]="colTpl" /></a> }
+                }
+              }
+            }
+          }
+          @if (cfg().strip.columns.length > 1) {
+            <span class="sf-dots">@for (c of cfg().strip.columns; track c; let ci = $index) { <i [class.on]="ci === msgIdx() % cfg().strip.columns.length"></i> }</span>
+          }
+        </div>
+
+        @if (stripEnds(); as ends) { <app-countdown [endsAt]="ends" [inline]="true" /> }
+
+        @if (t(cfg().strip.footer); as foot) {
+          @if (go(cfg().strip.link); as fl) {
+            @if (fl.external) { <a class="sf-go" [href]="fl.url">{{ foot }} →</a> } @else { <a class="sf-go" [routerLink]="fl.url" [queryParams]="fl.query">{{ foot }} →</a> }
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ================= the sections, in the order and colours chosen in the dashboard ================= -->
+  @for (s of cfg().sections; track s.id) {
+    @if (s.enabled) {
+      @switch (s.type) {
+
+        @case ('categories') {
+          @if (h.categories.length > 0 || bundles().length > 0) {
+            <section id="categories" class="section cat-section" [class.on-dark]="secDark(s)" [style.background]="secBg(s)">
+              <div class="container">
+                <div class="sec-head">
+                  <h2 class="section-title">{{ t(s.title) || ('home.catTitle' | t) }}</h2>
+                  <a class="view-all" routerLink="/products">{{ 'common.viewAll' | t }}</a>
+                </div>
+                @if (t(s.subtitle)) { <p class="cat-sub">{{ t(s.subtitle) }}</p> }
+                <div class="cat-grid">
+                  @for (c of h.categories; track c.id) {
+                    <a class="cat-tile" routerLink="/products" [queryParams]="{ category: c.slug }">
+                      <span class="cat-pic"><img [src]="c.imageUrl | categoryImage: c.slug" [alt]="c.name" loading="lazy" draggable="false" /></span>
+                      <span class="cat-bar">
+                        <span class="cat-name"><strong>{{ c.name }}</strong>@if (c.description) { <small>{{ c.description }}</small> }</span>
+                        <i class="cat-go" aria-hidden="true">→</i>
+                      </span>
+                    </a>
+                  }
+                  @if (bundles().length > 0) {
+                    <a class="cat-tile" routerLink="/products" [queryParams]="{ bundles: 1 }">
+                      <span class="cat-pic"><img [src]="tile('bundles').image | categoryImage: 'packages'" [alt]="tile('bundles').name" loading="lazy" draggable="false" /></span>
+                      <span class="cat-bar"><span class="cat-name"><strong>{{ tile('bundles').name }}</strong></span><i class="cat-go" aria-hidden="true">→</i></span>
+                    </a>
+                  }
+                  <a class="cat-tile" routerLink="/auctions">
+                    <span class="cat-pic"><img [src]="tile('auctions').image | categoryImage: 'auctions'" [alt]="tile('auctions').name" loading="lazy" draggable="false" /></span>
+                    <span class="cat-bar"><span class="cat-name"><strong>{{ tile('auctions').name }}</strong>@if (auctionCount() === 0) { <small>{{ 'auction.soonBadge' | t }}</small> }</span><i class="cat-go" aria-hidden="true">→</i></span>
+                  </a>
+                </div>
+              </div>
+            </section>
+          }
+        }
+
+        @case ('offers') {
+          @if (offerTiles().length > 0) {
+            <section id="offers" class="section offers-section" [class.custom-bg]="!!s.bg || !!s.bgImage" [class.on-dark]="secDarkOffers(s)" [class.on-light]="!secDarkOffers(s)" [style.background]="secBg(s)">
+              <div class="container">
+                <div class="offers-head">
+                  <h2 class="section-title">{{ t(s.title) || ('home.offers' | t) }}</h2>
+                  @if (offerEnds(); as ends) { <div class="offers-count"><span>{{ 'offer.endsIn' | t }}</span><app-countdown [endsAt]="ends" /></div> }
+                </div>
+                <div class="hot-grid">
+                  @for (o of offerTiles(); track o.slug) {
+                    <a class="hot-tile" routerLink="/products" [queryParams]="{ category: o.slug, onSale: 1 }">
+                      <img [src]="o.image | productImage: o.slug : o.slug" [alt]="o.name" loading="lazy" />
+                      <span class="hot-bar">
+                        <strong>{{ o.name }}</strong>
+                        @if (o.maxOff >= 5) {
+                          <small>{{ 'home.upTo' | t }}</small><em dir="ltr">{{ o.maxOff }}% {{ 'home.off' | t }}</em>
+                        } @else {
+                          <small>{{ 'home.startFrom' | t }}</small><em>{{ o.minPrice | money }}</em>
+                        }
+                      </span>
+                    </a>
+                  }
+                </div>
+                <div class="row-more"><a class="btn btn-offer" routerLink="/products" [queryParams]="{ onSale: 1 }">{{ 'common.viewAll' | t }}</a></div>
+              </div>
+            </section>
+          }
+        }
+
+        @case ('new') { <ng-container [ngTemplateOutlet]="rowTpl" [ngTemplateOutletContext]="{ s: s, list: newArrivals(), title: 'home.new', q: { sort: 'newest' } }" /> }
+        @case ('best') { <ng-container [ngTemplateOutlet]="rowTpl" [ngTemplateOutletContext]="{ s: s, list: bestSellers(), title: 'home.best', q: { sort: 'bestsellers' } }" /> }
+        @case ('bundles') { <ng-container [ngTemplateOutlet]="rowTpl" [ngTemplateOutletContext]="{ s: s, list: bundles(), title: 'home.bundles', q: { bundles: 1 } }" /> }
+        @case ('featured') { <ng-container [ngTemplateOutlet]="rowTpl" [ngTemplateOutletContext]="{ s: s, list: h.featuredProducts, title: 'home.featured', q: { featured: 1 } }" /> }
+
+        @case ('features') {
+          @if (h.features.length > 0) {
+            <section id="features" class="section dark" [class.on-dark]="secDark(s)" [style.background]="secBg(s)">
+              <div class="container">
+                <div class="section-head center"><h2 class="section-title">{{ t(s.title) || ('home.why' | t) }}</h2></div>
+                <div class="grid grid-4">
+                  @for (f of h.features; track f.id) {
+                    <div class="dark-card">
+                      @if (f.imageUrl || f.icon) {
+                        <div class="feature-icon">@if (f.imageUrl) { <img [src]="f.imageUrl | assetUrl" alt="" /> } @else { <app-icon [name]="f.icon" [size]="28" /> }</div>
+                      }
+                      <h3>{{ f.title }}</h3>
+                      @if (f.description) { <p>{{ f.description }}</p> }
+                    </div>
+                  }
+                </div>
+              </div>
+            </section>
+          }
+        }
+
+        @case ('brands') {
+          @if (h.brands.length > 0) {
+            <section id="brands" class="section brands-section" [class.on-dark]="secDark(s)" [style.background]="secBg(s)">
+              <div class="container">
+                <div class="section-head"><h2 class="section-title">{{ t(s.title) || ('home.brands' | t) }}</h2></div>
+                <div class="brand-grid">
+                  @for (b of h.brands.slice(0, 12); track b.id) {
+                    <a class="brand-tile" routerLink="/products" [queryParams]="{ brand: b.id }" [title]="b.name">
+                      <span class="brand-logo">
+                        @if (b.logoUrl) { <img [src]="b.logoUrl | assetUrl" [alt]="b.name" draggable="false" loading="lazy" /> } @else { <b>{{ b.name }}</b> }
+                      </span>
+                      @if (b.logoUrl) { <span class="brand-name">{{ b.name }}</span> }
+                      <span class="brand-go" aria-hidden="true">→</span>
+                    </a>
+                  }
+                </div>
+              </div>
+            </section>
+          }
+        }
+
+        @case ('video') {
+          @if (s.video.url) {
+            <section class="section vid-section" [class.on-dark]="secDark(s)" [style.background]="secBg(s)">
+              @if (t(s.title)) { <div class="container"><div class="section-head center"><h2 class="section-title">{{ t(s.title) }}</h2></div></div> }
+              <div class="vid-box">
+                @if (embed(s.video.url); as src) {
+                  <iframe [src]="src" title="video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                } @else {
+                  <video #vid [src]="s.video.url | assetUrl" [poster]="s.video.posterUrl ? (s.video.posterUrl | assetUrl) : ''" autoplay [muted]="true" loop playsinline (play)="0" (pause)="0" (volumechange)="0" (timeupdate)="0" (click)="togglePlay(vid)"></video>
+                  <div class="vid-bar">
+                    <button type="button" [attr.aria-label]="vid.paused ? 'Play' : 'Pause'" (click)="togglePlay(vid)">{{ vid.paused ? '▶' : '❚❚' }}</button>
+                    <input type="range" min="0" step="0.1" [max]="vid.duration || 0" [value]="vid.currentTime" (input)="vid.currentTime = +$any($event.target).value" aria-label="Seek" />
+                    <button type="button" [attr.aria-label]="vid.muted ? 'Unmute' : 'Mute'" (click)="vid.muted = !vid.muted">{{ vid.muted ? '🔇' : '🔊' }}</button>
+                    <button type="button" aria-label="Fullscreen" (click)="fullscreen(vid)">⛶</button>
+                  </div>
+                }
+                @if (t(s.video.buttonLabel); as lbl) {
+                  @if (go(s.video.link); as l) {
+                    <div class="vid-cta">
+                      @if (l.external) { <a class="cat-shop" [href]="l.url">{{ lbl }}</a> } @else { <a class="cat-shop" [routerLink]="l.url" [queryParams]="l.query">{{ lbl }}</a> }
+                    </div>
+                  }
+                }
+              </div>
+            </section>
+          }
+        }
+
+        @case ('collage') {
+          @if (s.collage.images.length > 0) {
+            <section class="section collage-section" [class.on-dark]="secDark(s)" [style.background]="secBg(s)">
+              @if (t(s.title)) { <div class="container"><div class="section-head center"><h2 class="section-title">{{ t(s.title) }}</h2></div></div> }
+              <div class="collage" [attr.data-layout]="s.collage.layout">
+                @for (im of collageImages(s); track im) {
+                  @if (go(im.link); as l) {
+                    <ng-template #cellTpl>
+                      @if (im.imageUrl) { <img [src]="im.imageUrl | assetUrl" [alt]="t(im.title)" loading="lazy" /> }
+                      @if (t(im.title) || t(im.text)) { <span class="collage-text">@if (t(im.title)) { <strong>{{ t(im.title) }}</strong> }@if (t(im.text)) { <small>{{ t(im.text) }}</small> }</span> }
+                    </ng-template>
+                    @if (l.external) {
+                      <a class="collage-cell" [href]="l.url" [style.flex-basis]="s.collage.layout === 'rects' ? 'calc(' + im.width + '% - 0.5rem)' : null"><ng-container [ngTemplateOutlet]="cellTpl" /></a>
+                    } @else {
+                      <a class="collage-cell" [routerLink]="l.url" [queryParams]="l.query" [style.flex-basis]="s.collage.layout === 'rects' ? 'calc(' + im.width + '% - 0.5rem)' : null"><ng-container [ngTemplateOutlet]="cellTpl" /></a>
+                    }
+                  }
+                }
+              </div>
+            </section>
+          }
+        }
+      }
+    }
+  }
+
+  <!-- one row of product cards (New, Best sellers, Packages, Featured) -->
+  <ng-template #rowTpl let-s="s" let-list="list" let-title="title" let-q="q">
+    @if (list.length > 0) {
+      <section class="section row-section" [id]="s.type" [class.on-dark]="secDark(s)" [style.background]="secBg(s)">
+        <div class="container">
+          <div class="sec-head">
+            <h2 class="section-title">{{ t(s.title) || (title | t) }}</h2>
+            <a class="view-all" routerLink="/products" [queryParams]="q">{{ 'common.viewAll' | t }}</a>
+          </div>
+          <ng-template #cardTpl let-p><app-product-card [product]="p" /></ng-template>
+          <app-scroller size="md" [items]="list" [template]="cardTpl" />
+        </div>
+      </section>
+    }
+  </ng-template>
+
+</div>
+} @else if (site.loading()) {
+  <p class="container state">{{ 'common.loading' | t }}</p>
+} @else {
+  <p class="container state">{{ 'common.error' | t }}</p>
+}

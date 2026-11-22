@@ -1,0 +1,210 @@
+@if (loading()) {
+  <p class="container state">{{ 'common.loading' | t }}</p>
+} @else {
+  @if (product(); as p) {
+    <div class="container pd-page">
+      <!-- only the path of the page -->
+      <nav class="crumbs pd-crumbs">
+        <a routerLink="/" class="crumb-home" [attr.aria-label]="'nav.home' | t"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></a><span>/</span>
+        <a routerLink="/products" [queryParams]="{ category: p.categorySlug }">{{ p.categoryName }}</a><span>/</span>
+        <b>{{ p.name }}</b>
+      </nav>
+
+      <div class="details pd">
+        <div class="pd-left">
+          <app-gallery class="pd-gallery" [images]="images()" [alt]="p.name" [featured]="false" />
+        </div>
+
+        <div class="info pd-info">
+          <h1>{{ p.name }}</h1>
+          @if (p.sku) { <div class="pd-sku" dir="ltr">{{ 'product.sku' | t }}: {{ p.sku }}</div> }
+
+          @if (current(p); as v) {
+            <div class="price-box">
+              <span class="price" [class.sale]="!!v.compareAtPrice">{{ v.price | money }}</span>
+              @if (v.compareAtPrice) {
+                <s class="old-price">{{ v.compareAtPrice | money }}</s>
+                <span class="save-badge" dir="ltr">-{{ discount(v) }}%</span>
+              }
+            </div>
+          }
+
+          @if (p.shortDescription) { <p class="pd-short">{{ p.shortDescription }}</p> }
+
+          @if (p.variants.length > 0) {
+            @for (g of optionGroups(p); track g.index) {
+              <div class="opt-group">
+                <div class="opt-name">{{ g.name }}<span class="opt-chosen">{{ chosen()[g.index] }}</span></div>
+                <div class="opt-values">
+                  @for (o of g.values; track o.value) {
+                    @if (o.colorHex) {
+                      <button type="button" class="opt-swatch" [class.active]="isChosen(g.index, o.value)" [class.unavailable]="!canBuyWith(p, g.index, o.value)" [title]="o.value" [style.background]="o.colorHex" (click)="choose(p, g.index, o.value)"></button>
+                    } @else {
+                      <button type="button" class="opt-btn" [class.active]="isChosen(g.index, o.value)" [class.unavailable]="!canBuyWith(p, g.index, o.value)" (click)="choose(p, g.index, o.value)">{{ o.value }}</button>
+                    }
+                  }
+                </div>
+              </div>
+            }
+
+            @if (current(p); as v) {
+              @if (v.canBuy) {
+                @if (v.preorder) { <div class="preorder-note">{{ 'product.preorderNote' | t: { n: v.preorderLeadDays ?? 0 } }}</div> }
+                @if (v.lowStock) { <div class="stock-note">{{ 'product.onlyLeft' | t: { n: v.lowStock } }}</div> }
+                <div class="opt-name">{{ 'pd.qty' | t }}</div>
+                <div class="buy-row">
+                  <div class="qty">
+                    <button type="button" (click)="changeQty(-1, v.lowStock)" [attr.aria-label]="'-'">−</button>
+                    <span>{{ qty() }}</span>
+                    <button type="button" (click)="changeQty(1, v.lowStock)" [attr.aria-label]="'+'">+</button>
+                  </div>
+                  <span class="pd-subtotal muted" dir="ltr">{{ v.price * qty() | money }}</span>
+                </div>
+                <div class="pd-actions">
+                  <button type="button" class="btn btn-lg pd-add" (click)="addToCart(v)">{{ (v.preorder ? 'product.preorder' : 'cart.add') | t }}</button>
+                  <button type="button" class="qv-heart" [class.on]="fav() || isFav(p.id)" [attr.aria-label]="'qv.wish' | t" [title]="'qv.wish' | t" (click)="toggleFav(p.id)"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [attr.fill]="(fav() || isFav(p.id)) ? 'currentColor' : 'none'"><path d="M12 20.5s-7.5-4.6-9.2-9.3C1.6 7.7 3.7 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.900 3-3 5-3 3.300 0 5.4 3.200 4.200 6.7-1.7 4.7-9.200 9.300-9.200 9.300Z"/></svg></button>
+                </div>
+              } @else {
+                <div class="stock-note out">{{ 'product.outOfStock' | t }}</div>
+                <div class="notify-box">
+                  @if (notifySent()) { <div class="preorder-note">{{ 'product.notifyDone' | t }}</div> } @else {
+                    <span class="muted">{{ 'product.notifyHint' | t }}</span>
+                    <div class="notify-row">
+                      <input type="email" dir="ltr" [placeholder]="'contact.email' | t" [value]="notifyEmail()" (input)="notifyEmail.set($any($event.target).value)" />
+                      <button type="button" class="btn" (click)="notifyMe(v)">{{ 'product.notifyMe' | t }}</button>
+                    </div>
+                  }
+                </div>
+              }
+            } @else {
+              <div class="stock-note out">{{ 'product.chooseOptions' | t }}</div>
+            }
+          }
+
+          <!-- the payment methods of the shop -->
+          <div class="pay-box">
+            <div class="pay-title">{{ 'pd.payMethods' | t }}</div>
+            <div class="pay-logos">
+              <span class="pay-card" title="Visa" aria-label="Visa">
+                <svg viewBox="0 0 48 30" width="48" height="30" role="img" aria-hidden="true"><rect x=".5" y=".5" width="47" height="29" rx="4" fill="#fff" stroke="#d4d4d8"/><text x="24" y="20.500" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="800" font-style="italic" fill="#1a1f71" letter-spacing="-.3">VISA</text></svg>
+              </span>
+              <span class="pay-card" title="Mastercard" aria-label="Mastercard">
+                <svg viewBox="0 0 48 30" width="48" height="30" role="img" aria-hidden="true"><rect x=".5" y=".5" width="47" height="29" rx="4" fill="#fff" stroke="#d4d4d8"/><circle cx="19" cy="15" r="8" fill="#eb001b"/><circle cx="29" cy="15" r="8" fill="#f79e1b"/><path d="M24 8.800a8 8 0 0 1 0 12.400 8 8 0 0 1 0-12.400Z" fill="#ff5f00"/></svg>
+              </span>
+              <span class="pay-card" [title]="'pd.cod' | t" [attr.aria-label]="'pd.cod' | t">
+                <svg viewBox="0 0 48 30" width="48" height="30" role="img" aria-hidden="true"><rect x=".5" y=".5" width="47" height="29" rx="4" fill="#fff" stroke="#d4d4d8"/><g fill="none" stroke="#16a34a" stroke-width="1.700" stroke-linecap="round" stroke-linejoin="round"><rect x="11" y="9" width="26" height="12" rx="2"/><circle cx="24" cy="15" r="3"/><path d="M14.500 12v.01M33.500 18v.01"/></g></svg>
+              </span>
+            </div>
+          </div>
+
+          @if (trust().length > 0) {
+            <ul class="trust-list">
+              @for (point of trust(); track point.id) {
+                <li><app-icon [name]="point.icon" [size]="18" /> {{ point.title }}</li>
+              }
+            </ul>
+          }
+
+        </div>
+      </div>
+
+      <!-- the details: description, specifications, shipping and returns, reviews: one tab at a time -->
+      <section class="pd-tabs">
+        <div class="pd-tabbar" role="tablist">
+          @for (t of tabs(p); track t; let last = $last) {
+            <button type="button" role="tab" class="pd-tab" [class.on]="activeTab(p) === t" [attr.aria-selected]="activeTab(p) === t" (click)="tab.set(t)">
+              {{ tabLabel(t) | t }}@if (t === 'reviews') { <sup>{{ reviews()?.count }}</sup> }
+            </button>
+            @if (!last) { <span class="pd-tab-sep" aria-hidden="true">|</span> }
+          }
+        </div>
+
+        <div class="pd-panel">
+          @switch (activeTab(p)) {
+            @case ('desc') {
+              @if (p.description) { <p class="description">{{ p.description }}</p> }
+              @if (p.isBundle && p.bundleItems?.length) {
+                <h3 class="pd-sub">{{ 'bundle.contains' | t }}</h3>
+                <ul class="bundle-list">
+      @for (b of p.bundleItems; track b.slug + b.variantLabel) {
+        <li>
+          @if (b.imageUrl) { <img [src]="b.imageUrl | assetUrl" alt="" /> }
+          <a [routerLink]="['/products', b.slug]"><strong>{{ b.name }}</strong> @if (b.variantLabel) { <span class="muted">{{ b.variantLabel }}</span> }</a>
+          <span class="bundle-qty">× {{ b.quantity }}</span>
+        </li>
+      }
+    </ul>
+              }
+            }
+            @case ('specs') {
+              <table class="specs">
+      <tbody>
+        @for (s of p.specifications; track s) { <tr><th>{{ s.name }}</th><td>{{ s.value }}</td></tr> }
+      </tbody>
+    </table>
+            }
+            @case ('ship') {
+              <p>{{ 'pd.shipReturnText' | t }} <a routerLink="/returns">{{ 'ret.title' | t }}</a></p>
+            }
+            @case ('reviews') {
+              @if (reviews(); as r) {
+                <div class="reviews">
+                  <aside class="rv-side">
+              <div class="rv-sum">
+                <div class="rv-avg">
+                  <strong>{{ r.count ? r.average : '—' }}</strong>
+                  <div class="rv-stars">@for (n of stars; track n) { <span [class.on]="n <= r.average">★</span> }</div>
+                  <small>{{ 'review.count' | t: { n: r.count } }}</small>
+                </div>
+                <ul class="rv-bars">
+                  @for (n of [5, 4, 3, 2, 1]; track n) {
+                    <li><span class="rv-n">{{ n }} ★</span><span class="rv-bar"><i [style.width.%]="barWidth(r, n)"></i></span><b>{{ r.distribution[n - 1] }}</b></li>
+                  }
+                </ul>
+              </div>
+
+              @if (!auth.isCustomer()) {
+                <p class="muted">{{ 'review.signIn' | t }} <a href="javascript:void(0)" (click)="authDrawer.open('login')">{{ 'auth.signIn' | t }}</a></p>
+              } @else if (r.alreadyReviewed) {
+                <p class="muted">{{ 'review.already' | t }}</p>
+              } @else {
+                <form class="review-form" (ngSubmit)="sendReview(p)">
+                  <strong>{{ 'review.write' | t }}</strong>
+                  <div class="stars-pick">@for (n of stars; track n) { <button type="button" [class.on]="n <= rating" (click)="rating = n" [attr.aria-label]="n + ' ★'">★</button> }</div>
+                  <textarea name="reviewText" rows="4" [(ngModel)]="reviewText" [placeholder]="'review.placeholder' | t" maxlength="1500"></textarea>
+                  <button class="btn btn-primary" [disabled]="sending() || !reviewText.trim()">{{ 'review.send' | t }}</button>
+                </form>
+              }
+            </aside>
+
+                  <div class="rv-list">
+                    @for (item of r.items; track item.createdAtUtc + item.name) {
+                      <article class="review">
+                        <div class="review-head"><strong>{{ item.name }}</strong>@if (item.verified) { <span class="chip">✓ {{ 'review.verified' | t }}</span> }<span class="stars-row">@for (n of stars; track n) { <span [class.on]="n <= item.rating">★</span> }</span></div>
+                        <p>{{ item.comment }}</p>
+                        @if (item.reply) { <div class="review-reply"><strong>{{ 'review.reply' | t }}</strong> {{ item.reply }}</div> }
+                      </article>
+                    } @empty {
+                      <p class="muted">{{ 'review.none' | t }}</p>
+                    }
+                  </div>
+                </div>
+              }
+            }
+          }
+        </div>
+      </section>
+
+      @if (related().length > 0) {
+        <section class="pd-related">
+          <h2 class="pd-title">{{ 'product.related' | t }}</h2>
+          <ng-template #relTpl let-r><app-product-card [product]="r" /></ng-template>
+          <app-scroller size="md" [items]="related()" [template]="relTpl" />
+        </section>
+      }
+    </div>
+
+  } @else {
+    <p class="container state">{{ (notFound() ? 'product.notFound' : 'common.error') | t }}</p>
+  }
+}

@@ -1,0 +1,5 @@
+<svg class="bc" [attr.viewBox]="'0 0 ' + shape.width + ' 40'" preserveAspectRatio="none" role="img" [attr.aria-label]="value">
+  @for (b of shape.bars; track b.x) {
+    <rect [attr.x]="b.x" y="0" [attr.width]="b.w" height="40" fill="#000" />
+  }
+</svg>

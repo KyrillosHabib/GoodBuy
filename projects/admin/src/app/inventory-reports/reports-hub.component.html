@@ -1,0 +1,26 @@
+<div class="page-head">
+  <div>
+    <h1>{{ 'ir.hub.title' | t }}</h1>
+    <p class="muted">{{ 'ir.hub.sub' | t }}</p>
+  </div>
+  <input type="search" class="hub-search" [placeholder]="'ir.hub.search' | t" [value]="search()" (input)="search.set($any($event.target).value)" />
+</div>
+
+@for (g of groups(); track g.id) {
+  <section class="hub-group">
+    <h2>{{ 'ir.g.' + g.id | t }}</h2>
+    <div class="hub-grid">
+      @for (r of g.reports; track r.code) {
+        <a class="hub-card" [routerLink]="['/inventory/reports', r.code]">
+          <span class="hub-icon"><app-icon [name]="r.icon" [size]="22" /></span>
+          <span class="hub-text">
+            <strong>{{ 'ir.r.' + r.code + '.title' | t }}</strong>
+            <span class="muted small">{{ 'ir.r.' + r.code + '.desc' | t }}</span>
+          </span>
+        </a>
+      }
+    </div>
+  </section>
+} @empty {
+  <p class="muted">{{ 'ir.hub.none' | t }}</p>
+}

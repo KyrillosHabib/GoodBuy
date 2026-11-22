@@ -1,0 +1,16 @@
+.tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.tabs button { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: .4rem .9rem; cursor: pointer; font: inherit; }
+.tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.badge { display: inline-block; min-width: 1.3rem; padding: 0 .35rem; margin-inline-start: .3rem; border-radius: 999px; background: #dc2626; color: #fff; font-size: .75rem; text-align: center; }
+.filters-row { display: flex; gap: .6rem; margin-bottom: .8rem; flex-wrap: wrap; }
+.filters-row input { min-width: 220px; }
+.tt { width: 100%; border-collapse: collapse; }
+.tt th, .tt td { padding: .5rem .6rem; border-bottom: 1px solid var(--border); text-align: start; }
+.tt thead th { background: var(--primary-soft); white-space: nowrap; }
+.tt .num { text-align: center; }
+.tt .row { cursor: pointer; }
+.tt .row:hover { background: var(--primary-soft); }
+.chip.st-Submitted, .chip.st-Draft { background: #fef3c7; color: #92400e; }
+.chip.st-Approved { background: #dbeafe; color: #1e40af; }
+.chip.st-Completed { background: #dcfce7; color: #166534; }
+.chip.st-Rejected, .chip.st-Cancelled { background: #fee2e2; color: #991b1b; }

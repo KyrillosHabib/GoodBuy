@@ -1,0 +1,54 @@
+<div class="container section auth-wrap">
+  @if (order(); as o) {
+    <div class="card auth-card" style="max-width: 640px">
+      <h1>✓ {{ 'order.thanks' | t }}</h1>
+      <p class="auth-sub">{{ 'order.received' | t: { number: o.number } }}</p>
+
+      @if (awaiting(o)) {
+        <div class="state-soon" style="border-style: solid; border-color: var(--primary); text-align: start; justify-items: stretch">
+          <strong>{{ 'auction.order.title' | t }}</strong>
+          <span class="muted">{{ 'auction.order.hint' | t: { date: (o.payByUtc ?? '').slice(0, 16).replace('T', ' ') } }}</span>
+          <div class="field"><label>{{ 'auth.fullName' | t }} *</label><input [value]="form().fullName" (input)="set('fullName', $any($event.target).value)" /></div>
+          <div class="field"><label>{{ 'contact.phone' | t }} *</label><input type="tel" dir="ltr" [value]="form().phone" (input)="set('phone', $any($event.target).value)" /></div>
+          <div class="field"><label>{{ 'account.country' | t }} *</label><input [value]="form().country" (input)="set('country', $any($event.target).value)" /></div>
+          <div class="field"><label>{{ 'account.city' | t }} *</label><input [value]="form().city" (input)="set('city', $any($event.target).value)" /></div>
+          <div class="field"><label>{{ 'account.region' | t }}</label><input [value]="form().region" (input)="set('region', $any($event.target).value)" /></div>
+          <div class="field"><label>{{ 'account.line1' | t }} *</label><input [value]="form().line1" (input)="set('line1', $any($event.target).value)" /></div>
+          @if (formError()) { <div class="error">{{ 'contact.required' | t }}</div> }
+          <div class="field">
+            @for (m of methods(); track m) {
+              <label style="display: flex; gap: .5rem; align-items: center; cursor: pointer">
+                <input type="radio" name="am" [checked]="method() === m" (change)="method.set(m)" />
+                {{ (m === 'Card' ? 'auction.order.payNow' : 'pay.CashOnDelivery') | t }}
+              </label>
+            }
+          </div>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="confirm(o)">{{ (method() === 'Card' ? 'auction.order.payNow' : 'auction.order.confirmCod') | t }}</button>
+        </div>
+      }
+      @if (paidBack() && o.paymentStatus !== 'Paid') { <p class="chip">{{ 'pay.received' | t }}</p> }
+      @if (cancelledBack() && o.paymentMethod === 'Card' && o.paymentStatus !== 'Paid') {
+        <p class="muted">{{ 'pay.cancelled' | t }}</p>
+        <p><button type="button" class="btn btn-primary" [disabled]="paying()" (click)="payAgain(o)">{{ (paying() ? 'pay.redirecting' : 'pay.again') | t }}</button></p>
+      }
+      <div class="sum-row"><span>{{ 'order.status' | t }}</span><span class="chip">{{ ('order.status.' + o.status) | t }}</span></div>
+      <div class="sum-row"><span>{{ 'checkout.payment' | t }}</span><span>{{ ('pay.' + o.paymentMethod) | t }}</span></div>
+      <hr />
+      @for (i of o.items; track i.variantId) {
+        <div class="sum-row">
+          <span>{{ i.productName }}@if (i.variantLabel) { <small class="muted"> · {{ i.variantLabel }}</small> } × {{ i.quantity }}@if (i.isPreorder) { <small class="muted"> · {{ 'cart.preorder' | t: { n: i.preorderLeadDays ?? 0 } }}</small> }</span>
+          <span>{{ i.lineTotal | money }}</span>
+        </div>
+      }
+      <div class="sum-row total"><span>{{ 'checkout.total' | t }}</span><span>{{ o.total | money }}</span></div>
+      <hr />
+      <p class="muted small">{{ o.customerName }} · <span dir="ltr">{{ o.phone }}</span> · <span dir="ltr">{{ o.email }}</span><br />{{ o.line1 }}, {{ o.city }}, {{ o.country }}</p>
+      <p class="muted">{{ 'order.next' | t }}</p>
+      <a class="btn btn-primary" routerLink="/products">{{ 'cart.continue' | t }}</a>
+    </div>
+  } @else if (failed()) {
+    <div class="card auth-card"><h1>{{ 'order.notFound' | t }}</h1><a class="btn btn-primary" routerLink="/">{{ 'nav.home' | t }}</a></div>
+  } @else {
+    <p class="state">{{ 'common.loading' | t }}</p>
+  }
+</div>

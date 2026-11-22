@@ -1,0 +1,9 @@
+.hub-search { min-width: 260px; max-width: 100%; }
+.hub-group { margin-bottom: 1.6rem; }
+.hub-group h2 { font-size: 1.05rem; margin: 0 0 .7rem; color: var(--muted, #78716c); }
+.hub-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.hub-card { display: flex; gap: .9rem; align-items: flex-start; padding: 1rem 1.1rem; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); color: var(--text); text-decoration: none !important; transition: transform .12s, box-shadow .12s; }
+.hub-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.hub-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-sm); background: var(--primary-soft); color: var(--primary-dark); flex: none; }
+.hub-text { display: grid; gap: .25rem; }

@@ -1,0 +1,33 @@
+@if (labels.length === 0 || !hasData()) { <p class="muted empty">{{ emptyText }}</p> } @else {
+  <div class="cw" (mouseleave)="hi.set(null)">
+    <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" style="width:100%;height:auto;direction:ltr;display:block" role="img" [attr.aria-label]="title">
+      @for (t of ax().ticks; track $index) {
+        <line [attr.x1]="L" [attr.x2]="W - R" [attr.y1]="y(t)" [attr.y2]="y(t)" stroke="currentColor" opacity=".12" stroke-dasharray="3 4" />
+        <text [attr.x]="L - 6" [attr.y]="y(t) + 4" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">{{ fmt(t) }}</text>
+      }
+      @for (l of labels; track $index) {
+        @if (showLabel($index)) { <text [attr.x]="x($index)" [attr.y]="H - 8" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">{{ l }}</text> }
+      }
+      @if (hi() !== null) { <line [attr.x1]="x(hi()!)" [attr.x2]="x(hi()!)" [attr.y1]="T" [attr.y2]="H - 26" stroke="currentColor" opacity=".3" stroke-dasharray="4 3" /> }
+      @for (s of series; track s.name; let si = $index) {
+        @if (area) { <path [attr.d]="areaPath(s)" [attr.fill]="color(s, si)" opacity=".13" /> }
+        <path [attr.d]="path(s)" fill="none" [attr.stroke]="color(s, si)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" />
+        @for (v of s.values; track $index) {
+          <circle [attr.cx]="x($index)" [attr.cy]="y(v)" [attr.r]="hi() === $index ? 5.5 : 3" [attr.fill]="color(s, si)" stroke="var(--surface, #fff)" stroke-width="1.5" />
+        }
+      }
+      @for (l of labels; track l; let li = $index) {
+        <rect [attr.x]="x(li) - slot() / 2" [attr.y]="T" [attr.width]="slot()" [attr.height]="H - T - 26" fill="transparent" (mouseenter)="hi.set(li)" (mousemove)="hi.set(li)" />
+      }
+    </svg>
+    @if (hi() !== null) {
+      <div class="tip" [attr.style]="pos()">
+        <b>{{ labels[hi()!] }}</b>
+        @for (s of series; track s.name; let si = $index) { <div class="r"><i [style.background]="color(s, si)"></i><span>{{ s.name }}</span><strong>{{ (s.values[hi()!] ?? 0).toLocaleString('en') }}</strong></div> }
+      </div>
+    }
+  </div>
+  @if (series.length > 1) {
+    <div class="legend">@for (s of series; track s.name; let si = $index) { <span><i [style.background]="color(s, si)"></i>{{ s.name }}</span> }</div>
+  }
+}

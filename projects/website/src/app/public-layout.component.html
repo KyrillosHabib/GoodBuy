@@ -1,0 +1,228 @@
+<div class="scroll-progress" [style.transform]="'scaleX(' + progress() + ')'"></div>
+
+<!-- ================= the news line above the header: plain messages, not links ================= -->
+@if (topbar(); as tb) {
+  <div class="news-line" [style.background]="tb.bg" [style.color]="tb.color">
+    <div class="news-track">
+      @for (r of [1, 2, 3, 4]; track r) {
+        @for (m of tb.msgs; track $index) { <span>{{ m }}</span> }
+      }
+    </div>
+  </div>
+}
+
+<!-- ================= header ================= -->
+<header class="site-header" [class.scrolled]="scrolled()">
+  <div class="container header-row">
+    <a class="logo" routerLink="/" [attr.aria-label]="company()?.companyName || 'Home'">
+      @if (company()?.logoUrl) {
+        <img [src]="company()!.logoUrl | assetUrl" [alt]="company()?.companyName || ''" />
+      } @else {
+        <span class="logo-mark"><app-icon name="zap" [size]="22" /></span>
+      }
+    </a>
+
+    <nav class="nav" [class.open]="menuOpen()" (click)="menuOpen.set(false)">
+      <div class="nav-item has-drop" [class.open]="openDrop() === 'all'" (mouseenter)="showDrop('all')" (mouseleave)="hideDrop()">
+        <a routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" routerLink="/products">{{ 'nav.products' | t }}</a>
+        <div class="drop">
+          <div class="drop-cols">
+            @for (g of drops()['all']; track g.slug) {
+              <div class="drop-col">
+                <a class="drop-cat" routerLink="/products" [queryParams]="{ category: g.slug }">{{ g.name }}</a>
+                @for (p of g.items; track p.id) {
+                  <a class="drop-link" [routerLink]="['/products', p.slug]" (click)="openDrop.set(null)">
+                    <img [src]="p.mainImageUrl | productImage: p.slug : p.categorySlug" [alt]="p.name" loading="lazy" />
+                    <span>{{ p.name }}</span>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+          <a class="drop-all" routerLink="/products">{{ 'common.viewAll' | t }} →</a>
+        </div>
+      </div>
+      <div class="nav-item has-drop" [class.open]="openDrop() === 'new'" (mouseenter)="showDrop('new')" (mouseleave)="hideDrop()">
+        <a routerLink="/products" [queryParams]="{ sort: 'newest' }">{{ 'nav.new' | t }}</a>
+        <div class="drop">
+          <div class="drop-cols">
+            @for (g of drops()['new']; track g.slug) {
+              <div class="drop-col">
+                <a class="drop-cat" routerLink="/products" [queryParams]="{ category: g.slug, sort: 'newest' }">{{ g.name }}</a>
+                @for (p of g.items; track p.id) {
+                  <a class="drop-link" [routerLink]="['/products', p.slug]" (click)="openDrop.set(null)">
+                    <img [src]="p.mainImageUrl | productImage: p.slug : p.categorySlug" [alt]="p.name" loading="lazy" />
+                    <span>{{ p.name }}</span>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+          <a class="drop-all" routerLink="/products" [queryParams]="{ sort: 'newest' }">{{ 'common.viewAll' | t }} →</a>
+        </div>
+      </div>
+      <div class="nav-item has-drop" [class.open]="openDrop() === 'offers'" (mouseenter)="showDrop('offers')" (mouseleave)="hideDrop()">
+        <a class="nav-offer" routerLink="/products" [queryParams]="{ onSale: 1 }">{{ 'nav.offers' | t }}</a>
+        <div class="drop">
+          <div class="drop-cols">
+            @for (g of drops()['offers']; track g.slug) {
+              <div class="drop-col">
+                <a class="drop-cat" routerLink="/products" [queryParams]="{ category: g.slug, onSale: 1 }">{{ g.name }}</a>
+                @for (p of g.items; track p.id) {
+                  <a class="drop-link" [routerLink]="['/products', p.slug]" (click)="openDrop.set(null)">
+                    <img [src]="p.mainImageUrl | productImage: p.slug : p.categorySlug" [alt]="p.name" loading="lazy" />
+                    <span>{{ p.name }}</span>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+          <a class="drop-all" routerLink="/products" [queryParams]="{ onSale: 1 }">{{ 'common.viewAll' | t }} →</a>
+        </div>
+      </div>
+      <div class="nav-item has-drop" [class.open]="openDrop() === 'best'" (mouseenter)="showDrop('best')" (mouseleave)="hideDrop()">
+        <a routerLink="/products" [queryParams]="{ sort: 'bestsellers' }">{{ 'nav.best' | t }}</a>
+        <div class="drop">
+          <div class="drop-cols">
+            @for (g of drops()['best']; track g.slug) {
+              <div class="drop-col">
+                <a class="drop-cat" routerLink="/products" [queryParams]="{ category: g.slug, sort: 'bestsellers' }">{{ g.name }}</a>
+                @for (p of g.items; track p.id) {
+                  <a class="drop-link" [routerLink]="['/products', p.slug]" (click)="openDrop.set(null)">
+                    <img [src]="p.mainImageUrl | productImage: p.slug : p.categorySlug" [alt]="p.name" loading="lazy" />
+                    <span>{{ p.name }}</span>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+          <a class="drop-all" routerLink="/products" [queryParams]="{ sort: 'bestsellers' }">{{ 'common.viewAll' | t }} →</a>
+        </div>
+      </div>
+      <a routerLink="/products" [queryParams]="{ bundles: 1 }">{{ 'nav.bundles' | t }}</a>
+      <a routerLink="/auctions" routerLinkActive="active">{{ 'auction.title' | t }}</a>
+      <a routerLink="/about" routerLinkActive="active">{{ 'nav.about' | t }}</a>
+      <a routerLink="/contact" routerLinkActive="active">{{ 'nav.contact' | t }}</a>
+      @if (settings()?.showLanguageSwitcher ?? true) {
+        <button type="button" class="lang-btn" (click)="i18n.toggle()"><app-icon name="globe" [size]="14" /> {{ 'lang.switch' | t }}</button>
+      }
+      <button type="button" class="nav-cart" (click)="cart.drawerOpen.set(true)" [attr.aria-label]="'cart.title' | t">
+        <app-icon name="shopping-cart" [size]="18" />
+        @if (cart.count() > 0) { <span class="cart-badge">{{ cart.count() }}</span> }
+      </button>
+      @if (auth.isCustomer()) {
+        <a class="nav-account" routerLink="/account" routerLinkActive="active"><app-icon name="user" [size]="16" /> {{ 'account.title' | t }}</a>
+      } @else {
+        <button type="button" class="nav-account" (click)="authDrawer.open('login')"><app-icon name="user" [size]="16" /> {{ 'auth.signIn' | t }}</button>
+      }
+    </nav>
+
+    <button type="button" class="burger" [attr.aria-label]="'nav.menu' | t" (click)="menuOpen.set(!menuOpen())">
+      {{ menuOpen() ? '✕' : '☰' }}
+    </button>
+  </div>
+</header>
+
+<main class="site-main">
+  <router-outlet />
+</main>
+
+<!-- ================= footer ================= -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    @if (settings()?.showFooterAbout ?? true) {
+      <div>
+        <div class="footer-brand">
+          @if (company()?.logoUrl) {
+            <img [src]="company()!.logoUrl | assetUrl" alt="" />
+          } @else {
+            <span class="logo-mark"><app-icon name="zap" [size]="18" /></span>
+          }
+          <strong>{{ company()?.companyName || 'Voltara' }}</strong>
+        </div>
+        <p>{{ company()?.tagline }}</p>
+
+        @if ((settings()?.showFooterSocials ?? true) && socials().length > 0) {
+          <div class="socials">
+            @for (s of socials(); track s.platform) {
+              <a [href]="s.url" target="_blank" rel="noopener" [attr.aria-label]="s.platform" [title]="s.platform">
+                <app-icon [name]="s.platform" [size]="18" />
+              </a>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (settings()?.showFooterQuickLinks ?? true) {
+      <div class="footer-links">
+        <h4>{{ 'footer.quick' | t }}</h4>
+        <a routerLink="/">{{ 'nav.home' | t }}</a>
+        <a routerLink="/products">{{ 'nav.products' | t }}</a>
+        <a routerLink="/about">{{ 'nav.about' | t }}</a>
+        <a routerLink="/contact">{{ 'nav.contact' | t }}</a>
+        <a routerLink="/returns">{{ 'ret.title' | t }}</a>
+      </div>
+    }
+
+    @if ((settings()?.showFooterCategories ?? true) && categories().length > 0) {
+      <div class="footer-links">
+        <h4>{{ 'footer.categories' | t }}</h4>
+        @for (c of categories(); track c.id) {
+          <a routerLink="/products" [queryParams]="{ category: c.slug }">{{ c.name }}</a>
+        }
+      </div>
+    }
+
+    @if (settings()?.showFooterContact ?? true) {
+      <div class="footer-find">
+        <h4>{{ 'contact.info' | t }}</h4>
+
+        <div class="footer-find-row">
+          @if (mapSrc(); as map) {
+            <button type="button" class="footer-map" [attr.aria-label]="'footer.openMap' | t" (click)="mapOpen.set(true)">
+              <iframe [src]="map" loading="lazy" tabindex="-1" title="map"></iframe>
+              <span class="footer-map-hint"><app-icon name="map-pin" [size]="14" /> {{ 'footer.openMap' | t }}</span>
+            </button>
+          }
+
+          <div class="footer-details">
+            @if (company()?.address) { <div class="footer-contact"><app-icon name="map-pin" [size]="16" /><span>{{ company()!.address }}</span></div> }
+            @if (company()?.phone) { <div class="footer-contact"><app-icon name="phone" [size]="16" /><span dir="ltr">{{ company()!.phone }}</span></div> }
+            @if (company()?.contactEmail) { <div class="footer-contact"><app-icon name="mail" [size]="16" /><span>{{ company()!.contactEmail }}</span></div> }
+            @if (company()?.workingHours) { <div class="footer-contact"><app-icon name="clock" [size]="16" /><span class="hours">{{ company()!.workingHours }}</span></div> }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="footer-bottom">
+    <div class="container">© {{ year }} {{ company()?.companyName || 'Voltara' }}. {{ 'footer.rights' | t }}</div>
+  </div>
+</footer>
+
+@if (mapOpen() && mapSrc(); as map) {
+  <div class="map-modal" (click)="mapOpen.set(false)">
+    <div class="map-modal-box" (click)="$event.stopPropagation()">
+      <button type="button" class="map-modal-close" aria-label="Close" (click)="mapOpen.set(false)">✕</button>
+      <iframe [src]="map" title="map"></iframe>
+      <div class="map-modal-foot">
+        <span>{{ company()?.address }}</span>
+        <a class="btn btn-primary btn-sm" [href]="mapsLink()" target="_blank" rel="noopener">{{ 'footer.openGoogle' | t }}</a>
+      </div>
+    </div>
+  </div>
+}
+
+@if ((settings()?.showWhatsAppButton ?? true) && whatsappLink(); as link) {
+  <a class="whatsapp" [href]="link" target="_blank" rel="noopener" aria-label="WhatsApp"><app-icon name="whatsapp" [size]="28" /></a>
+}
+
+@if (showTop()) {
+  <button type="button" class="to-top" aria-label="Top" (click)="toTop()">↑</button>
+}
+
+<app-cart-drawer />
+<app-auth-drawer />
+<app-wheel />

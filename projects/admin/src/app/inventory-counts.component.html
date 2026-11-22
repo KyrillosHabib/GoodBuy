@@ -1,0 +1,69 @@
+<div class="page-head"><h1>{{ 'inv.nav.counts' | t }}</h1></div>
+
+@if (!detail()) {
+  <div class="card">
+    <div class="toolbar">
+      <select [(ngModel)]="newWarehouse">
+        <option [ngValue]="null">{{ 'inv.warehouse' | t }}</option>
+        @for (w of warehouses(); track w.id) { <option [ngValue]="w.id">{{ w.name }}</option> }
+      </select>
+      <input [(ngModel)]="newNote" [placeholder]="'inv.note' | t" />
+      <button type="button" class="btn btn-primary" [disabled]="!newWarehouse" (click)="start()">+ {{ 'inv.startCount' | t }}</button>
+    </div>
+
+    <table class="table">
+      <thead><tr><th>#</th><th>{{ 'inv.warehouse' | t }}</th><th>{{ 'inv.date' | t }}</th><th>{{ 'inv.status' | t }}</th><th>{{ 'inv.lines' | t }}</th><th>{{ 'inv.note' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (c of counts(); track c.id) {
+          <tr>
+            <td>{{ c.id }}</td><td>{{ c.warehouseName }}</td><td dir="ltr">{{ c.createdAtUtc.slice(0, 10) }}</td>
+            <td><span class="chip">{{ ('inv.countStatus.' + c.status) | t }}</span></td><td>{{ c.lines }}</td><td class="muted small">{{ c.note || '—' }}</td>
+            <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="openCount(c.id)">{{ (c.status === 'Open' ? 'inv.continue' : 'inv.view') | t }}</button></td>
+          </tr>
+        } @empty { <tr><td colspan="7" class="muted">{{ 'inv.noCounts' | t }}</td></tr> }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  @if (detail(); as d) {
+  <div class="card">
+    <div class="toolbar">
+      <button type="button" class="btn btn-light btn-sm" (click)="back()">← {{ 'inv.back' | t }}</button>
+      <strong>#{{ d.header.id }} · {{ d.header.warehouseName }}</strong>
+      <span class="chip">{{ ('inv.countStatus.' + d.header.status) | t }}</span>
+    </div>
+    @if (d.header.note) { <p class="muted"><strong>{{ 'inv.note' | t }}:</strong> {{ d.header.note }}</p> }
+
+    @if (d.header.status === 'Open') {
+      <div class="field"><label>{{ 'inv.addFound' | t }}</label><app-variant-picker #vp (picked)="addLine($event); vp.reset()" /></div>
+    }
+
+    <table class="table">
+      <thead><tr><th>{{ 'inv.item' | t }}</th><th>{{ 'inv.expected' | t }}</th><th>{{ 'inv.counted' | t }}</th><th>{{ 'inv.difference' | t }}</th></tr></thead>
+      <tbody>
+        @for (l of lines; track l.variantId) {
+          <tr>
+            <td><strong>{{ l.productName }}</strong> {{ l.label }} <code>{{ l.sku }}</code></td>
+            <td>{{ l.expectedQuantity }}</td>
+            <td>
+              @if (d.header.status === 'Open') {
+                <input type="number" min="0" class="count-input" dir="ltr" [value]="l.countedQuantity ?? ''" (input)="setCount(l, $event)" />
+              } @else { {{ l.countedQuantity ?? '—' }} }
+            </td>
+            <td dir="ltr" [class.text-bad]="diff(l) !== null && diff(l)! < 0">{{ diff(l) === null ? '' : (diff(l)! > 0 ? '+' : '') + diff(l) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (d.header.status === 'Open') {
+      <div class="head-actions" style="margin-top: 1rem">
+        <button type="button" class="btn btn-light" (click)="save(false)">{{ 'a.save' | t }}</button>
+        <button type="button" class="btn btn-primary" (click)="save(true)">{{ 'inv.completeCount' | t }}</button>
+        <button type="button" class="btn btn-danger" (click)="cancel()">{{ 'inv.cancelCount' | t }}</button>
+      </div>
+      <div class="hint-text">{{ 'inv.countHint' | t }}</div>
+    }
+  </div>
+  }
+}

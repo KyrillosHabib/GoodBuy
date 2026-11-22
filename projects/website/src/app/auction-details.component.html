@@ -1,0 +1,106 @@
+<div class="container shop-page">
+  @if (data(); as d) {
+   @if (d.auction; as a) {
+    <header class="shop-head">
+      <div class="shop-head-top">
+        <nav class="crumbs" aria-label="breadcrumb"><a routerLink="/" class="crumb-home" [attr.aria-label]="'nav.home' | t"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></a><i>›</i><a routerLink="/auctions">{{ 'auction.title' | t }}</a><i>›</i><b>{{ a.productName }}</b></nav>
+      </div>
+    </header>
+
+    <div class="aud">
+      <!-- left: the picture and what is inside -->
+      <div class="aud-media">
+        <div class="aud-pic"><img [src]="a.imageUrl | productImage: a.productSlug : ''" [alt]="a.productName" /><span class="auc-state" [class.live]="a.status === 'running'">{{ ('auction.status.' + a.status) | t }}</span></div>
+        @if ((a.items?.length ?? 0) > 1) {
+          <div class="lot-title">{{ 'auction.lot' | t }}</div>
+          <ul class="lot-list">
+            @for (it of a.items; track it.variantId) {
+              <li><img [src]="it.imageUrl | productImage: '' : ''" [alt]="it.name" /><span><strong>{{ it.name }}</strong>@if (it.label) { <small class="muted"> · {{ it.label }}</small> }</span><b>× {{ it.quantity }}</b></li>
+            }
+          </ul>
+        }
+        @if (d.shortDescription) { <p class="aud-desc">{{ d.shortDescription }}</p> }
+        @if ((a.items?.length ?? 0) <= 1) { <a class="btn btn-light" [routerLink]="['/products', a.productSlug]">{{ 'auction.viewProduct' | t }}</a> }
+      </div>
+
+      <!-- right: the price, the time, the bid -->
+      <div class="aud-side">
+        <h1 class="aud-title">{{ a.productName }}</h1>
+        @if ((a.items?.length ?? 0) <= 1) {
+          @if (a.variantLabel) { <div class="muted">{{ a.variantLabel }}</div> }
+          @if (a.quantity > 1) { <div class="muted small">{{ 'auction.qty' | t: { n: a.quantity } }}</div> }
+        }
+
+        <section class="aud-panel">
+          <div class="aud-price">
+            <span>{{ (a.bidCount > 0 ? 'auction.currentBid' : 'auction.startsAt') | t }}</span>
+            <strong>{{ (a.bidCount > 0 ? a.currentPrice : a.startingPrice) | money }}</strong>
+            <small>{{ 'auction.bids' | t: { n: a.bidCount } }}</small>
+          </div>
+
+          @if (a.status !== 'ended') {
+            <div class="aud-time">
+              <span class="aud-time-label">{{ (a.status === 'scheduled' ? 'auction.startsIn' : 'auction.timeLeft') | t }}</span>
+              <div class="aud-boxes" dir="ltr">
+                <div><b>{{ parts().d }}</b><i>{{ 'auction.d' | t }}</i></div>
+                <div><b>{{ parts().h }}</b><i>{{ 'auction.h' | t }}</i></div>
+                <div><b>{{ parts().m }}</b><i>{{ 'auction.m' | t }}</i></div>
+                <div><b>{{ parts().s }}</b><i>{{ 'auction.s' | t }}</i></div>
+              </div>
+            </div>
+          }
+
+          @switch (a.status) {
+            @case ('running') {
+              @if (a.isLeading) {
+                <div class="auc-stand win">✓ {{ 'auction.leading' | t }}</div>
+              } @else if (a.myBestBid != null) {
+                <div class="auc-stand out">! {{ 'auction.outbidFull' | t }}</div>
+              }
+              @if (a.reserveMet === false) { <div class="aud-note">{{ 'auction.reserveNotMet' | t }}</div> }
+
+              @if (!auth.isCustomer()) {
+                <p class="muted">{{ 'auction.signIn' | t }} <a routerLink="/login">{{ 'auth.signIn' | t }}</a></p>
+              } @else if (!a.isLeading) {
+                <div class="auc-quick">
+                  @for (q of quickAmounts(); track q) { <button type="button" dir="ltr" (click)="amount = q">{{ q }}</button> }
+                </div>
+                <div class="auc-bid">
+                  <input type="number" dir="ltr" [min]="a.minNextBid" step="any" [(ngModel)]="amount" [placeholder]="('auction.minBid' | t) + ': ' + a.minNextBid" (keyup.enter)="bid()" />
+                  <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="bid()">{{ 'auction.bid' | t }}</button>
+                </div>
+                <div class="muted small">{{ 'auction.minBid' | t }}: {{ a.minNextBid | money }}</div>
+              }
+            }
+            @case ('ended') {
+              @if (a.result === 'sold') {
+                <div class="auc-stand" [class.win]="a.isLeading">{{ (a.isLeading ? 'auction.wonFull' : 'auction.sold') | t }}</div>
+              } @else if (a.isLeading) {
+                <div class="auc-stand out">{{ 'auction.notMetFull' | t }}</div>
+              } @else {
+                <div class="auc-stand">{{ 'auction.noSale' | t }}</div>
+              }
+            }
+          }
+        </section>
+
+        <!-- how the auction went: the bids, newest amount first -->
+        @if (d.bids.length > 0) {
+          <h3 class="aud-h">{{ 'auction.bidHistory' | t }}</h3>
+          <ol class="aud-log">
+            @for (b of d.bids; track b.amount; let i = $index) {
+              <li [class.top]="i === 0" [class.me]="a.myBestBid != null && b.amount === a.myBestBid">
+                <span class="aud-who">{{ b.bidder }}@if (a.myBestBid != null && b.amount === a.myBestBid) { <em>{{ 'auction.you' | t }}</em> }</span>
+                <b dir="ltr">{{ b.amount | money }}</b>
+                <span class="muted small" dir="ltr">{{ time(b.placedAtUtc) }}</span>
+              </li>
+            }
+          </ol>
+        }
+      </div>
+    </div>
+   }
+  } @else {
+    <div class="state">{{ 'common.loading' | t }}</div>
+  }
+</div>

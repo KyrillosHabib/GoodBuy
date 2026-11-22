@@ -1,0 +1,30 @@
+<div class="page-head"><h1>{{ 'acc.nav.settlementsHub' | t }}</h1></div>
+<app-intro [text]="'acc.hub.intro' | t" />
+
+@if (tabs().length === 0) {
+  <div class="card"><p class="muted">{{ 'acc.hub.noTabs' | t }}</p></div>
+} @else {
+  <div class="tabs">
+    @for (x of tabs(); track x) {
+      <button type="button" class="tab" [class.on]="tab() === x" (click)="pick(x)">{{ 'acc.hub.' + x | t }}</button>
+    }
+  </div>
+
+  <div class="stat-grid">
+    @if (tab() !== 'parties') {
+      <div class="card stat">
+        <span class="muted">{{ 'acc.hub.waitingSettle' | t }}</span>
+        <strong dir="ltr">{{ waitingAmount() | number: '1.2-2' }}</strong>
+        <span class="muted small">{{ waitingCount() }} {{ 'acc.hub.items' | t }}</span>
+      </div>
+    }
+    <div class="card stat">
+      <span class="muted">{{ 'acc.hub.waitingApproval' | t }}</span>
+      <strong dir="ltr">{{ approvalCount() }}</strong>
+    </div>
+  </div>
+
+  @if (tab() === 'parties') { <app-settlements-admin [embedded]="true" /> }
+  @if (tab() === 'carriers') { <app-treasury-admin [onlyTab]="'carriers'" /> }
+  @if (tab() === 'gateways') { <app-treasury-admin [onlyTab]="'gateways'" /> }
+}

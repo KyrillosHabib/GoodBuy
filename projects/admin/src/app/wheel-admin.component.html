@@ -1,0 +1,114 @@
+    <div class="page-head">
+      <h1>{{ 'wheel.admin.title' | t }}</h1>
+      <button type="button" class="btn btn-primary" (click)="edit(null)">+ {{ 'wheel.admin.new' | t }}</button>
+    </div>
+    <app-intro [text]="'wheel.admin.intro' | t" />
+
+    <div class="card"><app-data-table [rows]="items()" [columns]="columns" [rowTemplate]="row" /></div>
+
+    <ng-template #row let-c>
+      <td><strong>{{ c.name }}</strong><div class="muted small">{{ ('wheel.audience.' + c.audience) | t }}</div></td>
+      <td><span class="chip" [class.chip-off]="c.status !== 'active'">{{ ('disc.status.' + c.status) | t }}</span></td>
+      <td dir="ltr">{{ c.stats.spins }}</td>
+      <td dir="ltr">{{ c.stats.prizes }}</td>
+      <td dir="ltr">{{ c.stats.couponsUsed }}</td>
+      <td dir="ltr">{{ c.stats.sales }}</td>
+      <td class="actions">
+        <button type="button" class="btn btn-light btn-sm" (click)="edit(c)">{{ 'a.edit' | t }}</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="remove(c)">{{ 'a.delete' | t }}</button>
+      </td>
+    </ng-template>
+
+    @if (open()) {
+      <app-modal [title]="(editing() ? 'wheel.admin.edit' : 'wheel.admin.new') | t" size="xl" (closed)="open.set(false)">
+        <div class="form-row">
+          <div class="field"><label>{{ 'disc.name' | t }} *</label><input [(ngModel)]="f.name" [placeholder]="'disc.nameHint' | t" /></div>
+          <div class="field"><label class="switch" style="margin-top: 1.7rem"><input type="checkbox" [(ngModel)]="f.isActive" /><span></span> {{ 'wheel.admin.on' | t }}</label></div>
+        </div>
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'disc.starts' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="starts" /></div>
+          <div class="field"><label>{{ 'disc.ends' | t }}</label><input type="datetime-local" dir="ltr" [(ngModel)]="ends" /></div>
+        </div>
+        <div class="hint-text">{{ 'disc.periodHint' | t }}</div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'wheel.admin.timing' | t }}</label>
+            <select [(ngModel)]="timing" (ngModelChange)="timingChanged()">
+              <option value="now">{{ 'wheel.admin.timingNow' | t }}</option>
+              <option value="later">{{ 'wheel.admin.timingLater' | t }}</option>
+            </select>
+          </div>
+          @if (timing === 'later') {
+            <div class="field"><label>{{ 'wheel.admin.seconds' | t }}</label><input type="number" min="1" max="600" dir="ltr" [(ngModel)]="f.showDelaySeconds" /></div>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'wheel.admin.audience' | t }}</label>
+            <select [(ngModel)]="f.audience">
+              <option value="AllVisitors">{{ 'wheel.audience.AllVisitors' | t }}</option>
+              <option value="NewVisitors">{{ 'wheel.audience.NewVisitors' | t }}</option>
+              <option value="SpecificCustomers">{{ 'wheel.audience.SpecificCustomers' | t }}</option>
+            </select>
+          </div>
+          <div class="field"><label class="switch" style="margin-top: 1.7rem"><input type="checkbox" [(ngModel)]="f.requireEmail" /><span></span> {{ 'wheel.admin.requireEmail' | t }}</label></div>
+        </div>
+        @if (f.audience === 'SpecificCustomers') {
+          <div class="field"><label>{{ 'cpn.emails' | t }} *</label><textarea rows="3" dir="ltr" [(ngModel)]="f.allowedEmails" placeholder="ali@example.com&#10;sara@example.com"></textarea></div>
+        }
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'wheel.admin.spinsVisitor' | t }}</label><input type="number" min="1" dir="ltr" [(ngModel)]="f.maxSpinsPerVisitor" /></div>
+          <div class="field"><label>{{ 'wheel.admin.spinsIp' | t }}</label><input type="number" min="1" dir="ltr" [(ngModel)]="f.maxSpinsPerIp" /></div>
+        </div>
+        <div class="hint-text">{{ 'wheel.admin.spinsHint' | t }}</div>
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'wheel.admin.validity' | t }}</label><input type="number" min="1" max="365" dir="ltr" [(ngModel)]="f.couponValidityDays" /></div>
+          <div class="field"><label>{{ 'cpn.maxDiscount' | t }}</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.maxDiscountAmount" /></div>
+          <div class="field"><label>{{ 'cpn.minOrder' | t }}</label><input type="number" min="0" step="any" dir="ltr" [(ngModel)]="f.minOrderAmount" /></div>
+        </div>
+
+        <!-- The slices: the chances must make exactly 100% -->
+        <h4 style="margin-top: 1.2rem">{{ 'wheel.admin.slices' | t }}</h4>
+        <table class="table">
+          <thead><tr><th>{{ 'wheel.admin.labelEn' | t }}</th><th>{{ 'wheel.admin.labelAr' | t }}</th><th>{{ 'wheel.admin.prize' | t }}</th><th>{{ 'wheel.admin.value' | t }}</th><th>{{ 'wheel.admin.chance' | t }}</th><th></th><th></th></tr></thead>
+          <tbody>
+            @for (s of f.slices; track s; let i = $index) {
+              <tr>
+                <td><input [(ngModel)]="s.label" dir="ltr" /></td>
+                <td><input [(ngModel)]="s.labelAr" dir="rtl" /></td>
+                <td>
+                  <select [(ngModel)]="s.kind">
+                    <option value="Percent">{{ 'wheel.kind.Percent' | t }}</option>
+                    <option value="FixedAmount">{{ 'wheel.kind.FixedAmount' | t }}</option>
+                    <option value="FreeShipping">{{ 'wheel.kind.FreeShipping' | t }}</option>
+                    <option value="NoPrize">{{ 'wheel.kind.NoPrize' | t }}</option>
+                  </select>
+                </td>
+                <td><input type="number" min="0" step="any" dir="ltr" class="count-input" [(ngModel)]="s.value" [disabled]="s.kind === 'FreeShipping' || s.kind === 'NoPrize'" /></td>
+                <td><input type="number" min="0" max="100" step="any" dir="ltr" class="count-input" [(ngModel)]="s.probability" /></td>
+                <td><input type="color" class="var-color" [(ngModel)]="s.color" /></td>
+                <td><button type="button" class="btn btn-light btn-sm" (click)="f.slices.splice(i, 1)">✕</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="toolbar">
+          <button type="button" class="btn btn-light btn-sm" [disabled]="f.slices.length >= 12" (click)="addSlice()">+ {{ 'wheel.admin.addSlice' | t }}</button>
+          <button type="button" class="btn btn-light btn-sm" (click)="equalize()">{{ 'wheel.admin.equalize' | t }}</button>
+          <button type="button" class="btn btn-light btn-sm" (click)="example()">{{ 'wheel.admin.example' | t }}</button>
+          <strong dir="ltr" [style.color]="total() === 100 ? '#16a34a' : '#dc2626'">{{ 'wheel.admin.total' | t }}: {{ total() }}%</strong>
+        </div>
+        <div class="hint-text">{{ 'wheel.admin.chanceHint' | t }}</div>
+
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+        </div>
+      </app-modal>
+    }

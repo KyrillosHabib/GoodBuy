@@ -1,0 +1,132 @@
+    <div class="page-head">
+      <h1>{{ 'acc.nav.parties' | t }}</h1>
+      <div class="toolbar">
+        @if (canEdit && kind() === 'Supplier') { <button type="button" class="btn btn-light" (click)="importSuppliers()">{{ 'acc.party.import' | t }}</button> }
+        @if (canEdit) { <button type="button" class="btn btn-primary" (click)="startEdit(null)">+ {{ (kind() === 'Customer' ? 'acc.party.newCustomer' : 'acc.party.newSupplier') | t }}</button> }
+      </div>
+    </div>
+    <app-intro [text]="'acc.party.intro' | t" />
+
+    <div class="tabs">
+      <button type="button" class="tab" [class.on]="kind() === 'Customer'" (click)="setKind('Customer')">{{ 'acc.party.customers' | t }}</button>
+      <button type="button" class="tab" [class.on]="kind() === 'Supplier'" (click)="setKind('Supplier')">{{ 'acc.party.suppliers' | t }}</button>
+    </div>
+
+    <div class="card">
+      <app-data-table [rows]="parties()" [columns]="columns" [rowTemplate]="row" />
+    </div>
+
+    <ng-template #row let-p>
+      <td dir="ltr">{{ p.code }}</td>
+      <td><strong>{{ p.name }}</strong></td>
+      <td dir="ltr">{{ p.phone }}</td>
+      <td class="num">{{ p.paymentTermsDays }}</td>
+      <td class="num" dir="ltr">{{ p.creditLimit > 0 ? (p.creditLimit | number: '1.2-2') : '—' }}</td>
+      <td class="num" dir="ltr" [class.text-bad]="p.kind === 'Customer' && p.creditLimit > 0 && p.balance > p.creditLimit">
+        {{ abs(p.balance) | number: '1.2-2' }} <span class="muted small">{{ balanceLabel(p) | t }}</span>
+      </td>
+      <td class="num" dir="ltr" [class.text-bad]="p.overdue > 0">{{ p.overdue | number: '1.2-2' }}</td>
+      <td>@if (p.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+      <td class="actions">
+        <button type="button" class="btn btn-light btn-sm" (click)="openStatement(p)">{{ 'acc.party.statement' | t }}</button>
+        @if (canEdit) {
+          <button type="button" class="btn btn-light btn-sm" (click)="startEdit(p)">{{ 'a.edit' | t }}</button>
+          <button type="button" class="btn btn-danger btn-sm" (click)="remove(p)">{{ 'a.delete' | t }}</button>
+        }
+      </td>
+    </ng-template>
+
+    @if (open()) {
+      <app-modal [title]="(editing() ? 'acc.party.edit' : (kind() === 'Customer' ? 'acc.party.newCustomer' : 'acc.party.newSupplier')) | t" (closed)="open.set(false)">
+        <form id="party-form" [formGroup]="form" (ngSubmit)="save()">
+          <div class="form-row" style="direction: ltr">
+            <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input formControlName="name" dir="ltr" /></div>
+            <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }} <span class="req">*</span></label><input formControlName="nameAr" dir="rtl" /></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>{{ 'contact.phone' | t }}</label><input formControlName="phone" dir="ltr" /></div>
+            <div class="field"><label>{{ 'contact.email' | t }}</label><input type="email" formControlName="email" dir="ltr" /></div>
+          </div>
+          <div class="field"><label>{{ 'inv.address' | t }}</label><input formControlName="address" /></div>
+          <div class="form-row">
+            <div class="field"><label>{{ 'acc.party.taxNumber' | t }}</label><input formControlName="taxNumber" dir="ltr" /></div>
+            <div class="field"><label>{{ 'acc.party.terms' | t }}</label><input type="number" min="0" max="365" formControlName="paymentTermsDays" dir="ltr" /></div>
+            @if (kind() === 'Customer') {
+              <div class="field"><label>{{ 'acc.party.creditLimit' | t }}</label><input type="number" min="0" step="0.01" formControlName="creditLimit" dir="ltr" /><span class="muted small">{{ 'acc.party.creditHint' | t }}</span></div>
+            }
+          </div>
+          <div class="field"><label>{{ 'inv.note' | t }}</label><textarea rows="2" formControlName="notes"></textarea></div>
+          <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+        </form>
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+          <button class="btn btn-primary" form="party-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+        </div>
+      </app-modal>
+    }
+
+    @if (statement(); as st) {
+      <app-modal [title]="'acc.party.statementOf' | t: { name: st.party.name }" size="xl" (closed)="statement.set(null)">
+        <div class="print-area">
+          <h3 class="print-only">{{ 'acc.party.statementOf' | t: { name: st.party.name } }}</h3>
+          <div class="toolbar no-print">
+            <label>{{ 'acc.from' | t }} <input type="date" [ngModel]="from" (ngModelChange)="from = $event" /></label>
+            <label>{{ 'acc.to' | t }} <input type="date" [ngModel]="to" (ngModelChange)="to = $event" /></label>
+            <button type="button" class="btn btn-light btn-sm" (click)="reloadStatement(st.party)">{{ 'acc.show' | t }}</button>
+            <button type="button" class="btn btn-light btn-sm" (click)="print()">{{ 'acc.print' | t }}</button>
+          </div>
+
+          <div class="stat-grid">
+            <div class="card stat"><span class="muted">{{ 'acc.stmt.opening' | t }}</span><strong dir="ltr">{{ st.opening | number: '1.2-2' }}</strong></div>
+            <div class="card stat"><span class="muted">{{ 'acc.debit' | t }}</span><strong dir="ltr">{{ st.totalDebit | number: '1.2-2' }}</strong></div>
+            <div class="card stat"><span class="muted">{{ 'acc.credit' | t }}</span><strong dir="ltr">{{ st.totalCredit | number: '1.2-2' }}</strong></div>
+            <div class="card stat"><span class="muted">{{ 'acc.stmt.closing' | t }}</span><strong dir="ltr">{{ abs(st.closing) | number: '1.2-2' }} <span class="muted small">{{ balanceLabel({ kind: st.party.kind, balance: st.closing }) | t }}</span></strong></div>
+          </div>
+
+          @if (st.openItems.length > 0) {
+            <h4>{{ 'acc.stmt.open' | t }}</h4>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.type' | t }}</th><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.due' | t }}</th><th class="num">{{ 'acc.total' | t }}</th><th class="num">{{ 'acc.outstanding' | t }}</th><th class="num">{{ 'acc.stmt.late' | t }}</th></tr></thead>
+                <tbody>
+                  @for (o of st.openItems; track o.kind + o.id) {
+                    <tr>
+                      <td><strong>{{ o.number }}</strong></td>
+                      <td>{{ (o.kind === 'voucher' ? 'acc.voucher.' + o.type : 'acc.doc.' + o.type) | t }}</td>
+                      <td dir="ltr">{{ o.date | slice: 0 : 10 }}</td>
+                      <td dir="ltr">{{ (o.dueDate ?? '') | slice: 0 : 10 }}</td>
+                      <td class="num" dir="ltr">{{ o.total | number: '1.2-2' }}</td>
+                      <td class="num" dir="ltr">{{ o.outstanding | number: '1.2-2' }}</td>
+                      <td class="num" [class.text-bad]="o.overdueDays > 0">{{ o.overdueDays > 0 ? o.overdueDays : '' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <h4>{{ 'acc.stmt.movements' | t }}</h4>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.entry' | t }}</th><th>{{ 'acc.source' | t }}</th><th>{{ 'acc.description' | t }}</th><th class="num">{{ 'acc.debit' | t }}</th><th class="num">{{ 'acc.credit' | t }}</th><th class="num">{{ 'acc.balance' | t }}</th></tr></thead>
+              <tbody>
+                @for (l of st.lines; track $index) {
+                  <tr>
+                    <td dir="ltr">{{ l.date | slice: 0 : 10 }}</td>
+                    <td dir="ltr">{{ l.entryNumber }}</td>
+                    <td>{{ 'acc.src.' + l.source | t }} {{ l.sourceNumber }}</td>
+                    <td class="small">{{ l.description }}</td>
+                    <td class="num" dir="ltr">{{ l.debit > 0 ? (l.debit | number: '1.2-2') : '' }}</td>
+                    <td class="num" dir="ltr">{{ l.credit > 0 ? (l.credit | number: '1.2-2') : '' }}</td>
+                    <td class="num" dir="ltr">{{ l.balance | number: '1.2-2' }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="7" class="muted">{{ 'acc.stmt.noMovements' | t }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div modal-footer><button type="button" class="btn btn-light" (click)="statement.set(null)">{{ 'a.close' | t }}</button></div>
+      </app-modal>
+    }

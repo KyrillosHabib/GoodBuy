@@ -1,0 +1,71 @@
+    <div class="page-head">
+      <h1>{{ 'acc.nav.chart' | t }}</h1>
+      @if (canEdit) { <button type="button" class="btn btn-primary" (click)="startEdit(null)">+ {{ 'acc.chart.new' | t }}</button> }
+    </div>
+    <app-intro [text]="'acc.chart.intro' | t" />
+
+    <div class="card">
+      <app-data-table [rows]="accounts()" [columns]="columns" [rowTemplate]="row" />
+    </div>
+
+    <ng-template #row let-a>
+      <td dir="ltr"><strong>{{ a.code }}</strong></td>
+      <td [style.padding-inline-start.rem]="0.8 + depth(a) * 1.4">
+        @if (a.isPostable) { {{ a.name }} } @else { <strong>{{ a.name }}</strong> }
+        @if (a.systemKey) { <span class="chip" [title]="'acc.chart.systemHint' | t">{{ 'acc.chart.system' | t }}</span> }
+      </td>
+      <td>{{ 'acc.type.' + a.type | t }}</td>
+      <td>{{ (a.isPostable ? 'acc.chart.account' : 'acc.chart.heading') | t }}</td>
+      <td class="num" dir="ltr">{{ a.balance | number: '1.2-2' }}</td>
+      <td>@if (a.isActive) { <span class="chip">{{ 'a.active' | t }}</span> } @else { <span class="muted">—</span> }</td>
+      <td class="actions">
+        @if (canEdit) {
+          <button type="button" class="btn btn-light btn-sm" (click)="startEdit(a)">{{ 'a.edit' | t }}</button>
+          @if (!a.isSystem) { <button type="button" class="btn btn-danger btn-sm" (click)="remove(a)">{{ 'a.delete' | t }}</button> }
+        }
+      </td>
+    </ng-template>
+
+    @if (open()) {
+      <app-modal [title]="(editing() ? 'acc.chart.edit' : 'acc.chart.new') | t" (closed)="open.set(false)">
+        <form id="account-form" [formGroup]="form" (ngSubmit)="save()">
+          <div class="form-row">
+            <div class="field"><label>{{ 'acc.code' | t }} <span class="req">*</span></label><input formControlName="code" dir="ltr" /></div>
+            <div class="field">
+              <label>{{ 'acc.type' | t }}</label>
+              <select formControlName="type" (change)="typeChanged()">
+                @for (t of types; track t) { <option [value]="t">{{ 'acc.type.' + t | t }}</option> }
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="direction: ltr">
+            <div class="field" dir="ltr"><label>{{ 'inv.nameEn' | t }}</label><input formControlName="name" dir="ltr" /></div>
+            <div class="field" dir="rtl"><label>{{ 'inv.nameAr' | t }} <span class="req">*</span></label><input formControlName="nameAr" dir="rtl" /></div>
+          </div>
+          <div class="field">
+            <label>{{ 'acc.chart.parent' | t }}</label>
+            <select formControlName="parentId">
+              <option [ngValue]="null">—</option>
+              @for (p of parents(); track p.id) { <option [ngValue]="p.id">{{ p.code }} — {{ p.name }}</option> }
+            </select>
+          </div>
+          <div class="field">
+            <label>{{ 'accs.chart.nature' | t }}</label>
+            <select formControlName="nature">
+              <option value="">{{ 'accs.chart.natureAuto' | t }}</option>
+              <option value="Debit">{{ 'accs.chart.nature.Debit' | t }}</option>
+              <option value="Credit">{{ 'accs.chart.nature.Credit' | t }}</option>
+            </select>
+            <span class="muted small">{{ 'accs.chart.natureHint' | t }}</span>
+          </div>
+          <div class="field"><label>{{ 'inv.note' | t }}</label><textarea rows="2" formControlName="notes"></textarea></div>
+          <label class="switch"><input type="checkbox" formControlName="isPostable" /><span></span> {{ 'acc.chart.takesEntries' | t }}</label>
+          <p class="muted small">{{ 'acc.chart.takesEntriesHint' | t }}</p>
+          <label class="switch"><input type="checkbox" formControlName="isActive" /><span></span> {{ 'a.active' | t }}</label>
+        </form>
+        <div modal-footer>
+          <button type="button" class="btn btn-light" (click)="open.set(false)">{{ 'a.cancel' | t }}</button>
+          <button class="btn btn-primary" form="account-form" [disabled]="saving()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+        </div>
+      </app-modal>
+    }

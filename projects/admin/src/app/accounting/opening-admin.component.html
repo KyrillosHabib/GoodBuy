@@ -1,0 +1,105 @@
+<div class="page-head"><h1>{{ 'acc.nav.opening' | t }}</h1></div>
+<app-intro [text]="'accs.open.intro' | t" />
+
+<div class="card">
+  <div class="field" style="max-width: 18rem">
+    <label>{{ 'accs.open.date' | t }} <span class="req">*</span></label>
+    <input type="date" [(ngModel)]="date" dir="ltr" [disabled]="!canPost" />
+    <span class="muted small">{{ 'accs.open.dateHint' | t }}</span>
+  </div>
+</div>
+
+<!-- accounts -->
+<div class="card">
+  <h3>{{ 'accs.open.accounts' | t }}</h3>
+  <p class="muted small">{{ 'accs.open.accountsHint' | t }}</p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'acc.account' | t }}</th><th class="num">{{ 'acc.debit' | t }}</th><th class="num">{{ 'acc.credit' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (r of accountRows(); track r; let i = $index) {
+          <tr>
+            <td>
+              <select [(ngModel)]="r.accountId">
+                <option [ngValue]="null">—</option>
+                @for (a of choices(); track a.id) { <option [ngValue]="a.id">{{ a.code }} — {{ a.name }}</option> }
+              </select>
+            </td>
+            <td><input type="number" min="0" step="0.01" dir="ltr" [(ngModel)]="r.debit" (ngModelChange)="r.credit = r.debit > 0 ? 0 : r.credit" /></td>
+            <td><input type="number" min="0" step="0.01" dir="ltr" [(ngModel)]="r.credit" (ngModelChange)="r.debit = r.credit > 0 ? 0 : r.debit" /></td>
+            <td><button type="button" class="btn btn-danger btn-sm" (click)="remove(accountRows(), i)">×</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="toolbar">
+    <button type="button" class="btn btn-light btn-sm" (click)="addAccount()">+ {{ 'accs.open.addAccount' | t }}</button>
+    <button type="button" class="btn btn-light btn-sm" (click)="addCash()">+ {{ 'accs.open.addCash' | t }}</button>
+  </div>
+</div>
+
+<!-- customers and suppliers -->
+@for (kind of kinds; track kind) {
+  <div class="card">
+    <h3>{{ (kind === 'Customer' ? 'accs.open.customers' : 'accs.open.suppliers') | t }}</h3>
+    <p class="muted small">{{ (kind === 'Customer' ? 'accs.open.customersHint' : 'accs.open.suppliersHint') | t }}</p>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'acc.party' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th><th>{{ 'acc.reference' | t }}</th><th>{{ 'acc.due' | t }}</th><th></th></tr></thead>
+        <tbody>
+          @for (r of partyRows(kind); track r; let i = $index) {
+            <tr>
+              <td>
+                <select [(ngModel)]="r.partyId">
+                  <option [ngValue]="null">—</option>
+                  @for (p of partiesOf(kind); track p.id) { <option [ngValue]="p.id">{{ p.code }} — {{ p.name }}</option> }
+                </select>
+              </td>
+              <td><input type="number" min="0" step="0.01" dir="ltr" [(ngModel)]="r.amount" /></td>
+              <td><input type="text" maxlength="100" [(ngModel)]="r.reference" /></td>
+              <td><input type="date" dir="ltr" [(ngModel)]="r.dueDate" /></td>
+              <td><button type="button" class="btn btn-danger btn-sm" (click)="remove(partyRows(kind), i)">×</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="toolbar"><button type="button" class="btn btn-light btn-sm" (click)="addParty(kind)">+ {{ 'accs.open.addParty' | t }}</button></div>
+  </div>
+}
+
+<div class="card">
+  <h3>{{ 'accs.open.summary' | t }}</h3>
+  <div class="totals" dir="ltr">
+    <div>{{ 'accs.open.assets' | t }}: <strong>{{ totals().debit | number: '1.2-2' }}</strong></div>
+    <div>{{ 'accs.open.liabilities' | t }}: <strong>{{ totals().credit | number: '1.2-2' }}</strong></div>
+    <div>{{ 'accs.open.equity' | t }}: <strong>{{ totals().equity | number: '1.2-2' }}</strong></div>
+  </div>
+  <p class="muted small">{{ 'accs.open.equityHint' | t }}</p>
+  @if (canPost) {
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" [disabled]="busy() || !date || !hasRows()" (click)="post()">{{ 'accs.open.post' | t }}</button>
+    </div>
+  } @else {
+    <p class="muted small">{{ 'accs.open.noPermission' | t }}</p>
+  }
+</div>
+
+<div class="card">
+  <h3>{{ 'accs.open.history' | t }}</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ 'acc.number' | t }}</th><th>{{ 'acc.date' | t }}</th><th>{{ 'acc.description' | t }}</th><th class="num">{{ 'acc.amount' | t }}</th><th></th></tr></thead>
+      <tbody>
+        @for (h of history(); track h.id) {
+          <tr>
+            <td dir="ltr">{{ h.number }}</td><td dir="ltr">{{ h.entryDate | slice: 0 : 10 }}</td><td>{{ h.description }}</td><td class="num" dir="ltr">{{ h.amount | number: '1.2-2' }}</td>
+            <td class="actions"><button type="button" class="btn btn-light btn-sm" (click)="shown.set(shown() === h.id ? null : h.id)">{{ 'acc.open' | t }}</button></td>
+          </tr>
+          @if (shown() === h.id) { <tr><td colspan="5"><app-acc-entry-details [entryId]="h.id" /></td></tr> }
+        } @empty { <tr><td colspan="5" class="muted">—</td></tr> }
+      </tbody>
+    </table>
+  </div>
+</div>

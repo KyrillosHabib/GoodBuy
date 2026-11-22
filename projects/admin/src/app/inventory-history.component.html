@@ -1,0 +1,56 @@
+<div class="page-head"><h1>{{ 'inv.nav.history' | t }}</h1></div>
+
+<div class="tabs">
+  <button type="button" [class.active]="tab() === 'movements'" (click)="tab.set('movements')">{{ 'inv.movements' | t }}</button>
+  <button type="button" [class.active]="tab() === 'batches'" (click)="tab.set('batches')">{{ 'inv.batches' | t }}</button>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <select [value]="warehouseId() ?? ''" (change)="pickWarehouse($event)">
+      <option value="">{{ 'inv.allWarehouses' | t }}</option>
+      @for (w of warehouses(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+    </select>
+
+    @if (tab() === 'movements') {
+      <select [value]="type() ?? ''" (change)="pickType($event)">
+        <option value="">{{ 'inv.allTypes' | t }}</option>
+        @for (t of types; track t) { <option [value]="t">{{ ('inv.type.' + t) | t }}</option> }
+      </select>
+      <input type="date" [value]="from() ?? ''" (change)="from.set($any($event.target).value || null); load()" dir="ltr" />
+      <input type="date" [value]="to() ?? ''" (change)="to.set($any($event.target).value || null); load()" dir="ltr" />
+    } @else {
+      <label class="switch"><input type="checkbox" [checked]="expiringOnly()" (change)="toggleExpiring($event)" /><span></span> {{ 'inv.expiringOnly' | t }}</label>
+    }
+  </div>
+
+  @if (loading()) { <p class="muted">{{ 'common.loading' | t }}</p> }
+  @else if (tab() === 'movements') {
+    <app-data-table [rows]="movements()" [columns]="movementColumns" [rowTemplate]="movementRow" />
+  } @else {
+    <app-data-table [rows]="batches()" [columns]="batchColumns" [rowTemplate]="batchRow" />
+  }
+</div>
+
+<ng-template #movementRow let-m>
+  <td dir="ltr">{{ m.createdAtUtc.slice(0, 16).replace('T', ' ') }}</td>
+  <td>{{ m.warehouseName }}</td>
+  <td><strong>{{ m.productName }}</strong><div class="muted small">{{ m.label }} · <code>{{ m.sku }}</code></div></td>
+  <td><span class="chip">{{ ('inv.type.' + m.type) | t }}</span></td>
+  <td dir="ltr" [class.text-bad]="m.quantity < 0"><strong>{{ m.quantity > 0 ? '+' : '' }}{{ m.quantity }}</strong></td>
+  <td dir="ltr">{{ m.balanceAfter }}</td>
+  <td dir="ltr">{{ m.unitCost }}</td>
+  <td dir="ltr">{{ m.batchNumber }}</td>
+  <td>{{ m.reference }}<div class="muted small">{{ m.note }}</div></td>
+  <td dir="ltr" class="small">{{ m.userName }}</td>
+</ng-template>
+
+<ng-template #batchRow let-b>
+  <td>{{ b.warehouseName }}</td>
+  <td><strong>{{ b.productName }}</strong><div class="muted small">{{ b.label }} · <code>{{ b.sku }}</code></div></td>
+  <td dir="ltr">{{ b.batchNumber }}</td>
+  <td dir="ltr">{{ b.receivedAtUtc.slice(0, 10) }}</td>
+  <td dir="ltr" [class.text-bad]="(b.daysToExpiry ?? 1) < 0">{{ b.expiryDate ? b.expiryDate.slice(0, 10) : '—' }}</td>
+  <td>{{ b.quantityRemaining }} / {{ b.quantityReceived }}</td>
+  <td dir="ltr">{{ b.unitCost }}</td>
+</ng-template>

@@ -1,0 +1,343 @@
+<div class="page-head">
+  <h1>{{ 'a.set.title' | t }}</h1>
+  <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || loading()">{{ (saving() ? 'a.saving' : 'a.save') | t }}</button>
+</div>
+<app-intro [text]="'a.set.intro' | t" />
+<div class="card help-switch">
+  <label class="switch"><input type="checkbox" [checked]="help.visible()" (change)="help.toggle()" /><span></span> {{ 'a.help.label' | t }}</label>
+  <span class="muted small">{{ 'a.help.hint' | t }}</span>
+</div>
+
+@if (loading()) {
+  <p class="muted">{{ 'common.loading' | t }}</p>
+} @else {
+  <div class="tabs">
+    @for (t of tabs; track t.id) {
+      <button type="button" class="tab" [class.on]="tab() === t.id" (click)="tab.set(t.id)">{{ t.label | t }}</button>
+    }
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <!-- ======================= appearance ======================= -->
+    @if (tab() === 'appearance') {
+      <!-- Ready colour schemes, each drawn as a small shop so you see what you get -->
+      <div class="card">
+        <h3><span class="wiz-no">1</span> {{ 'sch.title' | t }}</h3>
+        <p class="muted small">{{ 'sch.hint' | t }}</p>
+        <div class="scheme-grid">
+          @for (s of schemes; track s.id) {
+            <button type="button" class="scheme" [class.on]="isScheme(s)" (click)="chooseScheme(s)">
+              <span class="mock" [style.background]="s.theme.backgroundColor">
+                <span class="mock-bar" [style.background]="s.theme.darkColor"><i></i><i></i><i></i></span>
+                <span class="mock-hero" [style.background]="s.theme.darkColor"><b [style.background]="s.theme.primaryColor"></b></span>
+                <span class="mock-row">
+                  <span class="mock-card"><em [style.background]="s.theme.accentColor"></em><u></u><u></u></span>
+                  <span class="mock-card"><u></u><u></u></span>
+                  <span class="mock-card"><em [style.background]="s.theme.accentColor"></em><u></u><u></u></span>
+                </span>
+              </span>
+              <strong>{{ lang() === 'ar' ? s.ar : s.en }}</strong>
+              <span class="dots"><i [style.background]="s.theme.primaryColor"></i><i [style.background]="s.theme.accentColor"></i><i [style.background]="s.theme.darkColor"></i></span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="wiz-no">2</span> {{ 'a.set.colors' | t }}</h3>
+        <div class="toolbar">
+          <button type="button" class="btn btn-light btn-sm" (click)="shift(0.06)">{{ 'theme.lighter' | t }}</button>
+          <button type="button" class="btn btn-light btn-sm" (click)="shift(-0.06)">{{ 'theme.darker' | t }}</button>
+          <span class="muted small">{{ 'theme.manualHint' | t }}</span>
+        </div>
+
+        <div class="form-row">
+          @for (c of colorFields; track c.key) {
+            <div class="field">
+              <label>{{ c.label | t }}</label>
+              <div class="color-field">
+                <input type="color" [formControlName]="c.key" (input)="autoDerive = true; mainColorChanged()" />
+                <input dir="ltr" [formControlName]="c.key" maxlength="7" (input)="mainColorChanged()" />
+              </div>
+              @if (form.get(c.key)?.invalid) { <div class="error">{{ 'a.set.colorError' | t }}</div> }
+            </div>
+          }
+        </div>
+        <div class="hint-text">{{ 'theme.threeHint' | t }}</div>
+
+        <details class="advanced">
+          <summary>{{ 'theme.advanced' | t }}</summary>
+          <div class="form-row">
+            @for (c of advancedColorFields; track c.key) {
+              <div class="field">
+                <label>{{ c.label | t }}</label>
+                <div class="color-field">
+                  <input type="color" [formControlName]="c.key" (input)="autoDerive = false" />
+                  <input dir="ltr" [formControlName]="c.key" maxlength="7" (input)="autoDerive = false" />
+                </div>
+              </div>
+            }
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.fonts' | t }}</h3>
+        <div class="field">
+          <label>{{ 'a.set.headingFont' | t }}</label>
+          <div class="font-grid">
+            @for (f of fonts; track f.value) {
+              <button type="button" class="font-card" [class.on]="form.controls.headingFont.value === f.value" (click)="setFont('headingFont', f.value)">
+                <span class="font-sample" [style.font-family]="stack(f.value)">Aa أبجد</span>
+                <span class="font-name">{{ f.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="field">
+          <label>{{ 'a.set.bodyFont' | t }}</label>
+          <div class="font-grid">
+            @for (f of fonts; track f.value) {
+              <button type="button" class="font-card" [class.on]="form.controls.bodyFont.value === f.value" (click)="setFont('bodyFont', f.value)">
+                <span class="font-sample" [style.font-family]="stack(f.value)">Aa أبجد</span>
+                <span class="font-name">{{ f.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="field" style="max-width: 360px">
+          <label>{{ 'a.set.fontScale' | t }}: {{ form.controls.fontScale.value }}%</label>
+          <div class="range-row"><input type="range" min="85" max="125" step="5" formControlName="fontScale" /></div>
+        </div>
+      </div>
+
+      <!-- The cover under the header: one picture or a slider -->
+      <div class="card">
+        <h3>{{ 'hero.title' | t }}</h3>
+        <p class="muted small">{{ 'hero.ask' | t }}</p>
+        <div class="variant-row">
+          <button type="button" class="variant-card" [class.on]="form.controls.heroMode.value === 'image'" (click)="form.controls.heroMode.setValue('image')">
+            <strong>🖼 {{ 'hero.image' | t }}</strong><span class="muted small">{{ 'hero.imageHint' | t }}</span>
+          </button>
+          <button type="button" class="variant-card" [class.on]="form.controls.heroMode.value === 'slider'" (click)="form.controls.heroMode.setValue('slider')">
+            <strong>🎞 {{ 'hero.slider' | t }}</strong><span class="muted small">{{ 'hero.sliderHint' | t }}</span>
+          </button>
+        </div>
+
+        @if (form.controls.heroMode.value === 'slider') {
+          <div class="slides">
+            @for (sl of slides; track sl; let i = $index) {
+              <div class="slide-card">
+                <div class="slide-head">
+                  <span class="wiz-no">{{ i + 1 }}</span>
+                  <strong>{{ 'hero.slideN' | t: { n: i + 1 } }}</strong>
+                  <span class="slide-actions">
+                    <button type="button" class="btn btn-light btn-sm" [disabled]="i === 0" (click)="moveSlide(i, -1)">↑</button>
+                    <button type="button" class="btn btn-light btn-sm" [disabled]="i === slides.length - 1" (click)="moveSlide(i, 1)">↓</button>
+                    <button type="button" class="btn btn-danger btn-sm" (click)="removeSlide(i)">✕</button>
+                  </span>
+                </div>
+                <app-image-field [control]="sl.image" label="hero.slide" />
+
+                <!-- Its own text: English on the left, Arabic on the right -->
+                <div class="form-row" style="direction: ltr">
+                  <div class="field" dir="ltr"><label>{{ 'hero.slideTitle' | t }} (English)</label><input dir="ltr" [value]="sl.title['en']" (input)="sl.title['en'] = val($event)" /></div>
+                  <div class="field" dir="rtl"><label>{{ 'hero.slideTitle' | t }} (العربية)</label><input dir="rtl" [value]="sl.title['ar']" (input)="sl.title['ar'] = val($event)" /></div>
+                </div>
+                <div class="form-row" style="direction: ltr">
+                  <div class="field" dir="ltr"><label>{{ 'hero.slideSubtitle' | t }} (English)</label><input dir="ltr" [value]="sl.subtitle['en']" (input)="sl.subtitle['en'] = val($event)" /></div>
+                  <div class="field" dir="rtl"><label>{{ 'hero.slideSubtitle' | t }} (العربية)</label><input dir="rtl" [value]="sl.subtitle['ar']" (input)="sl.subtitle['ar'] = val($event)" /></div>
+                </div>
+                <div class="form-row" style="direction: ltr">
+                  <div class="field" dir="ltr"><label>{{ 'hero.slideButton' | t }} (English)</label><input dir="ltr" [value]="sl.buttonLabel['en']" (input)="sl.buttonLabel['en'] = val($event)" /></div>
+                  <div class="field" dir="rtl"><label>{{ 'hero.slideButton' | t }} (العربية)</label><input dir="rtl" [value]="sl.buttonLabel['ar']" (input)="sl.buttonLabel['ar'] = val($event)" /></div>
+                  <div class="field" dir="ltr"><label>{{ 'hero.slideLink' | t }}</label><input dir="ltr" placeholder="/products" [value]="sl.buttonUrl" (input)="sl.buttonUrl = val($event)" /></div>
+                </div>
+                <div class="hint-text">{{ 'hero.slideEmpty' | t }}</div>
+              </div>
+            }
+            <button type="button" class="btn btn-light" [disabled]="slides.length >= 10" (click)="addSlide()">+ {{ 'hero.addSlide' | t }}</button>
+          </div>
+        } @else {
+          <p class="muted small">{{ 'hero.imageNote' | t }}</p>
+        }
+      </div>
+
+      <!-- Opening screen, buttons, reviews -->
+      <div class="card">
+        <h3>{{ 'site.openingTitle' | t }}</h3>
+        <label class="switch"><input type="checkbox" formControlName="splashEnabled" /><span></span> {{ 'site.splashOn' | t }}</label>
+        <div class="hint-text">{{ 'site.splashHint' | t }}</div>
+        @if (form.controls.splashEnabled.value) {
+          <div class="field" style="max-width: 220px; margin-top: .8rem">
+            <label>{{ 'site.splashSeconds' | t }}</label>
+            <input type="number" min="1" max="10" dir="ltr" formControlName="splashSeconds" />
+          </div>
+        }
+        <hr class="soft" />
+        <label class="switch"><input type="checkbox" formControlName="reviewsEnabled" /><span></span> {{ 'site.reviewsOn' | t }}</label><br />
+        @if (form.controls.reviewsEnabled.value) {
+          <label class="switch"><input type="checkbox" formControlName="reviewsAutoApprove" /><span></span> {{ 'site.reviewsAuto' | t }}</label>
+          <div class="hint-text">{{ 'site.reviewsHint' | t }}</div>
+        }
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.shape' | t }}</h3>
+        <div class="form-row">
+          <div class="field">
+            <label>{{ 'a.set.radius' | t }}: {{ form.controls.borderRadius.value }}px</label>
+            <div class="range-row"><input type="range" min="0" max="40" formControlName="borderRadius" /></div>
+          </div>
+        </div>
+
+        <div class="toggle-item" style="margin-bottom: 1rem; max-width: 420px">
+          <label class="switch"><input type="checkbox" formControlName="enableAnimations" /><span></span> {{ 'a.set.animations' | t }}</label>
+        </div>
+
+        <app-image-field [control]="form.controls.faviconUrl" label="a.set.favicon" />
+        <p class="hint-text" style="margin-top: -.5rem">{{ 'a.set.faviconHint' | t }}</p>
+
+        <label>{{ 'a.set.preview' | t }}</label>
+        <div class="theme-preview"
+             [style.background]="form.controls.backgroundColor.value"
+             [style.color]="form.controls.textColor.value"
+             [style.border-radius.px]="form.controls.borderRadius.value"
+             [style.font-family]="stack(form.controls.bodyFont.value)">
+          <h3 [style.font-family]="stack(form.controls.headingFont.value)">{{ 'a.set.previewTitle' | t }}</h3>
+          <p>{{ 'a.set.previewText' | t }}</p>
+          <span class="btn" [style.background]="form.controls.primaryColor.value" [style.border-radius.px]="form.controls.borderRadius.value * 0.7">{{ 'cart.add' | t }}</span>
+          <span class="btn" style="margin-inline-start: .6rem" [style.background]="form.controls.darkColor.value" [style.border-radius.px]="form.controls.borderRadius.value * 0.7">{{ 'home.cta' | t }}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.defaultTheme' | t }}</h3>
+        <p class="muted small">{{ 'a.set.defaultThemeHint' | t }}</p>
+
+        @if (savedDefault(); as d) {
+          <div class="default-theme">
+            <span class="dots"><i [style.background]="d.primaryColor"></i><i [style.background]="d.darkColor"></i><i [style.background]="d.backgroundColor"></i></span>
+            <span>{{ 'a.set.defaultSaved' | t }} · {{ d.headingFont }} / {{ d.bodyFont }}</span>
+          </div>
+        } @else {
+          <p class="muted small">{{ 'a.set.defaultNone' | t }}</p>
+        }
+
+        <div class="row">
+          <button type="button" class="btn btn-primary" (click)="saveAsDefault()">{{ 'a.set.saveDefault' | t }}</button>
+          <button type="button" class="btn btn-light" [disabled]="!savedDefault()" (click)="restoreDefault()">{{ 'a.set.restoreDefault' | t }}</button>
+        </div>
+      </div>
+    }
+
+    <!-- ======================= header & footer ======================= -->
+    @if (tab() === 'chrome') {
+      <div class="card">
+        <h3>{{ 'a.set.header' | t }}</h3>
+        <div class="toggle-grid">
+          @for (t of headerToggles; track t.key) {
+            <div class="toggle-item"><label class="switch"><input type="checkbox" [formControlName]="t.key" /><span></span> {{ t.label | t }}</label></div>
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.footer' | t }}</h3>
+        <div class="toggle-grid">
+          @for (t of footerToggles; track t.key) {
+            <div class="toggle-item"><label class="switch"><input type="checkbox" [formControlName]="t.key" /><span></span> {{ t.label | t }}</label></div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ======================= catalog ======================= -->
+    @if (tab() === 'catalog') {
+      <div class="card">
+        <h3>{{ 'a.set.codes' | t }}</h3>
+        <div class="field narrow-field" style="max-width: 200px">
+          <label>{{ 'a.set.skuPrefix' | t }}</label>
+          <input dir="ltr" maxlength="10" formControlName="skuPrefix" />
+          @if (form.controls.skuPrefix.invalid) { <div class="error">{{ 'a.set.skuPrefixError' | t }}</div> }
+        </div>
+        <p class="muted small">{{ 'a.set.skuHint' | t: { prefix: (form.controls.skuPrefix.value || 'VLT').toUpperCase() } }}</p>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.stockTitle' | t }}</h3>
+        <div class="field narrow-field" style="max-width: 200px">
+          <label>{{ 'a.set.lowStock' | t }}</label>
+          <input type="number" min="0" dir="ltr" formControlName="defaultLowStockThreshold" />
+        </div>
+        <p class="muted small">{{ 'a.set.lowStockHint' | t }}</p>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.shippingTitle' | t }}</h3>
+        <div class="field narrow-field" style="max-width: 200px">
+          <label>{{ 'a.set.shippingFee' | t }}</label>
+          <input type="number" min="0" step="any" dir="ltr" formControlName="shippingFee" />
+        </div>
+        <p class="muted small">{{ 'a.set.shippingHint' | t }}</p>
+      </div>
+    }
+
+    <!-- ======================= email ======================= -->
+    @if (tab() === 'email') {
+      <div class="card">
+        <h3>{{ 'a.set.email' | t }}</h3>
+        <p class="muted small">{{ 'a.set.emailHint' | t }}</p>
+
+        <label class="switch"><input type="checkbox" formControlName="emailEnabled" /><span></span> {{ 'a.set.emailEnabled' | t }}</label>
+
+        <div class="form-row" style="margin-top: 1rem">
+          <div class="field"><label>{{ 'a.set.smtpHost' | t }}</label><input dir="ltr" formControlName="smtpHost" placeholder="smtp.gmail.com" /></div>
+          <div class="field narrow-field"><label>{{ 'a.set.smtpPort' | t }}</label><input type="number" formControlName="smtpPort" /></div>
+          <div class="field"><label>&nbsp;</label><label class="switch"><input type="checkbox" formControlName="smtpUseSsl" /><span></span> SSL / TLS</label></div>
+        </div>
+        <div class="field">
+          <label class="switch"><input type="checkbox" formControlName="smtpAcceptAnyCertificate" /><span></span> {{ 'a.set.acceptCert' | t }}</label>
+          <div class="hint-text">{{ 'a.set.acceptCertHint' | t }}</div>
+        </div>
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'a.set.smtpUser' | t }}</label><input dir="ltr" formControlName="smtpUser" autocomplete="off" /></div>
+          <div class="field">
+            <label>{{ 'a.set.smtpPassword' | t }}</label>
+            <input type="password" dir="ltr" formControlName="smtpPassword" autocomplete="new-password"
+                   [placeholder]="hasPassword() ? ('a.set.passwordKeep' | t) : ''" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field"><label>{{ 'a.set.fromEmail' | t }}</label><input type="email" dir="ltr" formControlName="mailFromEmail" /></div>
+          <div class="field"><label>{{ 'a.set.fromName' | t }}</label><input formControlName="mailFromName" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.notifications' | t }}</h3>
+        <div class="field">
+          <label>{{ 'a.set.notifyEmail' | t }}</label>
+          <input type="email" dir="ltr" formControlName="notifyEmail" />
+        </div>
+        <div class="row" style="gap: 2rem">
+          <label class="switch"><input type="checkbox" formControlName="notifyOnInquiry" /><span></span> {{ 'a.set.notifyOnInquiry' | t }}</label>
+          <label class="switch"><input type="checkbox" formControlName="sendAutoReply" /><span></span> {{ 'a.set.autoReply' | t }}</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>{{ 'a.set.testEmail' | t }}</h3>
+        <div class="row">
+          <input class="grow" style="max-width: 340px" type="email" dir="ltr" [value]="testTo()" (input)="testTo.set($any($event.target).value)" placeholder="you@example.com" />
+          <button type="button" class="btn btn-light" (click)="sendTest()" [disabled]="testing() || !testTo()">{{ (testing() ? 'a.set.sending' : 'a.set.sendTest') | t }}</button>
+        </div>
+        <p class="muted small">{{ 'a.set.testHint' | t }}</p>
+      </div>
+    }
+  </form>
+}
